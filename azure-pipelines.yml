@@ -2,7 +2,7 @@ jobs:
   - job: Build
     displayName: 'Build Project'
     pool:
-      vmImage: 'Default'
+      name: 'Default'
     steps:
       - script: dotnet restore $(projectName).sln
         displayName: 'Restore NuGet Packages'
@@ -14,7 +14,7 @@ jobs:
     displayName: 'Pack NuGet Package'
     dependsOn: Build  # This job will run only after the Build job completes
     pool:
-      vmImage: 'Default'
+      name: 'Default'
     steps:
       - script: dotnet pack $(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory)
         displayName: 'Create NuGet Package'
@@ -23,7 +23,7 @@ jobs:
     displayName: 'Publish NuGet Package'
     dependsOn: Pack  # This job will run only after the Pack job completes
     pool:
-      vmImage: 'Default'
+      name: 'Default'
     steps:
       - task: NuGetAuthenticate@1
         inputs:
