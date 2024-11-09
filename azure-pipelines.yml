@@ -12,45 +12,50 @@ variables:
   nugetSource: 'https://api.nuget.org/v3/index.json'  # NuGet.org Feed
   nugetApiKey: $(NuGetApiKey)  # Ensure this secret is defined in Azure DevOps
 
-steps:
-  # Step 1: Use .NET Core SDK
-  - task: UseDotNet@2
-    inputs:
-      packageType: 'sdk'
-      version: '8.x'
-      installationPath: $(Agent.ToolsDirectory)/dotnet
+jobs:
+  - job: BuildAndPublish
+    displayName: 'Build, Test, and Publish'
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+      # Step 1: Use .NET Core SDK
+      - task: UseDotNet@2
+        inputs:
+          packageType: 'sdk'
+          version: '8.x'
+          installationPath: $(Agent.ToolsDirectory)/dotnet
 
-  # Step 2: Install NuGet Tool
-  - task: NuGetToolInstaller@1
+      # Step 2: Install NuGet Tool
+      - task: NuGetToolInstaller@1
 
-  # Step 3: Restore Dependencies
-  - script: dotnet restore $(projectName).sln
-    displayName: 'Restore NuGet Packages'
+      # Step 3: Restore Dependencies
+      - script: dotnet restore $(projectName).sln
+        displayName: 'Restore NuGet Packages'
 
-  # Step 4: Build the Project
-  - script: dotnet build $(projectName).sln --configuration $(buildConfiguration) --no-restore
-    displayName: 'Build Project'
+      # Step 4: Build the Project
+      - script: dotnet build $(projectName).sln --configuration $(buildConfiguration) --no-restore
+        displayName: 'Build Project'
 
-  # Step 5: Run Unit Tests (Optional)
-  #- script: dotnet test $(projectName).sln --configuration $(buildConfiguration) --no-build --logger trx
-  #  displayName: 'Run Unit Tests'
+      # Step 5: Run Unit Tests (Optional)
+      #- script: dotnet test $(projectName).sln --configuration $(buildConfiguration) --no-build --logger trx
+      #  displayName: 'Run Unit Tests'
 
-  # Step 6: Pack the NuGet Package
-  - script: dotnet pack $(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory)
-    displayName: 'Create NuGet Package'
+      # Step 6: Pack the NuGet Package
+      - script: dotnet pack $(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory)
+        displayName: 'Create NuGet Package'
 
-  # Step 7: Authenticate with NuGet.org
-  - task: NuGetAuthenticate@1
-    inputs:
-      nuGetServiceConnections: 'NuGetOrgConnection'  # Create this connection in Azure DevOps
+      # Step 7: Authenticate with NuGet.org
+      - task: NuGetAuthenticate@1
+        inputs:
+          nuGetServiceConnections: 'NuGetOrgConnection'  # Create this connection in Azure DevOps
 
-  # Step 8: Publish the NuGet Package to NuGet.org
-  - task: NuGetCommand@2
-    inputs:
-      command: 'push'
-      packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
-      publishVstsFeed: false
-      nuGetFeedType: 'external'
-      publishPackageUrl: $(nugetSource)
-      apiKey: $(nugetApiKey)  # This API Key is for NuGet.org
-    displayName: 'Publish NuGet Package to NuGet.org'
+      # Step 8: Publish the NuGet Package to NuGet.org
+      - task: NuGetCommand@2
+        inputs:
+          command: 'push'
+          packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
+          publishVstsFeed: false
+          nuGetFeedType: 'external'
+          publishPackageUrl: $(nugetSource)
+          apiKey: $(nugetApiKey)  # This API Key is for NuGet.org
+        displayName: 'Publish NuGet Package to NuGet.org'
