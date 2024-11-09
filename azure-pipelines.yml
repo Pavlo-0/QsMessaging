@@ -58,7 +58,8 @@ jobs:
           packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
           publishVstsFeed: false
           nuGetFeedType: 'external'
-          publishPackageUrl: $(nugetSource)
+          #publishPackageUrl: $(nugetSource)
+          externalFeedUrl: $(nugetSource)
           apiKey: $(nugetApiKey)  # This API Key is for NuGet.org
         displayName: 'Publish NuGet Package to NuGet.org'
 
