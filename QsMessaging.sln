@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35327.3
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsMessaging", "QsMessaging\QsMessaging.csproj", "{725F3383-4E94-4BB6-8DCA-B75FCAD4D0A5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QsMessaging", "QsMessaging\QsMessaging.csproj", "{725F3383-4E94-4BB6-8DCA-B75FCAD4D0A5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsMessagingUnitTests", "QsMessagingUnitTests\QsMessagingUnitTests.csproj", "{D2018F7A-3ED6-462B-9DCB-55FD682BA5BF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{725F3383-4E94-4BB6-8DCA-B75FCAD4D0A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{725F3383-4E94-4BB6-8DCA-B75FCAD4D0A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{725F3383-4E94-4BB6-8DCA-B75FCAD4D0A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D2018F7A-3ED6-462B-9DCB-55FD682BA5BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2018F7A-3ED6-462B-9DCB-55FD682BA5BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2018F7A-3ED6-462B-9DCB-55FD682BA5BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2018F7A-3ED6-462B-9DCB-55FD682BA5BF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
