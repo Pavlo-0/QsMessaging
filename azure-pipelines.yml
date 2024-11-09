@@ -9,8 +9,8 @@ pool:
 variables:
   buildConfiguration: 'Release'
   projectName: 'QsMessaging'
-  nugetSource: 'https://nuget.pkg.github.com/Pavlo-0/index.json'
-  nugetApiKey: $(GitHubToken)
+  nugetSource: 'https://api.nuget.org/v3/index.json'  # NuGet.org Feed
+  nugetApiKey: $(NuGetApiKey)  # Ensure this secret is defined in Azure DevOps
 
 steps:
   # Step 1: Use .NET Core 8 SDK
@@ -39,12 +39,12 @@ steps:
   - script: dotnet pack $(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory)
     displayName: 'Create NuGet Package'
 
-  # Step 7: Authenticate with GitHub Packages
+  # Step 7: Authenticate with NuGet.org
   - task: NuGetAuthenticate@1
     inputs:
-      nuGetServiceConnections: 'GitHubServiceConnection'
+      nuGetServiceConnections: 'NuGetOrgConnection'  # Create this connection in Azure DevOps
 
-  # Step 8: Publish the NuGet Package
+  # Step 8: Publish the NuGet Package to NuGet.org
   - task: NuGetCommand@2
     inputs:
       command: 'push'
@@ -52,5 +52,5 @@ steps:
       publishVstsFeed: false
       nuGetFeedType: 'external'
       publishPackageUrl: $(nugetSource)
-      apiKey: $(nugetApiKey)
-    displayName: 'Publish NuGet Package to GitHub Packages'
+      apiKey: $(nugetApiKey)  # This API Key is for NuGet.org
+    displayName: 'Publish NuGet Package to NuGet.org'
