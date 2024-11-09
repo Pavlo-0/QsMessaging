@@ -13,7 +13,7 @@ variables:
   nugetApiKey: $(NuGetApiKey)  # Ensure this secret is defined in Azure DevOps
 
 steps:
-  # Step 1: Use .NET Core 8 SDK
+  # Step 1: Use .NET Core SDK
   - task: UseDotNet@2
     inputs:
       packageType: 'sdk'
