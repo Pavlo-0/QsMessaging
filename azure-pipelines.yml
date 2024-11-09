@@ -16,7 +16,7 @@ jobs:
   - job: BuildAndPublish
     displayName: 'Build, Test, and Publish'
     pool:
-      vmImage: 'windows-latest'
+      name: 'Default'
 
     steps:
       # Step 1: Use .NET Core SDK
