@@ -46,6 +46,10 @@ jobs:
       - script: dotnet pack $(solutionName)/$(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory)
         displayName: 'Create NuGet Package'
 
+      # Step 7: Push pack
+      - script: dotnet nuget push **/*.nupkg --api-key $(nugetApiKey) --source https://api.nuget.org/v3/index.json
+        displayName: 'Push NuGet Package'
+
       # Step 7: Authenticate with NuGet.org
       - task: NuGetAuthenticate@1
         inputs:
