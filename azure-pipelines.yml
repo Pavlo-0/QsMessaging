@@ -9,6 +9,7 @@ pool:
 variables:
   buildConfiguration: 'Release'
   projectName: 'QsMessaging'
+  solutionName: 'QsMessaging'
   nugetSource: 'https://api.nuget.org/v3/index.json'  # NuGet.org Feed
   nugetApiKey: $(NuGetApiKey)  # Ensure this secret is defined in Azure DevOps
 
@@ -42,7 +43,7 @@ jobs:
       #  displayName: 'Run Unit Tests'
 
       # Step 6: Pack the NuGet Package
-      - script: dotnet pack $(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory)
+      - script: dotnet pack $(solutionName)/$(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory)
         displayName: 'Create NuGet Package'
 
       # Step 7: Authenticate with NuGet.org
