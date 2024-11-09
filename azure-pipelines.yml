@@ -43,7 +43,7 @@ jobs:
       #  displayName: 'Run Unit Tests'
 
       # Step 6: Pack the NuGet Package
-      - script: dotnet pack $(solutionName)/$(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory) --version $(Build.BuildId)
+      - script: dotnet pack $(solutionName)/$(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory) --version '$(Build.BuildId)'
         displayName: 'Create NuGet Package'
 
       # Step 7: Push pack
@@ -51,19 +51,19 @@ jobs:
         displayName: 'Push NuGet Package'
 
       # Step 7: Authenticate with NuGet.org
-      - task: NuGetAuthenticate@1
-        inputs:
-          nuGetServiceConnections: 'NuGetOrgConnection'  # Create this connection in Azure DevOps
+#      - task: NuGetAuthenticate@1
+#        inputs:
+#          nuGetServiceConnections: 'NuGetOrgConnection'  # Create this connection in Azure DevOps
 
       # Step 8: Publish the NuGet Package to NuGet.org
-      - task: NuGetCommand@2
-        inputs:
-          command: 'push'
-          packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
-          publishVstsFeed: false
-          nuGetFeedType: 'external'
+#      - task: NuGetCommand@2
+#        inputs:
+#          command: 'push'
+#          packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
+ #         publishVstsFeed: false
+ #         nuGetFeedType: 'external'
           #publishPackageUrl: $(nugetSource)
-          externalFeedUrl: $(nugetSource)
-          apiKey: $(nugetApiKey)  # This API Key is for NuGet.org
-        displayName: 'Publish NuGet Package to NuGet.org'
+ #         externalFeedUrl: $(nugetSource)
+ #         apiKey: $(nugetApiKey)  # This API Key is for NuGet.org
+ #       displayName: 'Publish NuGet Package to NuGet.org'
 
