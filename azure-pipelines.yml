@@ -43,7 +43,7 @@ jobs:
       #  displayName: 'Run Unit Tests'
 
       # Step 6: Pack the NuGet Package
-      - script: dotnet pack $(solutionName)/$(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory)
+      - script: dotnet pack $(solutionName)/$(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory) --version $(Build.BuildId)
         displayName: 'Create NuGet Package'
 
       # Step 7: Push pack
