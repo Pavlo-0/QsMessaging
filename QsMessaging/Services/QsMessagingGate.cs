@@ -1,5 +1,5 @@
 ﻿using QsMessaging.Public;
-using QsMessaging.Services.Interfaces;
+using QsMessaging.RabbitMq.Services.Interfaces;
 
 namespace QsMessaging.Services
 {
