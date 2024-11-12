@@ -1,4 +1,5 @@
-﻿using QsMessaging.RabbitMq.Services.Interfaces;
+﻿using QsMessaging.RabbitMq.Interface;
+using QsMessaging.RabbitMq.Services.Interfaces;
 using QsMessaging.Services.Interfaces;
 using RabbitMQ.Client;
 using System.Text;
@@ -12,14 +13,10 @@ namespace QsMessaging.RabbitMq.Services
     {
         public async Task<bool> SendMessageAsync<TMessage>(TMessage model)
         {
-           
-
-            var connection = await rabbitMqConnectionStorage.GetConnectionAsync();
-            // Create a channel within the connection
-            using var channel = await connection.CreateChannelAsync();
+            var (connection, channel) = await rabbitMqConnectionStorage.GetConnectionAsync();
 
             // Declare an exchange of type 'fanout'
-            string exchangeName = exchangeNameGenerator.GetNameFromType<TMessage>();
+            string exchangeName = exchangeNameGenerator.GetExchangeNameFromType<TMessage>();
             await channel.ExchangeDeclareAsync(
                 exchange: exchangeName,
                 type: ExchangeType.Fanout,

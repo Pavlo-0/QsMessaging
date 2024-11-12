@@ -29,6 +29,8 @@ namespace MessagesEventsInstance1
                     MyTextMessage = "Text Text Text Text Text Text Text Text "
                 });
 
+                Console.WriteLine("Message has been sent");
+
 
                 await Task.Delay(1000 * 5, stoppingToken);
             }

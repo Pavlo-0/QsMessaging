@@ -1,22 +1,34 @@
 ﻿using QsMessaging.Public;
+using QsMessaging.RabbitMq.Interface;
 using RabbitMQ.Client;
+using System.Threading.Channels;
 
 namespace QsMessaging.RabbitMq
 {
     internal class RabbitMqConnectionStorage(QsMessagingConfiguration configuration) : IRabbitMqConnectionStorage
     {
         private IConnection _connection;
+        private IChannel _channel;
 
-        public async Task<IConnection> GetConnectionAsync(CancellationToken cancellationToken = default)
+        public async Task<(IConnection connection, IChannel chanel)> GetConnectionAsync(CancellationToken cancellationToken = default)
         {
-            while (_connection == null || !_connection.IsOpen)
+            var attempt = 0;
+            if (_connection != null && _connection.IsOpen && _channel != null && _channel.IsOpen)
             {
-                _connection = await CreateConnectionAsync();
-                //TODO: Implement logariphmick waiting strategy
-                await Task.Delay(1000).WaitAsync(cancellationToken);
+                return (_connection, _channel);
             }
 
-            return _connection;
+            do
+            {
+                _connection = await CreateConnectionAsync();
+                _channel = await _connection.CreateChannelAsync();
+                //TODO: Implement logariphmick waiting strategy
+                await Task.Delay(attempt + 1000).WaitAsync(cancellationToken);
+                attempt++;
+            }
+            while (!(_connection != null && _connection.IsOpen && _channel != null && _channel.IsOpen));
+
+            return (_connection, _channel);
         }
 
         private async Task<IConnection> CreateConnectionAsync()

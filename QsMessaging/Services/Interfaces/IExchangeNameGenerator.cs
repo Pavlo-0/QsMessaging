@@ -2,17 +2,12 @@
 {
     internal interface IExchangeNameGenerator
     {
-        string GetNameFromType<TModel>();
+        string GetExchangeNameFromType<TModel>();
+
+        string GetExchangeNameFromType(Type TModel);
+
+        string GetQueueNameFromType(Type TModel);
+
+        string GetQueueTemporaryNameFromType(Type TModel);
     }
-
-    internal class ExchangeNameGenerator : IExchangeNameGenerator
-    {
-        public string GetNameFromType<TModel>()
-        {
-            //Add prefix to the string to make it more unique
-
-            return "ex_" + typeof(TModel).FullName;
-        }
-    }
-
 }

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Worker">
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -13,5 +13,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\QsMessaging\QsMessaging.csproj" />
+    <ProjectReference Include="..\Contract\Contract.csproj" />
   </ItemGroup>
 </Project>
