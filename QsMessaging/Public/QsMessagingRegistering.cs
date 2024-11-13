@@ -5,8 +5,6 @@ using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Interface;
 using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Services.Interfaces;
-using QsMessaging.Services;
-using QsMessaging.Services.Interfaces;
 using System.Collections.Concurrent;
 using System.Reflection;
 
@@ -24,8 +22,9 @@ namespace QsMessaging.Public
             options(configuration);
 
             services.AddTransient<IQsMessaging, QsMessagingGate>();
-            services.AddTransient<IRabbitMqSender, RabbitMqSender>();
+            services.AddTransient<IRabbitMqSender, Sender>();
             services.AddTransient<IExchangeNameGenerator, ExchangeNameGenerator>();
+            services.AddTransient<IQueuesGenerator, QueuesGenerator>();
 
             services.AddSingleton<IRabbitMqConnectionStorage>(sp =>
             {

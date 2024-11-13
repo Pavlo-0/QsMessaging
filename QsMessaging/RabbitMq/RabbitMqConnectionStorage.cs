@@ -1,7 +1,6 @@
 ﻿using QsMessaging.Public;
 using QsMessaging.RabbitMq.Interface;
 using RabbitMQ.Client;
-using System.Threading.Channels;
 
 namespace QsMessaging.RabbitMq
 {

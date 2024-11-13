@@ -6,16 +6,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using QsMessaging.RabbitMq.Interface;
-using QsMessaging.Services.Interfaces;
 using QsMessaging.Public.Handler;
 using Microsoft.Extensions.DependencyInjection;
+using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.RabbitMq.Services;
 
 namespace QsMessaging.RabbitMq
 {
     internal class RabbitMqSubscriber(
         IServiceProvider services,
         IRabbitMqConnectionStorage connectionStorage,
-        IExchangeNameGenerator exchangeNameGenerator) : IRabbitMqSubscriber
+        IExchangeNameGenerator exchangeNameGenerator,
+        IQueuesGenerator queuesGenerator) : IRabbitMqSubscriber
     {
         public async Task SubscribeAsync(Type interfaceType, Type handlerType, Type genericHandlerType)
         {
@@ -24,9 +26,7 @@ namespace QsMessaging.RabbitMq
             var exchangeName = exchangeNameGenerator.GetExchangeNameFromType(genericHandlerType);
             var queueName = exchangeNameGenerator.GetQueueNameFromType(handlerType);
 
-            // await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Fanout);
-
-            QueueDeclareOk queueDeclareResult = await channel.QueueDeclareAsync(queueName, true, false, false);
+            await queuesGenerator.CreateQueues(channel, exchangeName);
 
             // declare a server-named queue
             await channel.QueueBindAsync(queue: queueName, exchange: exchangeName, routingKey: string.Empty);
@@ -50,7 +50,7 @@ namespace QsMessaging.RabbitMq
                 var consumeMethod = handlerType.GetMethod(nameof(IQsMessageHandler<object>.Consumer));
                 if (consumeMethod != null)
                 {
-                    var result = await (Task<bool>)consumeMethod.Invoke(handlerInstance, [modelInstance]);
+                    var result = await (Task<bool>)consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
                     Console.WriteLine($" [x] {result}");
                 }
             };

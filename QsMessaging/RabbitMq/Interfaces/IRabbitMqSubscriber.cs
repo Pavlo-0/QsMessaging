@@ -1,5 +1,4 @@
-﻿
-namespace QsMessaging.RabbitMq
+﻿namespace QsMessaging.RabbitMq.Interface
 {
     internal interface IRabbitMqSubscriber
     {

@@ -1,13 +1,14 @@
 ﻿using QsMessaging.Public;
 using QsMessaging.RabbitMq.Services.Interfaces;
+using System.Reflection;
 
-namespace QsMessaging.Services
+namespace QsMessaging
 {
     internal class QsMessagingGate(IRabbitMqSender rabbitMqSender) : IQsMessaging
     {
-        public Task<bool> SendEventAsync<TEvent>(TEvent Model)
+        public Task<bool> SendEventAsync<TEvent>(TEvent model)
         {
-            throw new NotImplementedException();
+            return rabbitMqSender.SendEventAsync(model);
         }
 
         public Task<bool> SendMessageAsync<TMessage>(TMessage model)

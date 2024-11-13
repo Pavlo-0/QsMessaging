@@ -1,4 +1,4 @@
-﻿namespace QsMessaging.Services.Interfaces
+﻿namespace QsMessaging.RabbitMq.Interface
 {
     internal interface IExchangeNameGenerator
     {
