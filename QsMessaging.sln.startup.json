@@ -57,6 +57,12 @@
         "MessagesEventsInstance1": {},
         "MessagesEventsInstance2": {}
       }
+    },
+    "IntegrationTest": {
+      "Projects": {
+        "ArrangeInstance01": {},
+        "AssertInstance01": {}
+      }
     }
   }
 }

@@ -49,7 +49,6 @@ namespace QsMessaging.Public
 
             RegisterMessageHandlers(services, assembly);
             RegisterEventHandlers(services, assembly);
-
             return services;
         }
 
@@ -59,18 +58,15 @@ namespace QsMessaging.Public
             var connection = connectionStorage.GetConnectionAsync();
 
             var subscriber = host.Services.GetRequiredService<ISubscriber>();
-
             foreach (var record in _MessageHandlersStore)
             {
                 await subscriber.SubscribeMessageHandlerAsync(record.ConcreteHandlerInterfaceType, record.HandlerType, record.GenericType);
             }
 
-
             foreach (var record in _EventHandlersStore)
             {
                 await subscriber.SubscribeEventHandlerAsync(record.ConcreteHandlerInterfaceType, record.HandlerType, record.GenericType);
             }
-
 
             await connection;
 
