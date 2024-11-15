@@ -1,13 +1,11 @@
 ﻿namespace QsMessaging.RabbitMq.Interface
 {
-    internal interface IExchangeNameGenerator
+    internal interface INameGenerator
     {
         string GetExchangeNameFromType<TModel>();
 
         string GetExchangeNameFromType(Type TModel);
 
-        string GetQueueNameFromType(Type TModel);
-
-        string GetQueueTemporaryNameFromType(Type TModel);
+        string GetQueueNameFromType(Type TModel, QueueType queueType);
     }
 }

@@ -26,10 +26,15 @@ namespace MessagesEventsInstance1
 
                 await _qsMessaging.SendMessageAsync(new RegularMessageContract
                 {
-                    MyTextMessage = "Text Text Text Text Text Text Text Text "
+                    MyTextMessage = "My message."
                 });
 
-                Console.WriteLine("Message has been sent");
+                await _qsMessaging.SendEventAsync(new RegularEventContract
+                {
+                    MyTextEvent = "My event."
+                });
+
+                Console.WriteLine("Message& event has been sent");
 
 
                 await Task.Delay(1000 * 5, stoppingToken);

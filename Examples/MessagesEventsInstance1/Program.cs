@@ -31,8 +31,8 @@ namespace MessagesEventsInstance1
     }
     public class RabbitMQSettings
     {
-        public string Host { get; set; }
-        public string UserName { get; set; }
-        public string Password { get; set; }
+        public string Host { get; set; } = "localhost";
+        public string UserName { get; set; } = "guest"; // Default RabbitMQ user
+        public string Password { get; set; } = "guest"; // Default RabbitMQ password
     }
 }

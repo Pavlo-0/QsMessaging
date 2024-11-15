@@ -7,10 +7,10 @@ namespace MessagesEventsInstance2.Handler
     {
         public Task<bool> Consumer(RegularMessageContract contractModel)
         {
-            Console.WriteLine("RegularMessageContractHandler");
+            Console.WriteLine("Message: RegularMessageContractHandler");
             Console.WriteLine(contractModel.MyTextMessage);
             return Task.FromResult(true);
         }
     }
-    
+
 }

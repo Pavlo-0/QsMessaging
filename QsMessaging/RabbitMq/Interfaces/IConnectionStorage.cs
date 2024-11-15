@@ -2,7 +2,7 @@
 
 namespace QsMessaging.RabbitMq.Interface
 {
-    internal interface IRabbitMqConnectionStorage
+    internal interface IConnectionStorage
     {
         Task<(IConnection connection, IChannel chanel)> GetConnectionAsync(CancellationToken cancellationToken = default);
     }

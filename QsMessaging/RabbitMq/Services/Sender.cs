@@ -7,9 +7,8 @@ using System.Text.Json;
 namespace QsMessaging.RabbitMq.Services
 {
     internal class Sender(
-        IRabbitMqConnectionStorage rabbitMqConnectionStorage, 
-        IExchangeNameGenerator exchangeNameGenerator,
-        IQueuesGenerator queuesGenerator) : IRabbitMqSender
+        IConnectionStorage rabbitMqConnectionStorage, 
+        IExchangeGenerator queuesGenerator) : IRabbitMqSender
     {
         public async Task<bool> SendMessageAsync<TMessage>(TMessage model)
         {
@@ -28,14 +27,12 @@ namespace QsMessaging.RabbitMq.Services
 
         private async Task<bool> Send<TM>(TM model, BasicProperties props, MessageTypeEnum type)
         {
+            if (model == null)
+                throw new ArgumentNullException(nameof(model), "You can not send NULL data. You model is null");
+
             var (connection, channel) = await rabbitMqConnectionStorage.GetConnectionAsync();
 
-            // Declare an exchange of type 'fanout'
-            string exchangeName = exchangeNameGenerator.GetExchangeNameFromType<TM>();
-
-            await queuesGenerator.CreateQueues(channel, exchangeName);
-
-            
+            string exchangeName = await queuesGenerator.CreateExchange(channel, model.GetType());
 
             var jsonMessage = JsonSerializer.Serialize(model);
             var body = Encoding.UTF8.GetBytes(jsonMessage);

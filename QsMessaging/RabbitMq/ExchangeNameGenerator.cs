@@ -2,7 +2,7 @@
 
 namespace QsMessaging.RabbitMq
 {
-    internal class ExchangeNameGenerator : IExchangeNameGenerator
+    internal class NameGenerator : INameGenerator
     {
         public string GetExchangeNameFromType<TModel>()
         {
@@ -14,14 +14,19 @@ namespace QsMessaging.RabbitMq
             return GenerateName(TModel);
         }
 
-        public string GetQueueNameFromType(Type TModel)
+        public string GetQueueNameFromType(Type TModel, QueueType queueType)
         {
-            return $"permanent_{GenerateName(TModel)}";
-        }
+            string banseQueueName = $"q_{TModel.FullName}";
 
-        public string GetQueueTemporaryNameFromType(Type TModel)
-        {
-            return $"temporary_{GenerateName(TModel)}_{Guid.NewGuid().ToString("N")}";
+            switch (queueType)
+            {
+                case QueueType.Permanent:
+                        return $"{banseQueueName}:permanent";
+                case QueueType.Temporary:
+                    return $"{banseQueueName}:{Guid.NewGuid().ToString("N")}";
+                default:
+                    throw new ArgumentOutOfRangeException("Unknown QueueType");
+            }
         }
 
         private string GenerateName(Type type)
@@ -30,4 +35,9 @@ namespace QsMessaging.RabbitMq
         }
     }
 
+    internal enum QueueType
+    {
+        Permanent,
+        Temporary
+    }
 }

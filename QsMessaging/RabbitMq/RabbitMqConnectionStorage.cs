@@ -4,10 +4,10 @@ using RabbitMQ.Client;
 
 namespace QsMessaging.RabbitMq
 {
-    internal class RabbitMqConnectionStorage(QsMessagingConfiguration configuration) : IRabbitMqConnectionStorage
+    internal class RabbitMqConnectionStorage(QsMessagingConfiguration configuration) : IConnectionStorage
     {
-        private IConnection _connection;
-        private IChannel _channel;
+        private IConnection? _connection;
+        private IChannel? _channel;
 
         public async Task<(IConnection connection, IChannel chanel)> GetConnectionAsync(CancellationToken cancellationToken = default)
         {
