@@ -1,5 +1,9 @@
 # QsMessaging
-QsMessaging library for sending and receiving messages between different components of your application using RabbitMQ.
+QsMessaging library for sending and receiving messages between different services (components) of your application using __RabbitMQ__.
+[![NuGet](https://img.shields.io/nuget/v/QsMessaging.svg)](https://www.nuget.org/packages/QsMessaging/)  
+
+
+A .NET Core 8 library for messaging services.
 
 ## Installation
 
