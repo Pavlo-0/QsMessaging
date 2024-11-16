@@ -1,0 +1,65 @@
+trigger:
+  branches:
+    include:
+      - main
+  
+
+pool:
+  name: 'Default'
+
+variables:
+  buildConfiguration: 'Release'
+  projectName: 'QsMessaging'
+  solutionName: 'QsMessaging'
+  nugetSource: 'https://api.nuget.org/v3/index.json'  # NuGet.org Feed
+  #nugetApiKey: $(NuGetApiKey)  # Ensure this secret is defined in Azure DevOps
+  majorVersion: '1'
+  minorVersion: '0'
+  patchVersion: $(Build.BuildId) # Use the build number as the patch version
+  packageVersion: $(majorVersion).$(minorVersion).$(patchVersion)
+  prPackageVersion: '$(majorVersion).$(minorVersion).$(Build.BuildId)-pr'
+  packageName: 'QsMessaging-develop'
+
+jobs:
+  - job: BuildAndPublish
+    displayName: 'Build, Test, and Publish'
+    pool:
+      name: 'Default'
+
+    steps:
+      # Step 1: Use .NET Core SDK
+      - task: UseDotNet@2
+        inputs:
+          packageType: 'sdk'
+          version: '8.x'
+          installationPath: $(Agent.ToolsDirectory)/dotnet
+
+      # Step 2: Install NuGet Tool
+      - task: NuGetToolInstaller@1
+
+      # Step 3: Restore Dependencies
+      - script: dotnet restore $(projectName).sln
+        displayName: 'Restore NuGet Packages'
+      
+      # Step 4: Determine Package Version
+      - powershell: |
+          if ("$(Build.Reason)" -eq "PullRequest") {
+              Write-Output "##vso[task.setvariable variable=packageVersion]$(prPackageVersion)"
+          }
+        displayName: 'Set Version for PR Build'
+
+      # Step 4: Build the Project
+      - script: dotnet build $(projectName).sln --configuration $(buildConfiguration) --no-restore
+        displayName: 'Build Project'
+
+      # Step 5: Run Unit Tests (Optional)
+      - script: dotnet test $(projectName).sln --configuration $(buildConfiguration) --no-build --logger trx
+        displayName: 'Run Unit Tests'
+
+      # Step 6: Pack the NuGet Package
+      - script: dotnet pack $(solutionName)/$(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory) /p:PackageId=$(packageName) /p:PackageVersion=$(packageVersion)
+        displayName: 'Create NuGet Package'
+
+      # Step 7: Push pack
+      - script: dotnet nuget push $(Build.ArtifactStagingDirectory)\*.nupkg --api-key $(NuGetApiKey2) --source https://api.nuget.org/v3/index.json
+        displayName: 'Push NuGet Package'
