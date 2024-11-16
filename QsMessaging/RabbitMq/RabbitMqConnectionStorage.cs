@@ -34,10 +34,10 @@ namespace QsMessaging.RabbitMq
         {
             var factory = new ConnectionFactory()
             {
-                HostName = configuration.Host,
-                UserName = configuration.UserName,
-                Password = configuration.Password,
-                Port = configuration.Port
+                HostName = configuration.RabbitMQ.Host,
+                UserName = configuration.RabbitMQ.UserName,
+                Password = configuration.RabbitMQ.Password,
+                Port = configuration.RabbitMQ.Port
             };
 
             return await factory.CreateConnectionAsync();

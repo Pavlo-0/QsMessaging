@@ -4,8 +4,7 @@ using QsMessaging.Public;
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddHostedService<Worker>();
 
-builder.Services.AddQsMessaging(options =>
-{});
+builder.Services.AddQsMessaging(options => { });
 
 var host = builder.Build();
 

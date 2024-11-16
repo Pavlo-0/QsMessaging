@@ -17,9 +17,10 @@ namespace MessagesEventsInstance1
             // Pass RabbitMQ settings to AddQsMessaging
             builder.Services.AddQsMessaging(options =>
             {
-                options.Host = rabbitMQSettings.Host;
-                options.UserName = rabbitMQSettings.UserName;
-                options.Password = rabbitMQSettings.Password;
+                options.RabbitMQ.Host = rabbitMQSettings.Host;
+                options.RabbitMQ.UserName = rabbitMQSettings.UserName;
+                options.RabbitMQ.Password = rabbitMQSettings.Password;
+                options.RabbitMQ.Port = rabbitMQSettings.Port;
             });
 
             var host = builder.Build();
@@ -34,5 +35,7 @@ namespace MessagesEventsInstance1
         public string Host { get; set; } = "localhost";
         public string UserName { get; set; } = "guest"; // Default RabbitMQ user
         public string Password { get; set; } = "guest"; // Default RabbitMQ password
+
+        public int Port { get; set; } = 5672; // Default RabbitMQ port
     }
 }
