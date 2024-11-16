@@ -50,8 +50,13 @@ Port = 5672
 	}
 
 #### Send
+Inject in your class:   
 
-	await _qsMessaging.SendMessageAsync(new RegularMessageContract { MyTextMessage = "My message." });
+    public YouClass(IQsMessaging qsMessaging) {}
+
+Then you may use it
+
+	await qsMessaging.SendMessageAsync(new RegularMessageContract { MyTextMessage = "My message." });
 
 #### Handle message
 
