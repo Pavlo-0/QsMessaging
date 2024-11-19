@@ -3,6 +3,8 @@
     internal enum TestScenariousEnum
     {
         OneMessage,
-        OneEvent
+        OneEvent,
+        Messages100,
+        Messages10,
     }
 }
