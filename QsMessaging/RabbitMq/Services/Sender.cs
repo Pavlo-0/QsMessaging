@@ -1,4 +1,5 @@
-﻿using QsMessaging.RabbitMq.Interface;
+﻿
+using QsMessaging.Public;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using RabbitMQ.Client;
 using System.Text;
@@ -7,7 +8,7 @@ using System.Text.Json;
 namespace QsMessaging.RabbitMq.Services
 {
     internal class Sender(
-        IConnectionStorage rabbitMqConnectionStorage, 
+        IConnectionWorker connectionWorker, 
         IExchangeGenerator queuesGenerator) : IRabbitMqSender
     {
         public async Task<bool> SendMessageAsync<TMessage>(TMessage model)
@@ -30,7 +31,7 @@ namespace QsMessaging.RabbitMq.Services
             if (model == null)
                 throw new ArgumentNullException(nameof(model), "You can not send NULL data. You model is null");
 
-            var (connection, channel) = await rabbitMqConnectionStorage.GetConnectionAsync();
+            var (connection, channel) = await connectionWorker.GetOrCreateConnectionAsync();
 
             string exchangeName = await queuesGenerator.CreateExchange(channel, model.GetType());
 

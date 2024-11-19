@@ -1,15 +1,19 @@
 ﻿using QsMessaging.Public;
-using QsMessaging.RabbitMq.Interface;
 using RabbitMQ.Client;
 
 namespace QsMessaging.RabbitMq
 {
-    internal class RabbitMqConnectionStorage(QsMessagingConfiguration configuration) : IConnectionStorage
+    internal class ConnectionWorker(QsMessagingConfiguration configuration) : IConnectionWorker
     {
         private IConnection? _connection;
         private IChannel? _channel;
 
-        public async Task<(IConnection connection, IChannel chanel)> GetConnectionAsync(CancellationToken cancellationToken = default)
+        public (IConnection? connection, IChannel? chanel) GetConnection()
+        {
+            return (_connection, _channel);
+        }
+
+        public async Task<(IConnection connection, IChannel chanel)> GetOrCreateConnectionAsync(CancellationToken cancellationToken = default)
         {
             var attempt = 0;
             if (_connection != null && _connection.IsOpen && _channel != null && _channel.IsOpen)

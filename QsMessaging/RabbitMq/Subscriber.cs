@@ -5,12 +5,13 @@ using QsMessaging.RabbitMq.Interface;
 using QsMessaging.Public.Handler;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using QsMessaging.RabbitMq.Services;
+using QsMessaging.Public;
 
 namespace QsMessaging.RabbitMq
 {
     internal class Subscriber(
         IServiceProvider services,
-        IConnectionStorage connectionStorage,
+        IConnectionWorker connectionWorker,
         IExchangeGenerator exchangeGenerator,
         IQueueGenerator queueGenerator) : ISubscriber
     {
@@ -27,7 +28,7 @@ namespace QsMessaging.RabbitMq
 
         public async Task SubscribeHandlerAsync(Type interfaceType, Type handlerType, Type genericHandlerType, QueueType queueType)
         {
-            var (connection, channel) = await connectionStorage.GetConnectionAsync();
+            var (connection, channel) = await connectionWorker.GetOrCreateConnectionAsync();
 
             var exchangename = await exchangeGenerator.CreateExchange(channel, genericHandlerType);
             var queueName = await queueGenerator.CreateQueues(channel, handlerType, exchangename, queueType);

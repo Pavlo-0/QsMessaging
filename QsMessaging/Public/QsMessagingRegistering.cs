@@ -33,10 +33,11 @@ namespace QsMessaging.Public
             services.AddTransient<INameGenerator, NameGenerator>();
             services.AddTransient<IExchangeGenerator, ExchangeGenerator>();
             services.AddTransient<IQueueGenerator, QueueGenerator>();
+            services.AddTransient<IQsMessagingConnectionManager, ConnectionManager>();
 
-            services.AddSingleton<IConnectionStorage>(sp =>
+            services.AddSingleton<IConnectionWorker>(sp =>
             {
-                return new RabbitMqConnectionStorage(configuration);
+                return new ConnectionWorker(configuration);
             });
 
             //Handler part
@@ -54,8 +55,8 @@ namespace QsMessaging.Public
 
         public static async Task<IHost> UseQsMessaging(this IHost host)
         {
-            var connectionStorage = host.Services.GetRequiredService<IConnectionStorage>();
-            var connection = connectionStorage.GetConnectionAsync();
+            var connectionStorage = host.Services.GetRequiredService<IConnectionWorker>();
+            var connection = connectionStorage.GetOrCreateConnectionAsync();
 
             var subscriber = host.Services.GetRequiredService<ISubscriber>();
             foreach (var record in _MessageHandlersStore)
