@@ -70,3 +70,6 @@ Then you may use it
     }
 
 **That's all folks**
+
+## Documentation
+For detailed documentation, visit the [QsMessaging Wiki](https://github.com/Pavlo-0/QsMessaging/wiki).
