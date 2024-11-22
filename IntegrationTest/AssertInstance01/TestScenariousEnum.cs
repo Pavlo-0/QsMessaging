@@ -6,5 +6,6 @@
         OneEvent,
         Messages100,
         Messages10,
+        Message50Paused
     }
 }

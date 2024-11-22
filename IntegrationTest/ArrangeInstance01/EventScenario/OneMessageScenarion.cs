@@ -14,7 +14,7 @@ namespace ArrangeInstance01.MessageScenario
                 MyEventCount = 0
             };
 
-            await messaging.SendMessageAsync(message);
+            await messaging.SendEventAsync(message);
         }
     }
 }

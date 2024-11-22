@@ -4,7 +4,7 @@ using TestContract.MessageContract;
 
 namespace AssertInstance01.MessageAssert
 {
-    internal class Message10HandlerL : IQsMessageHandler<Message10Contract>
+    internal class Message10Handler : IQsMessageHandler<Message10Contract>
     {
         private readonly static ConcurrentBag<Message10Contract> _contracts = new ConcurrentBag<Message10Contract>();
         private static int _messageCount = 0;
@@ -27,7 +27,11 @@ namespace AssertInstance01.MessageAssert
                     i++;
                 }
 
-                if (!isFail)
+                if (isFail)
+                {
+                    CollectionTestResults.FailTest(TestScenariousEnum.Messages10);
+                }
+                else
                 {
                     CollectionTestResults.PassTest(TestScenariousEnum.Messages10);
                 }

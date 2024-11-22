@@ -22,7 +22,16 @@ namespace AssertInstance01
                 Console.WriteLine("-------------");
                 foreach (var test in result)
                 {
-                    Console.WriteLine($"{test.Key}: \t\t {test.Value}     ");
+                    var testResult = "Progess...   ";
+                    if (test.Value == true)
+                    {
+                        testResult = "Passed     ";
+                    } else if (test.Value == false)
+                    {
+                        testResult = "Failed     ";
+                    }
+
+                    Console.WriteLine("{0,-30}{1}", test.Key, testResult);
                 }
                 Console.WriteLine("-------------");
                 await Task.Delay(100, stoppingToken);

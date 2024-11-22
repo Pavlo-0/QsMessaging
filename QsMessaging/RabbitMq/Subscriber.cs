@@ -5,17 +5,28 @@ using QsMessaging.RabbitMq.Interface;
 using QsMessaging.Public.Handler;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using QsMessaging.RabbitMq.Services;
-using QsMessaging.Public;
 
 namespace QsMessaging.RabbitMq
 {
     internal class Subscriber(
         IServiceProvider services,
-        IConnectionWorker connectionWorker,
-        IExchangeGenerator exchangeGenerator,
-        IQueueGenerator queueGenerator) : ISubscriber
+        IConnectionService connectionGenerator,
+        IChannelService channelGenerator,
+        IExchangeService exchangeGenerator,
+        IQueueService queueGenerator,
+        IHandlerService handlerGenerator,
+        IConsumerService consumerGenerator) : ISubscriber
     {
 
+        public async Task Subscribe()
+        {
+            foreach (var record in handlerGenerator.GetHandlers())
+            {
+                await SubscribeHandlerAsync(record);
+
+            }
+        }
+        /*
         public async Task SubscribeMessageHandlerAsync(Type interfaceType, Type handlerType, Type genericHandlerType)
         {
             await SubscribeHandlerAsync(interfaceType, handlerType, genericHandlerType, QueueType.Permanent);
@@ -24,15 +35,33 @@ namespace QsMessaging.RabbitMq
         public async Task SubscribeEventHandlerAsync(Type interfaceType, Type handlerType, Type genericHandlerType)
         {
             await SubscribeHandlerAsync(interfaceType, handlerType, genericHandlerType, QueueType.Temporary);
-        }
+        }*/
 
-        public async Task SubscribeHandlerAsync(Type interfaceType, Type handlerType, Type genericHandlerType, QueueType queueType)
+        //public async Task SubscribeHandlerAsync(Type ConcreteHandlerInterfaceType, Type HandlerType, Type GenericType, QueueType queueType
+
+        //public async Task SubscribeHandlerAsync(Type interfaceType, Type handlerType, Type genericHandlerType, QueueType queueType)
+
+        public async Task SubscribeHandlerAsync(HandlerService.HandlersStoreRecord record)
         {
-            var (connection, channel) = await connectionWorker.GetOrCreateConnectionAsync();
+            var queueType = HardConfiguration.GetQueueByInterfaceTypes(record.supportedInterfacesType);
+            var connection = await connectionGenerator.GetOrCreateConnectionAsync();
+            var channel = await channelGenerator.GetOrCreateChannelAsync(connection,
+              queueType == QueueType.Permanent
+              ? ChannelService.ChannelPurpose.QueuePermanent
+              : ChannelService.ChannelPurpose.QueueTemporary
+                );
 
-            var exchangename = await exchangeGenerator.CreateExchange(channel, genericHandlerType);
-            var queueName = await queueGenerator.CreateQueues(channel, handlerType, exchangename, queueType);
+            var exchangename = await exchangeGenerator.CreateExchange(channel, record.GenericType);
+            var queueName = await queueGenerator.CreateQueues(channel, record.HandlerType, exchangename, queueType);
+            var handlerInstance = services.GetService(record.ConcreteHandlerInterfaceType);
 
+            if (handlerInstance is null)
+            {
+                throw new Exception($"Handler instance for {record.ConcreteHandlerInterfaceType} is null.");
+            }
+
+                await consumerGenerator.CreateConsumer(channel, queueName, handlerInstance, record);
+            /*
             var consumer = new AsyncEventingBasicConsumer(channel);
             consumer.ReceivedAsync += async (model, ea) =>
             {
@@ -40,11 +69,11 @@ namespace QsMessaging.RabbitMq
                 var message = Encoding.UTF8.GetString(body);
 
                 // Deserialize the message into an instance of genericHandlerType
-                var modelInstance = System.Text.Json.JsonSerializer.Deserialize(message, genericHandlerType);
+                var modelInstance = System.Text.Json.JsonSerializer.Deserialize(message, record.GenericType);
 
-                var handlerInstance = services.GetService(interfaceType);
+                var handlerInstance = services.GetService(record.ConcreteHandlerInterfaceType);
 
-                var consumeMethod = handlerType.GetMethod(nameof(IQsMessageHandler<object>.Consumer));
+                var consumeMethod = record.HandlerType.GetMethod(nameof(IQsMessageHandler<object>.Consumer));
                 if (consumeMethod != null)
                 {
                     var resulttAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
@@ -56,7 +85,24 @@ namespace QsMessaging.RabbitMq
                 }
             };
 
-            await channel.BasicConsumeAsync(queueName, autoAck: true, consumer: consumer);
+            var consumerTag = await channel.BasicConsumeAsync(queueName, autoAck: true, consumer: consumer);
+            */
+            /*
+            consumer.UnregisteredAsync += async (sender, args) =>
+            {
+                //consumer.Received -= handler; // e.g. AsyncEventingBasicConsumer
+                //consumer.Channel.cl .Close(); // IModel
+                await Task.CompletedTask;
+            };
+
+            consumer.ShutdownAsync += async (sender, args) =>
+            {
+                //consumer.Received -= handler; // e.g. AsyncEventingBasicConsumer
+                //consumer.Channel.cl .Close(); // IModel
+                await Task.CompletedTask;
+            };*/
+
+
         }
     }
 }
