@@ -16,10 +16,10 @@ namespace AssertInstance01.MessageAssert
             Interlocked.Increment(ref _messageCount);
 
             if (contractModel.MyMessageCount == 30)
-            {/*
+            {
                 await connectionManager.Close();
                 await Task.Delay(1000);
-                await connectionManager.Open();*/
+                await connectionManager.Open();
             }
             else
             {

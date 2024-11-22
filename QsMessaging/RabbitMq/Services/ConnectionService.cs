@@ -6,27 +6,9 @@ namespace QsMessaging.RabbitMq.Services
 {
     internal class ConnectionService(QsMessagingConfiguration configuration) : IConnectionService
     {
-        private readonly static object _lock = new object();
-        private static IConnection? _lockValueConnection;
+        private static IConnection? connection;
+        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
-        private static IConnection? connection
-        {
-            get
-            {
-                lock (_lock)
-                {
-                    return _lockValueConnection;
-                }
-            }
-            set
-            {
-                lock (_lock)
-                {
-                    _lockValueConnection = value;
-                }
-            }
-        }
-      
         public IConnection? GetConnection()
         {
             return connection;
@@ -34,22 +16,40 @@ namespace QsMessaging.RabbitMq.Services
 
         public async Task<IConnection> GetOrCreateConnectionAsync(CancellationToken cancellationToken)
         {
-            var attempt = 0;
-            if (connection != null && connection.IsOpen)
+            await _semaphore.WaitAsync();
+            try
             {
+                var attempt = 0;
+                if (connection != null && connection.IsOpen)
+                {
+                    return connection;
+                }
+
+                do
+                {
+                    try
+                    {
+                        connection = await CreateConnectionAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        //Log exception
+                    }
+
+                    //TODO: Implement logariphmick waiting strategy
+                    await Task.Delay(attempt + 1000).WaitAsync(cancellationToken);
+                    attempt++;
+                }
+                while (!(connection != null && connection.IsOpen));
+                //TODO: Add cancelation request
+
                 return connection;
-            }
 
-            do
+            }
+            finally
             {
-                connection = await CreateConnectionAsync();
-                //TODO: Implement logariphmick waiting strategy
-                await Task.Delay(attempt + 1000).WaitAsync(cancellationToken);
-                attempt++;
+                _semaphore.Release();
             }
-            while (!(connection != null && connection.IsOpen));
-
-            return connection;
         }
 
         private async Task<IConnection> CreateConnectionAsync()
@@ -62,7 +62,7 @@ namespace QsMessaging.RabbitMq.Services
                 Port = configuration.RabbitMQ.Port
             };
 
-            return await factory.CreateConnectionAsync();
+            return await factory.CreateConnectionAsync(configuration.ServiceName);
         }
     }
 }

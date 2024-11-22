@@ -1,11 +1,13 @@
 ﻿using QsMessaging.Public;
+using QsMessaging.RabbitMq.Interface;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using RabbitMQ.Client;
-using System.Threading.Channels;
 
 namespace QsMessaging.RabbitMq
 {
-    internal class ConnectionManager(IConnectionService connectionWorker, IChannelService channelGenerator) : IQsMessagingConnectionManager
+    internal class ConnectionManager(
+        IConnectionService connectionWorker, 
+        ISubscriber subscriber) : IQsMessagingConnectionManager
     {
         public async Task Close()
         {
@@ -15,14 +17,15 @@ namespace QsMessaging.RabbitMq
                 return;
             }
 
-            var channels = channelGenerator.GetByConnection(conn);
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            conn.CloseAsync();
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            await conn.DisposeAsync();
 
-            //var (conn, channel) = connectionWorker.GetConnection();
-            /*
-            await conn.CloseAsync();
-            await channel.CloseAsync();
-            await channel.DisposeAsync();
-            await conn.DisposeAsync();*/
+            do
+            {
+                await Task.Delay(10);
+            } while (conn != null && conn.IsOpen);
         }
 
         public bool IsConnected()
@@ -33,7 +36,7 @@ namespace QsMessaging.RabbitMq
 
         public async Task Open()
         {
-            await connectionWorker.GetOrCreateConnectionAsync();
+            await subscriber.Subscribe();
         }
 
         private bool IsConnected(IConnection? connection)

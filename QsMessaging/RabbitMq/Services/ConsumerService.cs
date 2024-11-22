@@ -39,6 +39,11 @@ namespace QsMessaging.RabbitMq.Services
             storeConsumerRecords.Add(new StoreConsumerRecord(channel, queueName, consumerTag, handlerInstance));
         }
 
+        public IEnumerable<string> GetConsumersByChannel(IChannel channel)
+        {
+            return storeConsumerRecords.Where(c => c.Channel == channel).Select(c => c.ConsumerTag);
+        }
+
         private record StoreConsumerRecord(IChannel Channel, string QueueName, string ConsumerTag, object HandlerInstance);
     }
 }

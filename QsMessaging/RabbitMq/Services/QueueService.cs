@@ -16,8 +16,8 @@ namespace QsMessaging.RabbitMq.Services
             await channel.QueueDeclareAsync(
                 queueName,
                 durable: true,
-                //exclusive: false,
-                exclusive: queueType == QueueType.Temporary,
+                exclusive: false,
+                //exclusive: queueType == QueueType.Temporary,
                 autoDelete: queueType == QueueType.Temporary);
 
             var arguments = new Dictionary<string, object?>();
