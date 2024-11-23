@@ -3,7 +3,7 @@ QsMessaging library for sending and receiving messages between different service
 [![NuGet](https://img.shields.io/nuget/v/QsMessaging.svg)](https://www.nuget.org/packages/QsMessaging/)  
 
 
-A .NET Core 8 library for messaging services.
+A .NET 8 library for messaging services.
 
 ## Installation
 
