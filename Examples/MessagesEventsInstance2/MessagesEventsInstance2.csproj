@@ -9,7 +9,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
-    <PackageReference Include="QsMessaging" Version="1.0.79" />
   </ItemGroup>
 
   <ItemGroup>

@@ -8,7 +8,7 @@ namespace AssertInstance01.MessageAssert
     {
         private readonly static ConcurrentBag<Message100Contract> _contracts = new ConcurrentBag<Message100Contract>();
 
-        public Task<bool> Consumer(Message100Contract contractModel)
+        public Task Consumer(Message100Contract contractModel)
         {
             _contracts.Add(contractModel);
 
@@ -35,7 +35,7 @@ namespace AssertInstance01.MessageAssert
                 }
             }
 
-            return Task.FromResult(true);
+            return Task.CompletedTask;
         }
     }
 }

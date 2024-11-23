@@ -8,6 +8,7 @@
         Event50Paused,
         Messages100,
         Messages10,
-        Message50Paused
+        Message50Paused,
+        MessageConsumerError
     }
 }

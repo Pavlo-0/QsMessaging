@@ -38,6 +38,8 @@ namespace QsMessaging.Public
             {
                 return handlerGeneratorInstance;
             });
+
+            handlerGeneratorInstance.RegisterAllHandlers(services);
             services.AddSingleton<IConsumerService, ConsumerService>();
 
             return services;

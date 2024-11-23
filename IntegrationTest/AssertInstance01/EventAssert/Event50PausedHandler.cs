@@ -9,7 +9,7 @@ namespace AssertInstance01.MessageAssert
     {
         private readonly static ConcurrentBag<Event50PausedContract> _contracts = new ConcurrentBag<Event50PausedContract>();
 
-        public async Task<bool> Consumer(Event50PausedContract contractModel)
+        public async Task Consumer(Event50PausedContract contractModel)
         {
             _contracts.Add(contractModel);
 
@@ -32,7 +32,6 @@ namespace AssertInstance01.MessageAssert
                 }
             }
 
-            return true;
         }
     }
 }
