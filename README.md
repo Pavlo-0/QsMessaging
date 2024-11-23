@@ -52,7 +52,7 @@ Port = 5672
 #### Send
 Inject in your class:   
 
-    public YouClass(IQsMessaging qsMessaging) {}
+    public YourClass(IQsMessaging qsMessaging) {}
 
 Then you may use it
 
@@ -64,7 +64,7 @@ Then you may use it
     {
         public Task<bool> Consumer(RegularMessageContract contractModel)
         {
-		//... You Message here
+		//... Your Message here
             return Task.FromResult(true);
         }
     }
