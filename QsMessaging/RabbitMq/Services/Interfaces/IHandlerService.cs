@@ -6,5 +6,7 @@ namespace QsMessaging.RabbitMq.Services.Interfaces
     {
         IEnumerable<HandlersStoreRecord> GetHandlers(Type supportedInterfacesType);
         IEnumerable<HandlersStoreRecord> GetHandlers();
+
+        IEnumerable<ConsumerErrorHandlerStoreRecord> GetConsumerErrorHandlers();
     }
 }

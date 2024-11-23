@@ -6,7 +6,7 @@ namespace AssertInstance01.MessageAssert
     internal class Event100Handler : IQsEventHandler<Event100Contract>
     {
         private static int _eventCount = 0;
-        public Task<bool> Consumer(Event100Contract contractModel)
+        public Task Consumer(Event100Contract contractModel)
         {
             Interlocked.Increment(ref _eventCount);
 
@@ -16,7 +16,7 @@ namespace AssertInstance01.MessageAssert
                 CollectionTestResults.PassTest(TestScenariousEnum.Event100);
             }
 
-            return Task.FromResult(true);
+            return Task.CompletedTask;
         }
     }
 }

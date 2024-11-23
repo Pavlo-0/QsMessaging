@@ -5,11 +5,12 @@ namespace MessagesEventsInstance2.Handler
 {
     internal class RegularEventContractHandler : IQsEventHandler<RegularEventContract>
     {
-        public Task<bool> Consumer(RegularEventContract contractModel)
+       
+        public Task Consumer(RegularEventContract contractModel)
         {
             Console.WriteLine("Event: RegularEventContractHandler");
             Console.WriteLine(contractModel.MyTextEvent);
-            return Task.FromResult(true);
+            return Task.CompletedTask;
         }
     }
 
