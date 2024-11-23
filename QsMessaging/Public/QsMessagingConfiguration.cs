@@ -9,7 +9,7 @@ namespace QsMessaging.Public
         {
             try
             {
-                ServiceName = Assembly.GetEntryAssembly().GetName().Name;
+                ServiceName = Assembly.GetEntryAssembly()?.GetName().Name ?? "Unknown";
             }
             catch
             {

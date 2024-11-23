@@ -31,7 +31,7 @@ namespace QsMessaging.RabbitMq.Services
                     {
                         connection = await CreateConnectionAsync();
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         //Log exception
                     }
