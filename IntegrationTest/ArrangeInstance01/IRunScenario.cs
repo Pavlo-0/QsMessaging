@@ -3,5 +3,7 @@
     public interface IScenario
     {
         Task Run();
+
+        bool IsRepeatable { get; }
     }
 }

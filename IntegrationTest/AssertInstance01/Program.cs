@@ -13,8 +13,6 @@ namespace AssertInstance01
 
             var host = builder.Build();
 
-            await host.UseQsMessaging();
-
             // Enum iteration
             foreach (TestScenariousEnum value in Enum.GetValues(typeof(TestScenariousEnum)))
             {

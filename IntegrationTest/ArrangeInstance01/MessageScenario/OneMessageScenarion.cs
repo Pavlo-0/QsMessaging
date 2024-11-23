@@ -5,6 +5,8 @@ namespace ArrangeInstance01.MessageScenario
 {
     internal class OneMessageScenarion(IQsMessaging messaging): IScenario
     {
+        public bool IsRepeatable => false;
+
         public async Task Run()
         {
             var message = new MessageContract

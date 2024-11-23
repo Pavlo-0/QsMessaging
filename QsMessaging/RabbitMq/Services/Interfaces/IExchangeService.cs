@@ -2,7 +2,7 @@
 
 namespace QsMessaging.RabbitMq.Services.Interfaces
 {
-    internal interface IExchangeGenerator
+    internal interface IExchangeService
     {
         Task<string> CreateExchange(IChannel channel, Type TModel);
     }

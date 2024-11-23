@@ -5,7 +5,7 @@ namespace ArrangeInstance01
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
-        private readonly IEnumerable<IScenario> _scenarios;
+        private IEnumerable<IScenario> _scenarios;
 
         public Worker(ILogger<Worker> logger, IEnumerable<IScenario> scenarios)
         {
@@ -15,17 +15,28 @@ namespace ArrangeInstance01
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            await Task.Delay(2000, stoppingToken);
+            Console.WriteLine($"------ Run all tests: {DateTimeOffset.Now} -------");
+
+            foreach (var scenario in _scenarios)
+            {
+                Console.Write($"Test {scenario.GetType().Name} ...");
+                await scenario.Run();
+                Console.WriteLine($" executed");
+            }
+
+            Console.WriteLine($"------ Run repeatable tests: {DateTimeOffset.Now} -------");
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("------ Run tests: {time} -------", DateTimeOffset.Now);
+                await Task.Delay(3000, stoppingToken);
 
-                foreach (var scenario in _scenarios)
+                foreach (var scenario in _scenarios.Where(s=>s.IsRepeatable))
                 {
+                    Console.Write($"Test {scenario.GetType().Name} ...");
                     await scenario.Run();
-                    _logger.LogInformation("Test {Name} executed", scenario.GetType().Name);
+                    Console.WriteLine($" executed");
                 }
-
-                await Task.Delay(2000, stoppingToken);
+                Console.WriteLine($"----------------------");
             }
         }
     }}
