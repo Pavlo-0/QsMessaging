@@ -7,14 +7,12 @@ namespace AssertInstance01.MessageAssert
     internal class Message100Handler : IQsMessageHandler<Message100Contract>
     {
         private readonly static ConcurrentBag<Message100Contract> _contracts = new ConcurrentBag<Message100Contract>();
-        private static int _messageCount = 0;
 
         public Task<bool> Consumer(Message100Contract contractModel)
         {
             _contracts.Add(contractModel);
-            Interlocked.Increment(ref _messageCount);
 
-            if (_messageCount == 100)
+            if (_contracts.Count >= 100)
             {
                 var i = 0;
                 var isFail = false;

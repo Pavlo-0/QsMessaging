@@ -8,12 +8,10 @@ namespace AssertInstance01.MessageAssert
     internal class Message50PausedHandler(IQsMessagingConnectionManager connectionManager) : IQsMessageHandler<Message50PausedContract>
     {
         private readonly static ConcurrentBag<Message50PausedContract> _contracts = new ConcurrentBag<Message50PausedContract>();
-        private static int _messageCount = 0;
 
         public async Task<bool> Consumer(Message50PausedContract contractModel)
         {
             _contracts.Add(contractModel);
-            Interlocked.Increment(ref _messageCount);
 
             if (contractModel.MyMessageCount == 30)
             {
@@ -21,13 +19,9 @@ namespace AssertInstance01.MessageAssert
                 await Task.Delay(1000);
                 await connectionManager.Open();
             }
-            else
-            {
-                Interlocked.Increment(ref _messageCount);
-            }
             
 
-            if (_messageCount == 50)
+            if (_contracts.Count == 50)
             {
                 var i = 0;
                 var isFail = false;
