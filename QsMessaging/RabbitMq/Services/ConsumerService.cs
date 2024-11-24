@@ -1,5 +1,4 @@
 ﻿using QsMessaging.Public.Handler;
-using QsMessaging.Public.Models;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -44,7 +43,7 @@ namespace QsMessaging.RabbitMq.Services
                         {
                             await ErrorAsync(
                         ex,
-                        new QsMessagingConsumerErrorModel(
+                        new ErrorConsumerDetail(
                             modelInstance,
                             body,
                             queueName,
@@ -52,7 +51,7 @@ namespace QsMessaging.RabbitMq.Services
                             record?.ConcreteHandlerInterfaceType?.FullName,
                             record?.HandlerType?.FullName,
                             record?.GenericType?.FullName,
-                            QsMessagingConsumerErrorType.RecevingProblem),
+                            ErrorConsumerType.RecevingProblem),
                         consumerErrorInstances);
                         }
                     }
@@ -61,7 +60,7 @@ namespace QsMessaging.RabbitMq.Services
                 {
                     await ErrorAsync(
                         e,
-                        new QsMessagingConsumerErrorModel(
+                        new ErrorConsumerDetail(
                             null,
                             null,
                             queueName,
@@ -69,7 +68,7 @@ namespace QsMessaging.RabbitMq.Services
                             record?.ConcreteHandlerInterfaceType?.FullName,
                             record?.HandlerType?.FullName,
                             record?.GenericType?.FullName,
-                            QsMessagingConsumerErrorType.RecevingProblem),
+                            ErrorConsumerType.RecevingProblem),
                         consumerErrorInstances);
                 }
             };
@@ -83,7 +82,7 @@ namespace QsMessaging.RabbitMq.Services
             return storeConsumerRecords.Where(c => c.Channel == channel).Select(c => c.ConsumerTag);
         }
 
-        private async Task ErrorAsync(Exception ex, QsMessagingConsumerErrorModel model, IEnumerable<IQsMessagingConsumerErrorHandler> consumerErrorInstances)
+        private async Task ErrorAsync(Exception ex, ErrorConsumerDetail model, IEnumerable<IQsMessagingConsumerErrorHandler> consumerErrorInstances)
         {
             try
             {

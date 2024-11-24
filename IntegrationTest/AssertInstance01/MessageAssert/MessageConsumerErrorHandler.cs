@@ -20,7 +20,7 @@ namespace AssertInstance01.MessageAssert
 
     internal class MessageConsumerErrorHandler: IQsMessagingConsumerErrorHandler
     {
-        public Task HandleErrorAsync(Exception exception, object? message)
+        public Task HandleErrorAsync(Exception exception, ErrorConsumerDetail details)
         {
             CollectionTestResults.PassTest(TestScenariousEnum.MessageConsumerError);
             return Task.CompletedTask;
