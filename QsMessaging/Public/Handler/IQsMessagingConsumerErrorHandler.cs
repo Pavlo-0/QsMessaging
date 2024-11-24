@@ -1,4 +1,6 @@
-﻿namespace QsMessaging.Public.Handler
+﻿using QsMessaging.Public.Models;
+
+namespace QsMessaging.Public.Handler
 {
     /// <summary>
     /// If any consumer implementation generates an exception, that implementation will handle the exception automatically. 
@@ -10,8 +12,8 @@
         /// This method is called when an exception is thrown in the consumer implementation.
         /// </summary>
         /// <param name="exception">The exception that was generated.</param>
-        /// <param name="message">Additional details about the events that occurred.</param>
+        /// <param name="details">Additional details about the events that occurred.</param>
         /// <returns></returns>
-        Task HandleErrorAsync(Exception exception, object? message);
+        Task HandleErrorAsync(Exception exception, QsMessagingConsumerErrorModel details);
     }
 }
