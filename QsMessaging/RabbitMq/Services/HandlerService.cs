@@ -10,16 +10,25 @@ namespace QsMessaging.RabbitMq.Services
     {
 
         private static ConcurrentBag<HandlersStoreRecord> _handlers = new ConcurrentBag<HandlersStoreRecord>();
-        private static ConcurrentBag<ConsumerErrorHandlerStoreRecord> _consumerErrorHandlerHandlers = new ConcurrentBag<ConsumerErrorHandlerStoreRecord>();
+        private static ConcurrentBag<HandlersStoreRecord> _publishErrorHandler = new ConcurrentBag<HandlersStoreRecord>();
+        private static ConcurrentBag<ConsumerErrorHandlerStoreRecord> _consumerErrorHandler = new ConcurrentBag<ConsumerErrorHandlerStoreRecord>();
 
         public HandlerService(IServiceCollection services, Assembly assembly)
         {
             foreach (var supportedInterfacesType in HardConfiguration.SupportedInterfacesTypes)
             {
-                FindHandlers(services, assembly, supportedInterfacesType);
+                foreach (var findedHandler in FindHandlers(assembly, supportedInterfacesType))
+                {
+                    _handlers.Add(findedHandler);
+                } 
             }
 
             FindImplementations<IQsMessagingConsumerErrorHandler>(assembly);
+
+            foreach (var findedHandler in FindHandlers(assembly, typeof(IQsMessagingPublishErrorHandler<>)))
+            {
+                _publishErrorHandler.Add(findedHandler);
+            }
         }
 
         public IEnumerable<HandlersStoreRecord> GetHandlers(Type supportedInterfacesType)
@@ -34,7 +43,12 @@ namespace QsMessaging.RabbitMq.Services
 
         public IEnumerable<ConsumerErrorHandlerStoreRecord> GetConsumerErrorHandlers()
         {
-            return _consumerErrorHandlerHandlers;
+            return _consumerErrorHandler;
+        }
+
+        public IEnumerable<HandlersStoreRecord> GetPublishErrorHandlers()
+        {
+            return _publishErrorHandler;
         }
 
         public void RegisterAllHandlers(IServiceCollection services)
@@ -44,14 +58,18 @@ namespace QsMessaging.RabbitMq.Services
                 services.AddTransient(handler.ConcreteHandlerInterfaceType, handler.HandlerType);
             }
 
-            foreach (var handler in _consumerErrorHandlerHandlers)
+            foreach (var handler in _consumerErrorHandler)
             {
                 services.AddTransient(typeof(IQsMessagingConsumerErrorHandler), handler.ConsumerErrorHandler);
             }
+
+            foreach (var handler in _publishErrorHandler)
+            {
+                services.AddTransient(handler.ConcreteHandlerInterfaceType, handler.HandlerType);
+            }
         }
 
-        private void FindHandlers(
-           IServiceCollection services,
+        private IEnumerable<HandlersStoreRecord> FindHandlers(
            Assembly assembly,
            Type supportedInterfacesType)
         {
@@ -63,13 +81,16 @@ namespace QsMessaging.RabbitMq.Services
                     t.IsClass &&
                     !t.IsAbstract);
 
+            var returnHandlers = new List<HandlersStoreRecord>();
+
             foreach (var handlerType in handlersTypes)
             {
                 var concreteHandlerInterfaceType = handlerType.GetInterfaces().First(i => i.IsGenericType && i.GetGenericTypeDefinition() == supportedInterfacesType);
                 var genericType = concreteHandlerInterfaceType.GetGenericArguments().First();
-                _handlers.Add(new HandlersStoreRecord(supportedInterfacesType, concreteHandlerInterfaceType, handlerType, genericType));
-
+                returnHandlers.Add(new HandlersStoreRecord(supportedInterfacesType, concreteHandlerInterfaceType, handlerType, genericType));
             }
+
+            return returnHandlers;
         }
 
         public static void FindImplementations<TInterface>(Assembly assembly)
@@ -83,7 +104,7 @@ namespace QsMessaging.RabbitMq.Services
 
             foreach (var record in records)
             {
-                _consumerErrorHandlerHandlers.Add(record);
+                _consumerErrorHandler.Add(record);
             }
         }
 

@@ -1,5 +1,4 @@
 ﻿using QsMessaging.Public.Handler;
-using QsMessaging.Public.Models;
 using TestContract.MessageContract;
 
 namespace AssertInstance01.MessageAssert
@@ -21,7 +20,7 @@ namespace AssertInstance01.MessageAssert
 
     internal class MessageConsumerErrorHandler: IQsMessagingConsumerErrorHandler
     {
-        public Task HandleErrorAsync(Exception exception, QsMessagingConsumerErrorModel details)
+        public Task HandleErrorAsync(Exception exception, ErrorConsumerDetail details)
         {
             CollectionTestResults.PassTest(TestScenariousEnum.MessageConsumerError);
             return Task.CompletedTask;

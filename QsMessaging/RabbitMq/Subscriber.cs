@@ -18,7 +18,6 @@ namespace QsMessaging.RabbitMq
 
         public async Task Subscribe()
         {
-            //var consumerErrorHandlers = handlerService.GetConsumerErrorHandlers();
             var consumerErrorInstanceHandlers = services.GetServices<IQsMessagingConsumerErrorHandler>();
              
 
