@@ -4,6 +4,7 @@ pool:
 variables:
   buildConfiguration: 'Release'
   projectName: 'QsMessaging'
+  projectUnitTestName: 'QsMessagingUnitTests'
   solutionName: 'QsMessaging'
   nugetSource: 'https://api.nuget.org/v3/index.json'  # NuGet.org Feed
   #nugetApiKey: $(NuGetApiKey)  # Ensure this secret is defined in Azure DevOps
@@ -41,18 +42,18 @@ jobs:
           }
         displayName: 'Set Version for PR Build'
 
-      # Step 4: Build the Project
+      # Step 5: Build the Project
       - script: dotnet build $(projectName).sln --configuration $(buildConfiguration) --no-restore
         displayName: 'Build Project'
 
-      # Step 5: Run Unit Tests (Optional)
-      - script: dotnet test $(projectName).sln --configuration $(buildConfiguration) --no-build --logger trx
+      # Step 6: Run Unit Tests (Optional)
+      - script: dotnet test $(projectUnitTestName)/$(projectUnitTestName).csproj --configuration $(buildConfiguration) --no-build --logger trx
         displayName: 'Run Unit Tests'
 
-      # Step 6: Pack the NuGet Package
+      # Step 7: Pack the NuGet Package
       - script: dotnet pack $(solutionName)/$(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory) /p:PackageVersion=$(packageVersion)
         displayName: 'Create NuGet Package'
 
-      # Step 7: Push pack
+      # Step 8: Push pack
       - script: dotnet nuget push $(Build.ArtifactStagingDirectory)\*.nupkg --api-key $(NuGetApiKey2) --source https://api.nuget.org/v3/index.json
         displayName: 'Push NuGet Package'
