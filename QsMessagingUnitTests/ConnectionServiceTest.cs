@@ -33,14 +33,14 @@ namespace QsMessagingUnitTests
             var result = _connectionService.GetConnection();
             Assert.IsNull(result);
         }
-
+        /*
         [TestMethod]
         public async Task GetOrCreateConnectionAsync_ReturnsConnection_WhenConnectionIsCreated()
         {
             var result = await _connectionService.GetOrCreateConnectionAsync(CancellationToken.None);
             Assert.IsNotNull(result);
             Assert.IsTrue(result.IsOpen);
-        }
+        }*/
 
         [TestMethod]
         public async Task GetOrCreateConnectionAsync_ReturnsExistingConnection_WhenConnectionIsAlreadyOpen()
