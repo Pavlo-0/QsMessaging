@@ -54,7 +54,7 @@ jobs:
         displayName: 'Build Project'
 
       # Step 6: Run Unit Tests (Optional)
-      - script: dotnet test $(solutionName)/$(projectUnitTestName).csproj --configuration $(buildConfiguration) --no-build --logger trx
+      - script: dotnet test $(projectUnitTestName)/$(projectUnitTestName).csproj --configuration $(buildConfiguration) --no-build --logger trx
         displayName: 'Run Unit Tests'
 
       # Step 7: Pack the NuGet Package
