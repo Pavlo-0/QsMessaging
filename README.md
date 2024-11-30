@@ -12,22 +12,11 @@ A .NET 8 library for messaging services.
 ## Registering
 Registering the library is simple. You just need to add two lines of code.
 
-	...
-
-	var builder = Host.CreateApplicationBuilder(args);
-
-	....
 	// Add QsMessaging (leave the options empty for the default configuration)...
 	builder.Services.AddQsMessaging(options => { });
 
 	...
-
-	var host = builder.Build();
-
-	//...and use it
 	await host.UseQsMessaging();
-
-	host.Run();
 
 
 
