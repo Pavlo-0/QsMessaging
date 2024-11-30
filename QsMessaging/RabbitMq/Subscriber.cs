@@ -39,8 +39,8 @@ namespace QsMessaging.RabbitMq
               : ChannelService.ChannelPurpose.QueueTemporary
                 );
 
-            var exchangename = await exchangeService.CreateExchange(channel, record.GenericType);
-            var queueName = await queueService.CreateQueues(channel, record.HandlerType, exchangename, queueType);
+            var exchangename = await exchangeService.GetOrCreateExchange(channel, record.GenericType);
+            var queueName = await queueService.GetOrCreateQueues(channel, record.HandlerType, exchangename, queueType);
 
             await consumerService.CreateConsumer(channel, queueName, services, record);
         }

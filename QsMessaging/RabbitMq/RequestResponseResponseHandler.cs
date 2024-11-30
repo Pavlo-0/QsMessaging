@@ -12,7 +12,7 @@ namespace QsMessaging.RabbitMq
             }
             catch
             {
-                //TODO: Add reaction on error
+                //TODO: Correlation could not be found cause this is can be another instances.
             }
             return Task.CompletedTask;
         }

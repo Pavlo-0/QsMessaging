@@ -38,7 +38,7 @@ namespace QsMessaging.RabbitMq
                 case QueueType.Temporary:
                     return GenerateName(TModel, Guid.NewGuid().ToString("N"));
                 case QueueType.LiveTime:
-                    return GenerateName(TModel, "livetime");
+                    return GenerateName(TModel, "livetime:" + Guid.NewGuid().ToString("N"));
                 default:
                     throw new ArgumentOutOfRangeException("Unknown QueueType");
             }

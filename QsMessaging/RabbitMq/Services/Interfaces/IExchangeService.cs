@@ -4,6 +4,6 @@ namespace QsMessaging.RabbitMq.Services.Interfaces
 {
     internal interface IExchangeService
     {
-        Task<string> CreateExchange(IChannel channel, Type TModel);
+        Task<string> GetOrCreateExchange(IChannel channel, Type TModel);
     }
 }

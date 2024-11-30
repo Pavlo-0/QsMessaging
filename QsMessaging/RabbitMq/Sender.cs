@@ -48,21 +48,22 @@ namespace QsMessaging.RabbitMq
 
             var connection = await connectionService.GetOrCreateConnectionAsync();
             var channel = await channelService.GetOrCreateChannelAsync(connection, ChannelService.ChannelPurpose.LiveTime);
-            string exchangeName = await queuesService.CreateExchange(channel, typeof(TResponse));
-            var queueName = await queueService.CreateQueues(
+            string exchangeName = await queuesService.GetOrCreateExchange(channel, typeof(TResponse));
+            var queueName = await queueService.GetOrCreateQueues(
                 channel,
                 rrrHandlerType, 
                 exchangeName, 
                 HardConfiguration.GetQueueByInterfaceTypes(rrrHandlerType));
 
             //TODO: Implement error handling
+            //TODO: Do not recreate consumer for the same type of message
             await consumerService.CreateConsumer(
                 channel, 
                 queueName,
                 serviceProvider,
                 handlerService.GetHandlers(rrrHandlerType).First());
 
-            await Send(model, props, MessageTypeEnum.Event);
+            await Send(model, props, MessageTypeEnum.Message);
 
             while (!requestResponseMessageStore.IsRespondedMessage(props.CorrelationId))
             {
@@ -88,7 +89,7 @@ namespace QsMessaging.RabbitMq
                     type == MessageTypeEnum.Message ? ChannelService.ChannelPurpose.MessagePublish : ChannelService.ChannelPurpose.EventPublish
                     );
 
-                string exchangeName = await queuesService.CreateExchange(channel, model.GetType());
+                string exchangeName = await queuesService.GetOrCreateExchange(channel, model.GetType());
 
                 var jsonMessage = JsonSerializer.Serialize(model);
                 var body = Encoding.UTF8.GetBytes(jsonMessage);
