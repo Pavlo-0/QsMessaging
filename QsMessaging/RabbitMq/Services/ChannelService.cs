@@ -12,6 +12,7 @@ namespace QsMessaging.RabbitMq.Services
             MessagePublish,
             EventPublish,
             QueuePermanent,
+            LiveTime,
             QueueTemporary,
         }
 

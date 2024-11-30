@@ -1,4 +1,5 @@
 ﻿using QsMessaging.RabbitMq.Interface;
+using QsMessaging.RabbitMq.Services;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -36,6 +37,8 @@ namespace QsMessaging.RabbitMq
                     return GenerateName(TModel, "permanent");
                 case QueueType.Temporary:
                     return GenerateName(TModel, Guid.NewGuid().ToString("N"));
+                case QueueType.LiveTime:
+                    return GenerateName(TModel, "livetime");
                 default:
                     throw new ArgumentOutOfRangeException("Unknown QueueType");
             }
@@ -71,9 +74,4 @@ namespace QsMessaging.RabbitMq
         }
     }
 
-    internal enum QueueType
-    {
-        Permanent,
-        Temporary
-    }
 }

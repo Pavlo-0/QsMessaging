@@ -1,5 +1,6 @@
 ﻿
 using QsMessaging.RabbitMq;
+using QsMessaging.RabbitMq.Services;
 
 namespace QsMessagingUnitTests
 {
@@ -60,14 +61,18 @@ namespace QsMessagingUnitTests
         public void GetExchangeNameFromType_ThrowsArgumentNullException_WhenTypeIsNull()
         {
             var nameGenerator = new NameGenerator();
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
             Assert.ThrowsException<ArgumentNullException>(() => nameGenerator.GetExchangeNameFromType(null));
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
         }
 
         [TestMethod]
         public void GetQueueNameFromType_ThrowsArgumentNullException_WhenTypeIsNull()
         {
             var nameGenerator = new NameGenerator();
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
             Assert.ThrowsException<ArgumentNullException>(() => nameGenerator.GetQueueNameFromType(null, QueueType.Permanent));
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
         }
 
         [TestMethod]

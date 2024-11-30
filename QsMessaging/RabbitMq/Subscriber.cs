@@ -41,13 +41,8 @@ namespace QsMessaging.RabbitMq
 
             var exchangename = await exchangeService.CreateExchange(channel, record.GenericType);
             var queueName = await queueService.CreateQueues(channel, record.HandlerType, exchangename, queueType);
-            var handlerInstance = services.GetService(record.ConcreteHandlerInterfaceType);
-            if (handlerInstance is null)
-            {
-                throw new Exception($"Handler instance for {record.ConcreteHandlerInterfaceType} is null.");
-            }
 
-            await consumerService.CreateConsumer(channel, queueName, handlerInstance, record, consumerErrorInstances);
+            await consumerService.CreateConsumer(channel, queueName, services, record);
         }
     }
 }

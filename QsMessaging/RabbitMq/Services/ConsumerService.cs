@@ -1,4 +1,5 @@
-﻿using QsMessaging.Public.Handler;
+﻿using Microsoft.Extensions.DependencyInjection;
+using QsMessaging.Public.Handler;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -14,15 +15,24 @@ namespace QsMessaging.RabbitMq.Services
         public async Task CreateConsumer(
             IChannel channel,
             string queueName,
-            object handlerInstance,
-            HandlerService.HandlersStoreRecord record,
-            IEnumerable<IQsMessagingConsumerErrorHandler> consumerErrorInstances)
+            IServiceProvider serviceProvider,
+            HandlerService.HandlersStoreRecord record
+            )
         {
             var consumer = new AsyncEventingBasicConsumer(channel);
             consumer.ReceivedAsync += async (model, ea) =>
             {
+                List<IQsMessagingConsumerErrorHandler> consumerErrorInstances = new List<IQsMessagingConsumerErrorHandler>();
                 try
                 {
+                    try
+                    {
+                        consumerErrorInstances.AddRange(serviceProvider.GetServices<IQsMessagingConsumerErrorHandler>());
+                    }
+                    catch
+                    {
+                        //TODO: Add loging  for extreame case
+                    }
 
                     byte[] body = ea.Body.ToArray();
                     var message = Encoding.UTF8.GetString(body);
@@ -32,12 +42,30 @@ namespace QsMessaging.RabbitMq.Services
 
                     //TODO: replace on proper interface. Not just IQsMessageHandler. Add IQsEventHandler options. In case of diffirent names
                     var consumeMethod = record.HandlerType.GetMethod(nameof(IQsMessageHandler<object>.Consumer));
+                    var handlerInstance = serviceProvider.GetService(record.ConcreteHandlerInterfaceType);
+                    if (handlerInstance is null)
+                    {
+                        throw new Exception($"Handler instance for {record.ConcreteHandlerInterfaceType} is null.");
+                    }
 
                     if (consumeMethod != null)
                     {
                         try
                         {
-                            var resulttAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
+                            switch (HardConfiguration.GetConsumerByInterfaceTypes(record.supportedInterfacesType))
+                            {
+                                case ConsumerType.MessageEventConsumer:
+                                    var resultAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
+                                    break;
+                                case ConsumerType.RequestResponseResponseConsumer:
+                                    // Get the CorrelationId (if set)
+                                    var correlationId = ea.BasicProperties.CorrelationId ?? string.Empty;
+                                    var resulttAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance, correlationId });
+                                    break;
+                                default:
+                                    //TODO: add warning that consumer not found
+                                    break;
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -74,7 +102,7 @@ namespace QsMessaging.RabbitMq.Services
             };
 
             var consumerTag = await channel.BasicConsumeAsync(queueName, autoAck: true, consumer: consumer);
-            storeConsumerRecords.Add(new StoreConsumerRecord(channel, queueName, consumerTag, handlerInstance));
+            storeConsumerRecords.Add(new StoreConsumerRecord(channel, queueName, consumerTag));
         }
 
         public IEnumerable<string> GetConsumersByChannel(IChannel channel)
@@ -97,6 +125,12 @@ namespace QsMessaging.RabbitMq.Services
             }
         }
 
-        private record StoreConsumerRecord(IChannel Channel, string QueueName, string ConsumerTag, object HandlerInstance);
+        private record StoreConsumerRecord(IChannel Channel, string QueueName, string ConsumerTag);
+    }
+
+    public enum ConsumerType
+    {
+        MessageEventConsumer,
+        RequestResponseResponseConsumer
     }
 }

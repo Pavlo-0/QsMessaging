@@ -42,6 +42,8 @@ namespace QsMessaging.Public
             handlerGeneratorInstance.RegisterAllHandlers(services);
             services.AddSingleton<IConsumerService, ConsumerService>();
 
+            services.AddSingleton<IRequestResponseMessageStore , RequestResponseMessageStore>();
+
             return services;
         }
 

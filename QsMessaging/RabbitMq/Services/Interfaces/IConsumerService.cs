@@ -7,10 +7,12 @@ namespace QsMessaging.RabbitMq.Services.Interfaces
     {
         Task CreateConsumer(
             IChannel channel, 
-            string queueName, 
-            object handlerInstance, 
-            HandlerService.HandlersStoreRecord record,
-            IEnumerable<IQsMessagingConsumerErrorHandler> consumerErrorInstances);
+            string queueName,
+            IServiceProvider serviceProvider,
+            //object handlerInstance, 
+            HandlerService.HandlersStoreRecord record
+            //IEnumerable<IQsMessagingConsumerErrorHandler> consumerErrorInstances
+            );
 
         IEnumerable<string> GetConsumersByChannel(IChannel channel);
     }

@@ -14,5 +14,13 @@ namespace QsMessaging
         {
             return rabbitMqSender.SendEventAsync(model);
         }
+
+        public Task<TResponse> RequestResponse<TRequest, TResponse>(TRequest request) where TRequest : class where TResponse : class
+        {
+
+            throw new NotImplementedException();
+            //return rabbitMqSender.RequestResponse<TRequest, TResponse>(request);
+        }
+
     }
 }

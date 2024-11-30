@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using QsMessaging.Public.Handler;
+using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -29,6 +30,13 @@ namespace QsMessaging.RabbitMq.Services
             {
                 _publishErrorHandler.Add(findedHandler);
             }
+
+            //create internal record for handler
+            var record = new HandlersStoreRecord(
+                typeof(IRequestResponseResponseHandler),
+                typeof(IRequestResponseResponseHandler),
+                typeof(RequestResponseResponseHandler),
+                typeof(object));
         }
 
         public IEnumerable<HandlersStoreRecord> GetHandlers(Type supportedInterfacesType)

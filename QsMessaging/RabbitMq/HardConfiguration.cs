@@ -1,4 +1,6 @@
 ﻿using QsMessaging.Public.Handler;
+using QsMessaging.RabbitMq.Interfaces;
+using QsMessaging.RabbitMq.Services;
 
 namespace QsMessaging.RabbitMq
 {
@@ -8,6 +10,8 @@ namespace QsMessaging.RabbitMq
         {
             public Type TypeInterface { get; set; }
             public QueueType Queue { get; init; }
+            public ConsumerType Consumer { get; set; }
+
             public string Name
             {
                 get
@@ -26,13 +30,22 @@ namespace QsMessaging.RabbitMq
                     new SupportedInterfacesStruct
                     {
                         TypeInterface = typeof(IQsEventHandler<>),
-                        Queue = QueueType.Temporary
+                        Queue = QueueType.Temporary,
+                        Consumer = ConsumerType.MessageEventConsumer
                     },
                     new SupportedInterfacesStruct
                     {
                         TypeInterface = typeof(IQsMessageHandler<>),
-                        Queue = QueueType.Permanent
-                    }
+                        Queue = QueueType.Permanent,
+                        Consumer = ConsumerType.MessageEventConsumer
+
+                    },
+                    new SupportedInterfacesStruct
+                    {
+                        TypeInterface = typeof(IRequestResponseResponseHandler),
+                        Queue = QueueType.LiveTime,
+                        Consumer = ConsumerType.RequestResponseResponseConsumer
+                    },
                 };
             }
         }
@@ -48,6 +61,11 @@ namespace QsMessaging.RabbitMq
         public static QueueType GetQueueByInterfaceTypes(Type interfaceType)
         {
             return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).Queue;
+        }
+
+        public static ConsumerType GetConsumerByInterfaceTypes(Type interfaceType)
+        {
+            return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).Consumer;
         }
     }
 }

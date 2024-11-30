@@ -13,7 +13,10 @@ namespace QsMessaging.RabbitMq
         IChannelService channelService,
         IExchangeService queuesService,
         IHandlerService handlerService,
-        IServiceProvider serviceProvider) : IRabbitMqSender
+        IServiceProvider serviceProvider,
+        IQueueService queueService,
+        IConsumerService consumerService,
+        IRequestResponseMessageStore requestResponseMessageStore) : IRabbitMqSender
     {
         public async Task<bool> SendMessageAsync<TMessage>(TMessage model) where TMessage : class
         {
@@ -27,7 +30,50 @@ namespace QsMessaging.RabbitMq
             var props = new BasicProperties();
             props.DeliveryMode = DeliveryModes.Transient;
             props.Expiration = "0";
+
             return await Send(model, props, MessageTypeEnum.Event);
+        }
+
+        public async Task<TResponse> SendRequest<TRequest, TResponse>(TRequest model) where TRequest : class where TResponse : class 
+        {
+            var props = new BasicProperties();
+            props.DeliveryMode = DeliveryModes.Persistent;
+            props.CorrelationId = Guid.NewGuid().ToString();
+
+            requestResponseMessageStore.AddRequestMessage(props.CorrelationId, model);
+
+            //Before Send message we should do listening channel for response
+
+            var rrrHandlerType = typeof(IRequestResponseResponseHandler);
+
+            var connection = await connectionService.GetOrCreateConnectionAsync();
+            var channel = await channelService.GetOrCreateChannelAsync(connection, ChannelService.ChannelPurpose.LiveTime);
+            string exchangeName = await queuesService.CreateExchange(channel, typeof(TResponse));
+            var queueName = await queueService.CreateQueues(
+                channel,
+                rrrHandlerType, 
+                exchangeName, 
+                HardConfiguration.GetQueueByInterfaceTypes(rrrHandlerType));
+
+            //TODO: Implement error handling
+            await consumerService.CreateConsumer(
+                channel, 
+                queueName,
+                serviceProvider,
+                handlerService.GetHandlers(rrrHandlerType).First());
+
+            await Send(model, props, MessageTypeEnum.Event);
+
+            while (!requestResponseMessageStore.IsRespondedMessage(props.CorrelationId))
+            {
+                await Task.Delay(100);
+            }
+
+            var respondModel = requestResponseMessageStore.GetRespondedMessage(props.CorrelationId) as TResponse;
+            if (respondModel == null)
+                throw new ArgumentNullException(nameof(respondModel), "Respond model is null");
+
+            return respondModel;
         }
 
         private async Task<bool> Send<TM>(TM model, BasicProperties props, MessageTypeEnum type) where TM : class

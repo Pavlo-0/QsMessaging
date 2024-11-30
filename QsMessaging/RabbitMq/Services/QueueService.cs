@@ -28,6 +28,7 @@ namespace QsMessaging.RabbitMq.Services
                     arguments.Add("x-queue-mode", "lazy");
                     break;
                 case QueueType.Temporary:
+                case QueueType.LiveTime:
                     arguments.Add("x-expires", 0);
                     arguments.Add("x-queue-mode", "default");
                     break;
@@ -61,5 +62,13 @@ namespace QsMessaging.RabbitMq.Services
         }
 
         private record StoreQueueRecord(IChannel Channel, Type TModel, string ExchangeName, string QueueName);
+    }
+
+
+    internal enum QueueType
+    {
+        Permanent,
+        Temporary,
+        LiveTime
     }
 }
