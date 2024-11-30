@@ -17,6 +17,7 @@ namespace QsMessaging.Public
             var configuration = new QsMessagingConfiguration();
             options(configuration);
 
+            services.AddTransient<IInstanceService, InstanceService>();
             services.AddTransient<IQsMessaging, QsMessagingGate>();
             services.AddTransient<IQsMessagingConnectionManager, ConnectionManager>();
 

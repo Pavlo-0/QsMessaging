@@ -1,18 +1,14 @@
-﻿using QsMessaging.Public.Handler;
-using RabbitMQ.Client;
+﻿using RabbitMQ.Client;
 
 namespace QsMessaging.RabbitMq.Services.Interfaces
 {
     internal interface IConsumerService
     {
-        Task CreateConsumer(
+        Task<string> GetOrCreateConsumerAsync(
             IChannel channel, 
             string queueName,
             IServiceProvider serviceProvider,
-            //object handlerInstance, 
-            HandlerService.HandlersStoreRecord record
-            //IEnumerable<IQsMessagingConsumerErrorHandler> consumerErrorInstances
-            );
+            HandlerService.HandlersStoreRecord record);
 
         IEnumerable<string> GetConsumersByChannel(IChannel channel);
     }

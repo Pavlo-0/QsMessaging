@@ -1,11 +1,12 @@
 ﻿using QsMessaging.RabbitMq.Interface;
 using QsMessaging.RabbitMq.Services;
+using QsMessaging.RabbitMq.Services.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace QsMessaging.RabbitMq
 {
-    internal class NameGenerator : INameGenerator
+    internal class NameGenerator(IInstanceService instanceService) : INameGenerator
     {
         public string GetExchangeNameFromType<TModel>()
         {
@@ -38,7 +39,7 @@ namespace QsMessaging.RabbitMq
                 case QueueType.Temporary:
                     return GenerateName(TModel, Guid.NewGuid().ToString("N"));
                 case QueueType.LiveTime:
-                    return GenerateName(TModel, "livetime:" + Guid.NewGuid().ToString("N"));
+                    return GenerateName(TModel, "livetime:" + instanceService.GetInstanceUID().ToString("N"));
                 default:
                     throw new ArgumentOutOfRangeException("Unknown QueueType");
             }

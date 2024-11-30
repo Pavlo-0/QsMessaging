@@ -12,13 +12,19 @@ namespace QsMessaging.RabbitMq.Services
     {
         private readonly static ConcurrentBag<StoreConsumerRecord> storeConsumerRecords = new ConcurrentBag<StoreConsumerRecord>();
 
-        public async Task CreateConsumer(
+        public async Task<string> GetOrCreateConsumerAsync(
             IChannel channel,
             string queueName,
             IServiceProvider serviceProvider,
             HandlerService.HandlersStoreRecord record
             )
         {
+            if (storeConsumerRecords.Any(consumer => consumer.QueueName == queueName && consumer.Channel == channel))
+            {
+                //Consumer already exists
+                return storeConsumerRecords.First(consumer => consumer.QueueName == queueName && consumer.Channel == channel).ConsumerTag;
+            }
+
             var consumer = new AsyncEventingBasicConsumer(channel);
             consumer.ReceivedAsync += async (model, ea) =>
             {
@@ -103,6 +109,7 @@ namespace QsMessaging.RabbitMq.Services
 
             var consumerTag = await channel.BasicConsumeAsync(queueName, autoAck: true, consumer: consumer);
             storeConsumerRecords.Add(new StoreConsumerRecord(channel, queueName, consumerTag));
+            return consumerTag;
         }
 
         public IEnumerable<string> GetConsumersByChannel(IChannel channel)

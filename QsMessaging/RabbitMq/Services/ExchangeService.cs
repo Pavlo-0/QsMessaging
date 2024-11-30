@@ -9,7 +9,7 @@ namespace QsMessaging.RabbitMq.Services
     {
         private readonly static ConcurrentBag<StoreExchangeRecord> storeExchangeRecords = new ConcurrentBag<StoreExchangeRecord>();
 
-        public async Task<string> GetOrCreateExchange(IChannel channel, Type TModel)
+        public async Task<string> GetOrCreateExchangeAsync(IChannel channel, Type TModel)
         {
             var name = exchangeNameGenerator.GetExchangeNameFromType(TModel);
 
