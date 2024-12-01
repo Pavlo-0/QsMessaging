@@ -55,6 +55,8 @@ namespace QsMessaging.RabbitMq.Services
                         throw new Exception($"Handler instance for {record.ConcreteHandlerInterfaceType} is null.");
                     }
 
+                    var correlationId = ea.BasicProperties.CorrelationId ?? string.Empty;
+
                     if (consumeMethod != null)
                     {
                         try
@@ -65,24 +67,39 @@ namespace QsMessaging.RabbitMq.Services
                                     var resultAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
                                     break;
 
-                                case ConsumerType.RequestResponseRequestConsumer:
+                                case ConsumerType.RRRequestConsumer:
                                     var resultModelAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
-                                    //We have send resultModelAsync back to the service.
-                                    if (resultModelAsync is Task<object> resultTask && (record.GenericType2 is not null))
-                                    {
-                                        var result = await resultTask;
 
-                                        await sender.SendMessageAsync(result, record.GenericType2);
-                                    }
-                                    else
+                                    if (resultModelAsync is Task task) // Check if it is a Task
                                     {
-                                        throw new Exception("Doesn't have type of object for return");
-                                    }
-                                    break;
+                                        await task; // Blocks until the task completes
+                                        var result = task.GetType().GetProperty("Result")?.GetValue(task);
 
-                                case ConsumerType.RequestResponseResponseConsumer:
+                                        await sender.SendMessageCorrelationAsync(result, correlationId);
+                                    }
+
+                                        /*
+                                        var resultTask = (Task<dynamic>)resultModelAsync;
+                                        resultTask.Wait(); // Blocks until the task completes
+                                        var result = resultTask.Result; // Gets the result of the Task<bool>
+                                        await rabbitMqSender.SendMessageAsync(result);*/
+                                        //We have send resultModelAsync back to the service.
+                                        /*if (resultModelAsync is Task resultTask && (record.GenericType2 is not null))
+                                        {
+
+
+
+                                            await rabbitMqSender.SendMessageAsync(result);
+                                        }
+                                        else
+                                        {
+                                            throw new Exception("Doesn't have type of object for return");
+                                        }*/
+                                        break;
+
+                                case ConsumerType.RRResponseConsumer:
                                     // Get the CorrelationId (if set)
-                                    var correlationId = ea.BasicProperties.CorrelationId ?? string.Empty;
+                                    //var correlationId = ea.BasicProperties.CorrelationId ?? string.Empty;
                                     var resulttAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance, correlationId });
                                     break;
 
@@ -157,7 +174,7 @@ namespace QsMessaging.RabbitMq.Services
     public enum ConsumerType
     {
         MessageEventConsumer,
-        RequestResponseRequestConsumer,
-        RequestResponseResponseConsumer,
+        RRRequestConsumer,
+        RRResponseConsumer,
     }
 }

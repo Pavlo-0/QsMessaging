@@ -13,12 +13,15 @@ namespace QsMessaging.RabbitMq.Services
         {
             var queueName = nameGenerator.GetQueueNameFromType(TModel, queueType);
 
+            var isAutoDelete = queueType == QueueType.ConsumerTemporary ||
+                queueType == QueueType.InstanceTemporary ||
+                queueType == QueueType.SingleTemporary;
+
             await channel.QueueDeclareAsync(
                 queueName,
                 durable: true,
                 exclusive: false,
-                //exclusive: queueType == QueueType.Temporary,
-                autoDelete: queueType == QueueType.ConsumerTemporary);
+                autoDelete: isAutoDelete);
 
             var arguments = new Dictionary<string, object?>();
 

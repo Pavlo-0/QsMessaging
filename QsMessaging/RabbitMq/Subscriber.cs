@@ -22,7 +22,7 @@ namespace QsMessaging.RabbitMq
             }
         }
 
-        protected async Task SubscribeHandlerAsync(
+        public async Task SubscribeHandlerAsync(
             HandlerService.HandlersStoreRecord record)
         {
             var channelPurpose = HardConfiguration.GetChannelPurposeByInterfaceTypes(record.supportedInterfacesType);

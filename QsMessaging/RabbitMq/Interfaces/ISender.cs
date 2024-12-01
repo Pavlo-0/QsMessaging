@@ -2,6 +2,6 @@
 {
     internal interface ISender
     {
-        Task SendMessageAsync(object model, Type type);
+        Task SendMessageCorrelationAsync(object model, string? correlationId);
     }
 }

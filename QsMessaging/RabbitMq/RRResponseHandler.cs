@@ -2,7 +2,7 @@
 
 namespace QsMessaging.RabbitMq
 {
-    internal class RequestResponseResponseHandler(IRequestResponseMessageStore store) : IRequestResponseResponseHandler
+    internal class RRResponseHandler(IRequestResponseMessageStore store) : IRRResponseHandler
     {
         public Task Consumer(object contract, string correlationId)
         {

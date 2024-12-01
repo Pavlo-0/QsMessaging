@@ -12,23 +12,32 @@ namespace QsMessaging.RabbitMq
         IConnectionService connectionService,
         IChannelService channelService,
         IExchangeService queuesService,
-        /*IHandlerService handlerService,
-        IServiceProvider serviceProvider,
+
+        IHandlerService handlerService,
+        //ISubscriber subscriber,
+        Lazy<ISubscriber> subscriber,
+        /*IServiceProvider serviceProvider,
         IQueueService queueService,
-        ISubscriber subscriber,
+        
         IConsumerService consumerService,*/
         IRequestResponseMessageStore requestResponseMessageStore) : IRabbitMqSender, ISender
     {
         public async Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
         {
-            await SendMessageAsync(model, typeof(TMessage));
+            var props = new BasicProperties();
+            props.DeliveryMode = DeliveryModes.Persistent;
+            await Send(model, typeof(TMessage), props, MessageTypeEnum.Message);
         }
 
-        public async Task SendMessageAsync(object model, Type type)
+        public async Task SendMessageCorrelationAsync(object model, string? correlationId)
         {
             var props = new BasicProperties();
             props.DeliveryMode = DeliveryModes.Persistent;
-            await Send(model, type, props, MessageTypeEnum.Message);
+            if (!string.IsNullOrEmpty(correlationId))
+            {
+                props.CorrelationId = correlationId;
+            }
+            await Send(model, model.GetType(), props, MessageTypeEnum.Message);
         }
 
         public async Task SendEventAsync<TEvent>(TEvent model) where TEvent : class
@@ -69,18 +78,21 @@ namespace QsMessaging.RabbitMq
                 serviceProvider,
                 handlerService.GetHandlers(rrrHandlerType).First());*/
 
+            var handlerRecord = handlerService.AddRRResponseHandler<TResponse>();
+            await subscriber.Value.SubscribeHandlerAsync(handlerRecord);
+
             await Send(model, typeof(TRequest),  props, MessageTypeEnum.Message);
 
             while (!requestResponseMessageStore.IsRespondedMessage(props.CorrelationId))
             {
                 await Task.Delay(100);
-            }
+            } 
 
-            var respondModel = requestResponseMessageStore.GetRespondedMessage(props.CorrelationId) as TResponse;
-            if (respondModel == null)
-                throw new ArgumentNullException(nameof(respondModel), "Respond model is null");
+            (object message, Type messageType) = requestResponseMessageStore.GetRespondedMessage(props.CorrelationId);
+            if (message as TResponse == null || messageType == null)
+                throw new ArgumentNullException(nameof(TRequest), "Respond model is null");
 
-            return respondModel;
+            return message as TResponse;
         }
 
         private async Task Send(object model, Type type, BasicProperties props, MessageTypeEnum messageType)

@@ -1,10 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>dotnet-AssertInstance01-4214104a-bd2b-4cf8-8212-3d8aa02df4a8</UserSecretsId>
+    <UserSecretsId>dotnet-RequestResponse.ResponseInstance-33cc4029-72ec-4e60-8d65-28ba90aa4fbb</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +13,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\QsMessaging\QsMessaging.csproj" />
-    <ProjectReference Include="..\TestContract\TestContract.csproj" />
+    <ProjectReference Include="..\Contract\Contract.csproj" />
   </ItemGroup>
 </Project>

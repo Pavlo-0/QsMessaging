@@ -22,5 +22,18 @@
         /// <typeparam name="TEvent">The type of the message. This type will be used to determine which handler should be called to consume the message.</typeparam>
         /// <param name="Model"></param>
         Task SendEventAsync<TEvent>(TEvent Model) where TEvent : class;
+
+        /// <summary>
+        /// Send a request to another service and wait for the response
+        /// On the receiving side, you must implement a handler that consumes the exact same Request (by type) and return the exact same Response.
+        /// If a request cannot be delivered immediately, it will wait until a consumer is ready to process it. 
+        /// If all possible consumers are disconnected, the request will be discarded.
+        /// <see cref="IQsRequestResponseHandler<TRequest, TResponse>"/>
+        /// </summary>
+        /// <typeparam name="TRequest">The type of the request. This type will be used to determine which handler should be called to consume the request.</typeparam>
+        /// <typeparam name="TResponse">The type of the response. This type will be used to determine which handler should be called to consume the request.</typeparam>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        Task<TResponse> RequestResponse<TRequest, TResponse>(TRequest request) where TRequest : class where TResponse : class;
     }
 }

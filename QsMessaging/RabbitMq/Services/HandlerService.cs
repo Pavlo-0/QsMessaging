@@ -13,8 +13,11 @@ namespace QsMessaging.RabbitMq.Services
         private static ConcurrentBag<HandlersStoreRecord> _handlers = new ConcurrentBag<HandlersStoreRecord>();
         private static ConcurrentBag<ConsumerErrorHandlerStoreRecord> _consumerErrorHandler = new ConcurrentBag<ConsumerErrorHandlerStoreRecord>();
 
+        private IServiceCollection _services;
+
         public HandlerService(IServiceCollection services, Assembly assembly)
         {
+            _services = services;
             foreach (var supportedInterfacesType in HardConfiguration.SupportedInterfacesTypes)
             {
                 foreach (var findedHandler in FindHandlers(assembly, supportedInterfacesType))
@@ -26,13 +29,21 @@ namespace QsMessaging.RabbitMq.Services
             FindImplementations<IQsMessagingConsumerErrorHandler>(assembly);
 
             //create internal record for handler
+            
+        }
+
+        public HandlersStoreRecord AddRRResponseHandler<TContract>()
+        {
             var record = new HandlersStoreRecord(
-                typeof(IRequestResponseResponseHandler),
-                typeof(IRequestResponseResponseHandler),
-                typeof(RequestResponseResponseHandler),
-                typeof(object), null);
+                typeof(IRRResponseHandler),
+                typeof(IRRResponseHandler),
+                typeof(RRResponseHandler),
+                typeof(TContract), null);
 
             _handlers.Add(record);
+
+
+            return record;
         }
 
         public IEnumerable<HandlersStoreRecord> GetHandlers(Type supportedInterfacesType)
@@ -50,17 +61,20 @@ namespace QsMessaging.RabbitMq.Services
             return _consumerErrorHandler;
         }
 
+        //TODO: Remove IServiceCollection services as parameter
         public void RegisterAllHandlers(IServiceCollection services)
         {
             foreach (var handler in _handlers)
             {
-                services.AddTransient(handler.ConcreteHandlerInterfaceType, handler.HandlerType);
+                _services.AddTransient(handler.ConcreteHandlerInterfaceType, handler.HandlerType);
             }
 
             foreach (var handler in _consumerErrorHandler)
             {
-                services.AddTransient(typeof(IQsMessagingConsumerErrorHandler), handler.ConsumerErrorHandler);
+                _services.AddTransient(typeof(IQsMessagingConsumerErrorHandler), handler.ConsumerErrorHandler);
             }
+
+            _services.AddTransient(typeof(IRRResponseHandler), typeof(RRResponseHandler));
         }
 
         private IEnumerable<HandlersStoreRecord> FindHandlers(

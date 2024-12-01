@@ -9,6 +9,7 @@
         Messages100,
         Messages10,
         Message50Paused,
-        MessageConsumerError
+        MessageConsumerError,
+        RequestResponse1
     }
 }

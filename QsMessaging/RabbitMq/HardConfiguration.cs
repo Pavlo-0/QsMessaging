@@ -45,17 +45,17 @@ namespace QsMessaging.RabbitMq
                     },
                     new SupportedInterfacesStruct
                     {
-                        TypeInterface = typeof(IRequestResponseResponseHandler),
+                        TypeInterface = typeof(IRRResponseHandler),
                         Queue = QueueType.InstanceTemporary,
                         ChannelPurpose = ChannelPurpose.QueueInstanceTemporary,
-                        Consumer = ConsumerType.RequestResponseResponseConsumer
+                        Consumer = ConsumerType.RRResponseConsumer
                     },
                     new SupportedInterfacesStruct
                                         {
                         TypeInterface = typeof(IQsRequestResponseHandler<,>),
                         Queue = QueueType.SingleTemporary,
                         ChannelPurpose = ChannelPurpose.QueueSingleTemporary,
-                        //Consumer = ConsumerType.RequestResponseRequestConsumer
+                        Consumer = ConsumerType.RRRequestConsumer
                     },
                 };
             }
