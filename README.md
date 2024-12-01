@@ -1,9 +1,9 @@
 # QsMessaging
-QsMessaging library for sending and receiving messages between different services (components) of your application using __RabbitMQ__.
-[![NuGet](https://img.shields.io/nuget/v/QsMessaging.svg)](https://www.nuget.org/packages/QsMessaging/)  
 
+QsMessaging is a library for sending and receiving messages between different services or components of your application using __RabbitMQ__. It supports horizontal scalability, allowing multiple instances of the same service to handle messages efficiently.    
+Available on NuGet for seamless integration. [![NuGet](https://img.shields.io/nuget/v/QsMessaging.svg)](https://www.nuget.org/packages/QsMessaging/)  
 
-A .NET 8 library for messaging services.
+A .NET 8 library for messaging services, designed to simplify communication and ensure scalability across distributed systems.
 
 ## Installation
 
