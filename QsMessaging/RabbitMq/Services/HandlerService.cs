@@ -11,7 +11,6 @@ namespace QsMessaging.RabbitMq.Services
     {
 
         private static ConcurrentBag<HandlersStoreRecord> _handlers = new ConcurrentBag<HandlersStoreRecord>();
-        private static ConcurrentBag<HandlersStoreRecord> _publishErrorHandler = new ConcurrentBag<HandlersStoreRecord>();
         private static ConcurrentBag<ConsumerErrorHandlerStoreRecord> _consumerErrorHandler = new ConcurrentBag<ConsumerErrorHandlerStoreRecord>();
 
         public HandlerService(IServiceCollection services, Assembly assembly)
@@ -25,11 +24,6 @@ namespace QsMessaging.RabbitMq.Services
             }
 
             FindImplementations<IQsMessagingConsumerErrorHandler>(assembly);
-
-            foreach (var findedHandler in FindHandlers(assembly, typeof(IQsMessagingPublishErrorHandler<>)))
-            {
-                _publishErrorHandler.Add(findedHandler);
-            }
 
             //create internal record for handler
             var record = new HandlersStoreRecord(
@@ -54,11 +48,6 @@ namespace QsMessaging.RabbitMq.Services
             return _consumerErrorHandler;
         }
 
-        public IEnumerable<HandlersStoreRecord> GetPublishErrorHandlers()
-        {
-            return _publishErrorHandler;
-        }
-
         public void RegisterAllHandlers(IServiceCollection services)
         {
             foreach (var handler in _handlers)
@@ -69,11 +58,6 @@ namespace QsMessaging.RabbitMq.Services
             foreach (var handler in _consumerErrorHandler)
             {
                 services.AddTransient(typeof(IQsMessagingConsumerErrorHandler), handler.ConsumerErrorHandler);
-            }
-
-            foreach (var handler in _publishErrorHandler)
-            {
-                services.AddTransient(handler.ConcreteHandlerInterfaceType, handler.HandlerType);
             }
         }
 

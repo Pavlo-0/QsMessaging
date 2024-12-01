@@ -8,7 +8,5 @@ namespace QsMessaging.RabbitMq.Services.Interfaces
         IEnumerable<HandlersStoreRecord> GetHandlers();
 
         IEnumerable<ConsumerErrorHandlerStoreRecord> GetConsumerErrorHandlers();
-
-        IEnumerable<HandlersStoreRecord> GetPublishErrorHandlers();
     }
 }
