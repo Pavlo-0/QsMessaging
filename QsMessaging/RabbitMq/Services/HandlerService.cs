@@ -36,7 +36,7 @@ namespace QsMessaging.RabbitMq.Services
                 typeof(IRequestResponseResponseHandler),
                 typeof(IRequestResponseResponseHandler),
                 typeof(RequestResponseResponseHandler),
-                typeof(object));
+                typeof(object), null);
         }
 
         public IEnumerable<HandlersStoreRecord> GetHandlers(Type supportedInterfacesType)
@@ -95,7 +95,12 @@ namespace QsMessaging.RabbitMq.Services
             {
                 var concreteHandlerInterfaceType = handlerType.GetInterfaces().First(i => i.IsGenericType && i.GetGenericTypeDefinition() == supportedInterfacesType);
                 var genericType = concreteHandlerInterfaceType.GetGenericArguments().First();
-                returnHandlers.Add(new HandlersStoreRecord(supportedInterfacesType, concreteHandlerInterfaceType, handlerType, genericType));
+                var genericType2 = (Type)null;
+                if (concreteHandlerInterfaceType.GetGenericArguments().Count() > 1)
+                {
+                    genericType2 = concreteHandlerInterfaceType.GetGenericArguments().ElementAt(1);
+                }
+                returnHandlers.Add(new HandlersStoreRecord(supportedInterfacesType, concreteHandlerInterfaceType, handlerType, genericType, genericType2));
             }
 
             return returnHandlers;
@@ -109,6 +114,7 @@ namespace QsMessaging.RabbitMq.Services
                                         && type.IsClass                     // Ensure it's a class
                                         && !type.IsAbstract)               // Ensure it's not abstract
                            .Select(type => new ConsumerErrorHandlerStoreRecord(type));
+            //TODO: Refactor. Remove specefic type ConsumerErrorHandlerStoreRecord from method.
 
             foreach (var record in records)
             {
@@ -116,7 +122,7 @@ namespace QsMessaging.RabbitMq.Services
             }
         }
 
-        public record HandlersStoreRecord(Type supportedInterfacesType, Type ConcreteHandlerInterfaceType, Type HandlerType, Type GenericType);
+        public record HandlersStoreRecord(Type supportedInterfacesType, Type ConcreteHandlerInterfaceType, Type HandlerType, Type GenericType, Type? GenericType2);
 
         public record ConsumerErrorHandlerStoreRecord(Type ConsumerErrorHandler);
 

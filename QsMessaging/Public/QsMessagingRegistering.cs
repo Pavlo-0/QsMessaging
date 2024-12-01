@@ -23,8 +23,9 @@ namespace QsMessaging.Public
 
             services.AddTransient<ISubscriber, Subscriber>();
             services.AddTransient<IRabbitMqSender, Sender>();
-            services.AddTransient<INameGenerator, NameGenerator>();
+            services.AddTransient<ISender, Sender>();
 
+            services.AddTransient<INameGenerator, NameGenerator>();
 
             services.AddSingleton<IConnectionService>(sp =>
             {

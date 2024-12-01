@@ -36,14 +36,15 @@ namespace QsMessaging.RabbitMq
             {
                 case QueueType.Permanent:
                     return GenerateName(TModel, "permanent");
-                case QueueType.Temporary:
+                case QueueType.ConsumerTemporary:
                     return GenerateName(TModel, Guid.NewGuid().ToString("N"));
-                case QueueType.LiveTime:
+                case QueueType.InstanceTemporary:
                     return GenerateName(TModel, "livetime:" + instanceService.GetInstanceUID().ToString("N"));
+                case QueueType.SingleTemporary:
+                    return GenerateName(TModel, "livetime");
                 default:
                     throw new ArgumentOutOfRangeException("Unknown QueueType");
             }
-
         }
         private string GenerateName(Type type, string endName = "")
         {

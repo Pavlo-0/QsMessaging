@@ -6,16 +6,6 @@ namespace QsMessaging.RabbitMq.Services
 {
     internal class ChannelService(IConnectionService connectionService): IChannelService
     {
-        public enum ChannelPurpose
-        {
-            Common,
-            MessagePublish,
-            EventPublish,
-            QueuePermanent,
-            LiveTime,
-            QueueTemporary,
-        }
-
         private static ConcurrentDictionary<ChannelPurpose, (IConnection connection, IChannel channel)> _channels
             = new ConcurrentDictionary<ChannelPurpose, (IConnection connection, IChannel channel)>();
 
@@ -47,5 +37,16 @@ namespace QsMessaging.RabbitMq.Services
         {
             return _channels.Where(r => r.Value.connection == connection).Select(r => r.Value.channel);
         }
+    }
+
+    public enum ChannelPurpose
+    {
+        Common,
+        MessagePublish,
+        EventPublish,
+        QueuePermanent,
+        QueueConsumerTemporary,
+        QueueInstanceTemporary,
+        QueueSingleTemporary,
     }
 }

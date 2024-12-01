@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using QsMessaging.Public.Handler;
+using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -8,7 +9,7 @@ using System.Text;
 
 namespace QsMessaging.RabbitMq.Services
 {
-    internal class ConsumerService : IConsumerService
+    internal class ConsumerService(ISender sender) : IConsumerService
     {
         private readonly static ConcurrentBag<StoreConsumerRecord> storeConsumerRecords = new ConcurrentBag<StoreConsumerRecord>();
 
@@ -63,14 +64,32 @@ namespace QsMessaging.RabbitMq.Services
                                 case ConsumerType.MessageEventConsumer:
                                     var resultAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
                                     break;
+
+                                case ConsumerType.RequestResponseRequestConsumer:
+                                    var resultModelAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
+                                    //We have send resultModelAsync back to the service.
+                                    if (resultModelAsync is Task<object> resultTask && (record.GenericType2 is not null))
+                                    {
+                                        var result = await resultTask;
+
+                                        await sender.SendMessageAsync(result, record.GenericType2);
+                                    }
+                                    else
+                                    {
+                                        throw new Exception("Doesn't have type of object for return");
+                                    }
+                                    break;
+
                                 case ConsumerType.RequestResponseResponseConsumer:
                                     // Get the CorrelationId (if set)
                                     var correlationId = ea.BasicProperties.CorrelationId ?? string.Empty;
                                     var resulttAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance, correlationId });
                                     break;
+
                                 default:
                                     //TODO: add warning that consumer not found
                                     break;
+
                             }
                         }
                         catch (Exception ex)
@@ -138,6 +157,7 @@ namespace QsMessaging.RabbitMq.Services
     public enum ConsumerType
     {
         MessageEventConsumer,
-        RequestResponseResponseConsumer
+        RequestResponseRequestConsumer,
+        RequestResponseResponseConsumer,
     }
 }

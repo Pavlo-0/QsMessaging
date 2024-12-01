@@ -31,13 +31,11 @@ namespace QsMessaging.RabbitMq
             HandlerService.HandlersStoreRecord record, 
             IEnumerable<IQsMessagingConsumerErrorHandler> consumerErrorInstances)
         {
+            var channelPurpose = HardConfiguration.GetChannelPurposeByInterfaceTypes(record.supportedInterfacesType);
             var queueType = HardConfiguration.GetQueueByInterfaceTypes(record.supportedInterfacesType);
+
             var connection = await connectionService.GetOrCreateConnectionAsync();
-            var channel = await channelService.GetOrCreateChannelAsync(connection,
-              queueType == QueueType.Permanent
-              ? ChannelService.ChannelPurpose.QueuePermanent
-              : ChannelService.ChannelPurpose.QueueTemporary
-                );
+            var channel = await channelService.GetOrCreateChannelAsync(connection, channelPurpose);
 
             var exchangename = await exchangeService.GetOrCreateExchangeAsync(channel, record.GenericType);
             var queueName = await queueService.GetOrCreateQueuesAsync(channel, record.HandlerType, exchangename, queueType);

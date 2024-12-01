@@ -11,8 +11,7 @@
         /// </summary>
         /// <typeparam name="TMessage">The type of the message. This type will be used to determine which handler should be called to consume the message.</typeparam>
         /// <param name="Model"></param>
-        /// <returns></returns>
-        Task<bool> SendMessageAsync<TMessage>(TMessage Model) where TMessage : class;
+        Task SendMessageAsync<TMessage>(TMessage Model) where TMessage : class;
 
         /// <summary>
         /// Send a message to another service. 
@@ -22,7 +21,6 @@
         /// </summary>
         /// <typeparam name="TEvent">The type of the message. This type will be used to determine which handler should be called to consume the message.</typeparam>
         /// <param name="Model"></param>
-        /// <returns></returns>
-        Task<bool> SendEventAsync<TEvent>(TEvent Model) where TEvent : class;
+        Task SendEventAsync<TEvent>(TEvent Model) where TEvent : class;
     }
 }

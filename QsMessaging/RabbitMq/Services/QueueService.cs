@@ -18,7 +18,7 @@ namespace QsMessaging.RabbitMq.Services
                 durable: true,
                 exclusive: false,
                 //exclusive: queueType == QueueType.Temporary,
-                autoDelete: queueType == QueueType.Temporary);
+                autoDelete: queueType == QueueType.ConsumerTemporary);
 
             var arguments = new Dictionary<string, object?>();
 
@@ -27,8 +27,9 @@ namespace QsMessaging.RabbitMq.Services
                 case QueueType.Permanent:
                     arguments.Add("x-queue-mode", "lazy");
                     break;
-                case QueueType.Temporary:
-                case QueueType.LiveTime:
+                case QueueType.ConsumerTemporary:
+                case QueueType.InstanceTemporary:
+                case QueueType.SingleTemporary:
                     arguments.Add("x-expires", 0);
                     arguments.Add("x-queue-mode", "default");
                     break;
@@ -42,8 +43,8 @@ namespace QsMessaging.RabbitMq.Services
             }
             catch (OperationInterruptedException)
             {
-                //This Queue already exist. For permanent queue, we can ignore this exception
-                if (queueType == QueueType.Temporary)
+                //This Queue already exist. For permanent queue (and instance and single), we can ignore this exception
+                if (queueType == QueueType.ConsumerTemporary)
                 {
                     throw;
                 }
@@ -67,8 +68,30 @@ namespace QsMessaging.RabbitMq.Services
 
     internal enum QueueType
     {
+        /// <summary>
+        /// Single queue. Permanent.
+        /// Message would be distributed to only one consumer which can consume message or wait when consumer would be ready.
+        /// </summary>
         Permanent,
-        Temporary,
-        LiveTime
+
+        /// <summary>
+        /// Per Consumer queue. Temporary.
+        /// Message would be distributed to all consumers.
+        /// </summary>
+        ConsumerTemporary,
+
+        /// <summary>
+        /// Per instance queue. Temporary.
+        /// Every instance has own queue. Queue will be deleted after instance disconnect.
+        /// Message would be distributed for one consumer in every instance.
+        /// </summary>
+        InstanceTemporary,
+
+        /// <summary>
+        /// Single queue. Temporary.
+        /// Every instance consume one queue. Queue will be deleted after last consumer disconnect.
+        /// Message would be distributed for one consumer.
+        /// </summary>
+        SingleTemporary
     }
 }
