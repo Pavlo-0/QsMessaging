@@ -9,7 +9,7 @@ namespace QsMessaging.RabbitMq.Services
     {
         private readonly static ConcurrentBag<StoreExchangeRecord> storeExchangeRecords = new ConcurrentBag<StoreExchangeRecord>();
 
-        public async Task<string> GetOrCreateExchangeAsync(IChannel channel, Type TModel)
+        public async Task<string> GetOrCreateExchangeAsync(IChannel channel, Type TModel, ExchangePurpose purpose)
         {
             var name = exchangeNameGenerator.GetExchangeNameFromType(TModel);
 
@@ -17,7 +17,7 @@ namespace QsMessaging.RabbitMq.Services
                            exchange: name,
                            type: ExchangeType.Fanout,
                            durable: true,
-                           autoDelete: false,
+                           autoDelete: purpose == ExchangePurpose.Permanent ? false : true,
                            arguments: null);
 
             storeExchangeRecords.Add(new StoreExchangeRecord(channel, TModel, name));
@@ -26,5 +26,11 @@ namespace QsMessaging.RabbitMq.Services
         }
 
         private record StoreExchangeRecord(IChannel Channel, Type TModel, string ExchangeName);
+    }
+
+    internal enum ExchangePurpose
+    {
+        Permanent,
+        Temporary
     }
 }

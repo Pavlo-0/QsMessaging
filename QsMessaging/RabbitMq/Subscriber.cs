@@ -26,12 +26,13 @@ namespace QsMessaging.RabbitMq
             HandlerService.HandlersStoreRecord record)
         {
             var channelPurpose = HardConfiguration.GetChannelPurposeByInterfaceTypes(record.supportedInterfacesType);
+            var exchangePurpose = HardConfiguration.GetExchangeByInterfaceTypes(record.supportedInterfacesType);
             var queueType = HardConfiguration.GetQueueByInterfaceTypes(record.supportedInterfacesType);
 
             var connection = await connectionService.GetOrCreateConnectionAsync();
             var channel = await channelService.GetOrCreateChannelAsync(connection, channelPurpose);
 
-            var exchangename = await exchangeService.GetOrCreateExchangeAsync(channel, record.GenericType);
+            var exchangename = await exchangeService.GetOrCreateExchangeAsync(channel, record.GenericType, exchangePurpose);
             var queueName = await queueService.GetOrCreateQueuesAsync(channel, record.HandlerType, exchangename, queueType);
 
             await consumerService.GetOrCreateConsumerAsync(channel, queueName, services, record);
