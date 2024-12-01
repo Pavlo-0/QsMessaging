@@ -1,8 +1,6 @@
 ﻿using QsMessaging.RabbitMq.Interface;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using QsMessaging.RabbitMq.Services;
-using Microsoft.Extensions.DependencyInjection;
-using QsMessaging.Public.Handler;
 
 namespace QsMessaging.RabbitMq
 {
@@ -18,18 +16,14 @@ namespace QsMessaging.RabbitMq
 
         public async Task Subscribe()
         {
-            var consumerErrorInstanceHandlers = services.GetServices<IQsMessagingConsumerErrorHandler>();
-             
-
             foreach (var record in handlerService.GetHandlers())
             {
-                await SubscribeHandlerAsync(record, consumerErrorInstanceHandlers);
+                await SubscribeHandlerAsync(record);
             }
         }
 
-        public async Task SubscribeHandlerAsync(
-            HandlerService.HandlersStoreRecord record, 
-            IEnumerable<IQsMessagingConsumerErrorHandler> consumerErrorInstances)
+        protected async Task SubscribeHandlerAsync(
+            HandlerService.HandlersStoreRecord record)
         {
             var channelPurpose = HardConfiguration.GetChannelPurposeByInterfaceTypes(record.supportedInterfacesType);
             var queueType = HardConfiguration.GetQueueByInterfaceTypes(record.supportedInterfacesType);

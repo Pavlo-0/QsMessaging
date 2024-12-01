@@ -31,6 +31,8 @@ namespace QsMessaging.RabbitMq.Services
                 typeof(IRequestResponseResponseHandler),
                 typeof(RequestResponseResponseHandler),
                 typeof(object), null);
+
+            _handlers.Add(record);
         }
 
         public IEnumerable<HandlersStoreRecord> GetHandlers(Type supportedInterfacesType)

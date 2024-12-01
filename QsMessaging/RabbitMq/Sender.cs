@@ -1,4 +1,5 @@
-﻿using QsMessaging.RabbitMq.Interfaces;
+﻿using QsMessaging.RabbitMq.Interface;
+using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using RabbitMQ.Client;
@@ -11,10 +12,11 @@ namespace QsMessaging.RabbitMq
         IConnectionService connectionService,
         IChannelService channelService,
         IExchangeService queuesService,
-        IHandlerService handlerService,
+        /*IHandlerService handlerService,
         IServiceProvider serviceProvider,
         IQueueService queueService,
-        IConsumerService consumerService,
+        ISubscriber subscriber,
+        IConsumerService consumerService,*/
         IRequestResponseMessageStore requestResponseMessageStore) : IRabbitMqSender, ISender
     {
         public async Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
@@ -47,8 +49,10 @@ namespace QsMessaging.RabbitMq
             requestResponseMessageStore.AddRequestMessage(props.CorrelationId, model);
 
             //Before Send message we should do listening channel for response
-
+            /*
             var rrrHandlerType = typeof(IRequestResponseResponseHandler);
+
+            await subscriber.SubscribeHandlerAsync(handlerService.GetHandlers(rrrHandlerType).First());
 
             var connection = await connectionService.GetOrCreateConnectionAsync();
             var channel = await channelService.GetOrCreateChannelAsync(connection, HardConfiguration.GetChannelPurposeByInterfaceTypes(rrrHandlerType));
@@ -63,7 +67,7 @@ namespace QsMessaging.RabbitMq
                 channel, 
                 queueName,
                 serviceProvider,
-                handlerService.GetHandlers(rrrHandlerType).First());
+                handlerService.GetHandlers(rrrHandlerType).First());*/
 
             await Send(model, typeof(TRequest),  props, MessageTypeEnum.Message);
 
