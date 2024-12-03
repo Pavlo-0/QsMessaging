@@ -4,7 +4,7 @@ namespace QsMessaging.RabbitMq.Services
 {
     internal class InstanceService : IInstanceService
     {
-        private static readonly Lazy<Guid> _instanceUID = new Lazy<Guid>(() => Guid.NewGuid());
+        private static readonly Lazy<Guid> _instanceUID = new Lazy<Guid>(Guid.NewGuid);
 
         public Guid GetInstanceUID()
         {

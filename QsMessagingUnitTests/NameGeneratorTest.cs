@@ -49,7 +49,7 @@ namespace QsMessagingUnitTests
         public void GetQueueNameFromType1_ReturnsCorrectQueueName_WhenTypeAndQueueTypeIsProvided()
         {
             var nameGenerator = new NameGenerator(_instanceServiceMock.Object);
-            var result = nameGenerator.GetQueueNameFromType(typeof(TestClass), QueueType.Permanent);
+            var result = nameGenerator.GetQueueNameFromType(typeof(TestClass), QueuePurpose.Permanent);
             Assert.AreEqual("Qs:QsMessagingUnitTests.NameGeneratorTest+TestClass:permanent", result);
         }
 
@@ -57,7 +57,7 @@ namespace QsMessagingUnitTests
         public void GetQueueNameFromType2_ReturnsCorrectQueueName_WhenTypeAndQueueTypeIsProvided()
         {
             var nameGenerator = new NameGenerator(_instanceServiceMock.Object);
-            var result = nameGenerator.GetQueueNameFromType(typeof(TestLongLongLongNameClass), QueueType.Permanent);
+            var result = nameGenerator.GetQueueNameFromType(typeof(TestLongLongLongNameClass), QueuePurpose.Permanent);
             Assert.AreEqual("Qs:QsMessagingUnitTests.NameGeneratorTest+TestLongLongLongNameClass:permanent", result);
         }
 
@@ -66,7 +66,7 @@ namespace QsMessagingUnitTests
         {
             var nameGenerator = new NameGenerator(_instanceServiceMock.Object);
             var result = nameGenerator.GetQueueNameFromType(
-                typeof(TestLongLongLongNameClassTestLongLongLongNameClass<TestLongLongLongNameClass, TestLongLongLongNameClass, TestLongLongLongNameClass>), QueueType.Permanent);
+                typeof(TestLongLongLongNameClassTestLongLongLongNameClass<TestLongLongLongNameClass, TestLongLongLongNameClass, TestLongLongLongNameClass>), QueuePurpose.Permanent);
             Assert.AreEqual("Qs:df42a16c260d039d4c6b837c060eb84d81b8be982c58979b55c5ed1f62326d30:permanent", result);
         }
 
@@ -84,7 +84,7 @@ namespace QsMessagingUnitTests
         {
             var nameGenerator = new NameGenerator(_instanceServiceMock.Object);
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-            Assert.ThrowsException<ArgumentNullException>(() => nameGenerator.GetQueueNameFromType(null, QueueType.Permanent));
+            Assert.ThrowsException<ArgumentNullException>(() => nameGenerator.GetQueueNameFromType(null, QueuePurpose.Permanent));
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
         }
 
@@ -92,7 +92,7 @@ namespace QsMessagingUnitTests
         public void GetQueueNameFromType_ThrowsArgumentException_WhenQueueTypeIsInvalid()
         {
             var nameGenerator = new NameGenerator(_instanceServiceMock.Object);
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => nameGenerator.GetQueueNameFromType(typeof(string), (QueueType)999));
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => nameGenerator.GetQueueNameFromType(typeof(string), (QueuePurpose)999));
         }
 
         public class TestClass { }

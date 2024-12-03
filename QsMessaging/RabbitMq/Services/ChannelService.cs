@@ -38,15 +38,4 @@ namespace QsMessaging.RabbitMq.Services
             return _channels.Where(r => r.Value.connection == connection).Select(r => r.Value.channel);
         }
     }
-
-    public enum ChannelPurpose
-    {
-        Common,
-        MessagePublish,
-        EventPublish,
-        QueuePermanent,
-        QueueConsumerTemporary,
-        QueueInstanceTemporary,
-        QueueSingleTemporary,
-    }
 }

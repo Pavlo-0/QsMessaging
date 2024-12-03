@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using QsMessaging.RabbitMq.Models;
+using RabbitMQ.Client;
 
 namespace QsMessaging.RabbitMq.Services.Interfaces
 {
@@ -8,7 +9,7 @@ namespace QsMessaging.RabbitMq.Services.Interfaces
             IChannel channel, 
             string queueName,
             IServiceProvider serviceProvider,
-            HandlerService.HandlersStoreRecord record);
+            HandlersStoreRecord record);
 
         IEnumerable<string> GetConsumersByChannel(IChannel channel);
     }

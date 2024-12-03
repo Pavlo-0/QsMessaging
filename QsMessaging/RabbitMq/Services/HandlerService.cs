@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using QsMessaging.Public.Handler;
 using QsMessaging.RabbitMq.Interfaces;
+using QsMessaging.RabbitMq.Models;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -23,13 +24,10 @@ namespace QsMessaging.RabbitMq.Services
                 foreach (var findedHandler in FindHandlers(assembly, supportedInterfacesType))
                 {
                     _handlers.Add(findedHandler);
-                } 
+                }
             }
 
             FindImplementations<IQsMessagingConsumerErrorHandler>(assembly);
-
-            //create internal record for handler
-            
         }
 
         public HandlersStoreRecord AddRRResponseHandler<TContract>()
@@ -38,10 +36,9 @@ namespace QsMessaging.RabbitMq.Services
                 typeof(IRRResponseHandler),
                 typeof(IRRResponseHandler),
                 typeof(RRResponseHandler),
-                typeof(TContract), null);
+                typeof(TContract));
 
             _handlers.Add(record);
-
 
             return record;
         }
@@ -61,8 +58,7 @@ namespace QsMessaging.RabbitMq.Services
             return _consumerErrorHandler;
         }
 
-        //TODO: Remove IServiceCollection services as parameter
-        public void RegisterAllHandlers(IServiceCollection services)
+        public void RegisterAllHandlers()
         {
             foreach (var handler in _handlers)
             {
@@ -77,9 +73,23 @@ namespace QsMessaging.RabbitMq.Services
             _services.AddTransient(typeof(IRRResponseHandler), typeof(RRResponseHandler));
         }
 
-        private IEnumerable<HandlersStoreRecord> FindHandlers(
-           Assembly assembly,
-           Type supportedInterfacesType)
+        public static void FindImplementations<TInterface>(Assembly assembly)
+        {
+
+            var records = assembly.GetTypes()
+                           .Where(type => typeof(TInterface).IsAssignableFrom(type)  // Check if type implements the interface
+                                        && type.IsClass                     // Ensure it's a class
+                                        && !type.IsAbstract)               // Ensure it's not abstract
+                           .Select(type => new ConsumerErrorHandlerStoreRecord(type));
+            //TODO: Refactor. Remove specefic type ConsumerErrorHandlerStoreRecord from method.
+
+            foreach (var record in records)
+            {
+                _consumerErrorHandler.Add(record);
+            }
+        }
+
+        private IEnumerable<HandlersStoreRecord> FindHandlers(Assembly assembly, Type supportedInterfacesType)
         {
             var handlersTypes = assembly.GetTypes()
                 .Where(
@@ -95,36 +105,10 @@ namespace QsMessaging.RabbitMq.Services
             {
                 var concreteHandlerInterfaceType = handlerType.GetInterfaces().First(i => i.IsGenericType && i.GetGenericTypeDefinition() == supportedInterfacesType);
                 var genericType = concreteHandlerInterfaceType.GetGenericArguments().First();
-                var genericType2 = (Type)null;
-                if (concreteHandlerInterfaceType.GetGenericArguments().Count() > 1)
-                {
-                    genericType2 = concreteHandlerInterfaceType.GetGenericArguments().ElementAt(1);
-                }
-                returnHandlers.Add(new HandlersStoreRecord(supportedInterfacesType, concreteHandlerInterfaceType, handlerType, genericType, genericType2));
+                returnHandlers.Add(new HandlersStoreRecord(supportedInterfacesType, concreteHandlerInterfaceType, handlerType, genericType));
             }
 
             return returnHandlers;
         }
-
-        public static void FindImplementations<TInterface>(Assembly assembly)
-        {
-            
-            var records = assembly.GetTypes()
-                           .Where(type => typeof(TInterface).IsAssignableFrom(type)  // Check if type implements the interface
-                                        && type.IsClass                     // Ensure it's a class
-                                        && !type.IsAbstract)               // Ensure it's not abstract
-                           .Select(type => new ConsumerErrorHandlerStoreRecord(type));
-            //TODO: Refactor. Remove specefic type ConsumerErrorHandlerStoreRecord from method.
-
-            foreach (var record in records)
-            {
-                _consumerErrorHandler.Add(record);
-            }
-        }
-
-        public record HandlersStoreRecord(Type supportedInterfacesType, Type ConcreteHandlerInterfaceType, Type HandlerType, Type GenericType, Type? GenericType2);
-
-        public record ConsumerErrorHandlerStoreRecord(Type ConsumerErrorHandler);
-
     }
 }

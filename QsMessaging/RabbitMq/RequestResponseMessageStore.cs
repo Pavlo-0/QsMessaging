@@ -1,12 +1,11 @@
 ﻿using System.Collections.Concurrent;
+using QsMessaging.RabbitMq.Models;
 
 namespace QsMessaging.RabbitMq.Interfaces
 {
     internal class RequestResponseMessageStore: IRequestResponseMessageStore
     {
         private static ConcurrentDictionary<string, StoreMessageRecord> storeConsumerRecords = new ConcurrentDictionary<string, StoreMessageRecord>();
-
-        private record StoreMessageRecord(object RequestMessage, Type RequestMessageType, object? ResponseMessage, Type? ResponseMessageType, bool IsResponsed, DateTime CreateDate );
 
         public void AddRequestMessage(string correlationId, object message)
         {

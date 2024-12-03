@@ -14,12 +14,8 @@ namespace QsMessaging.RabbitMq
         IExchangeService queuesService,
 
         IHandlerService handlerService,
-        //ISubscriber subscriber,
         Lazy<ISubscriber> subscriber,
-        /*IServiceProvider serviceProvider,
-        IQueueService queueService,
-        
-        IConsumerService consumerService,*/
+
         IRequestResponseMessageStore requestResponseMessageStore) : IRabbitMqSender, ISender
     {
         public async Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
@@ -29,14 +25,11 @@ namespace QsMessaging.RabbitMq
             await Send(model, typeof(TMessage), props, MessageTypeEnum.Message);
         }
 
-        public async Task SendMessageCorrelationAsync(object model, string? correlationId)
+        public async Task SendMessageCorrelationAsync(object model, string correlationId)
         {
             var props = new BasicProperties();
             props.DeliveryMode = DeliveryModes.Persistent;
-            if (!string.IsNullOrEmpty(correlationId))
-            {
-                props.CorrelationId = correlationId;
-            }
+            props.CorrelationId = correlationId;
             await Send(model, model.GetType(), props, MessageTypeEnum.Message, true);
         }
 
@@ -63,12 +56,10 @@ namespace QsMessaging.RabbitMq
             await Send(model, typeof(TRequest),  props, MessageTypeEnum.Message, true);
 
             var attempt = 0;
-
             while (!requestResponseMessageStore.IsRespondedMessage(props.CorrelationId))
             {
                 await Task.Delay(100);
-                attempt++;
-                if (attempt > 100)
+                if (attempt++ > 100)
                     throw new TimeoutException("Request timeout");
             } 
 

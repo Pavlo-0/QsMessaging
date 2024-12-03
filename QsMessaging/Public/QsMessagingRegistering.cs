@@ -41,7 +41,7 @@ namespace QsMessaging.Public
                 return handlerGeneratorInstance;
             });
 
-            handlerGeneratorInstance.RegisterAllHandlers(services);
+            handlerGeneratorInstance.RegisterAllHandlers();
             services.AddTransient<IConsumerService, ConsumerService>();
 
             services.AddTransient<IRequestResponseMessageStore , RequestResponseMessageStore>();

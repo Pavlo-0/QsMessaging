@@ -24,13 +24,5 @@ namespace QsMessaging.RabbitMq.Services
 
             return name;
         }
-
-        private record StoreExchangeRecord(IChannel Channel, Type TModel, string ExchangeName);
-    }
-
-    internal enum ExchangePurpose
-    {
-        Permanent,
-        Temporary
     }
 }

@@ -1,6 +1,7 @@
 ﻿using QsMessaging.RabbitMq.Interface;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using QsMessaging.RabbitMq.Services;
+using QsMessaging.RabbitMq.Models;
 
 namespace QsMessaging.RabbitMq
 {
@@ -22,8 +23,7 @@ namespace QsMessaging.RabbitMq
             }
         }
 
-        public async Task SubscribeHandlerAsync(
-            HandlerService.HandlersStoreRecord record)
+        public async Task SubscribeHandlerAsync(HandlersStoreRecord record)
         {
             var channelPurpose = HardConfiguration.GetChannelPurposeByInterfaceTypes(record.supportedInterfacesType);
             var exchangePurpose = HardConfiguration.GetExchangeByInterfaceTypes(record.supportedInterfacesType);

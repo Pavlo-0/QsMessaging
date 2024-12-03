@@ -19,6 +19,5 @@ namespace QsMessaging
         {
             return rabbitMqSender.SendRequest<TRequest, TResponse>(request);    
         }
-
     }
 }

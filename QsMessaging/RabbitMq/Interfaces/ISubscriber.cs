@@ -1,10 +1,10 @@
-﻿using QsMessaging.RabbitMq.Services;
+﻿using QsMessaging.RabbitMq.Models;
 
 namespace QsMessaging.RabbitMq.Interface
 {
     internal interface ISubscriber
     {
         Task Subscribe();
-        Task SubscribeHandlerAsync(HandlerService.HandlersStoreRecord record);
+        Task SubscribeHandlerAsync(HandlersStoreRecord record);
     }
 }

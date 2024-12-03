@@ -1,4 +1,5 @@
 ﻿using QsMessaging.RabbitMq.Interface;
+using QsMessaging.RabbitMq.Models;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
 using System.Collections.Concurrent;
@@ -9,13 +10,13 @@ namespace QsMessaging.RabbitMq.Services
     {
         private readonly static ConcurrentBag<StoreQueueRecord> storeQueueRecords = new ConcurrentBag<StoreQueueRecord>();
 
-        public async Task<string> GetOrCreateQueuesAsync(IChannel channel, Type TModel, string exchangeName, QueueType queueType)
+        public async Task<string> GetOrCreateQueuesAsync(IChannel channel, Type TModel, string exchangeName, QueuePurpose queueType)
         {
             var queueName = nameGenerator.GetQueueNameFromType(TModel, queueType);
 
-            var isAutoDelete = queueType == QueueType.ConsumerTemporary ||
-                queueType == QueueType.InstanceTemporary ||
-                queueType == QueueType.SingleTemporary;
+            var isAutoDelete = queueType == QueuePurpose.ConsumerTemporary ||
+                queueType == QueuePurpose.InstanceTemporary ||
+                queueType == QueuePurpose.SingleTemporary;
 
             await channel.QueueDeclareAsync(
                 queueName,
@@ -27,12 +28,12 @@ namespace QsMessaging.RabbitMq.Services
 
             switch (queueType)
             {
-                case QueueType.Permanent:
+                case QueuePurpose.Permanent:
                     arguments.Add("x-queue-mode", "lazy");
                     break;
-                case QueueType.ConsumerTemporary:
-                case QueueType.InstanceTemporary:
-                case QueueType.SingleTemporary:
+                case QueuePurpose.ConsumerTemporary:
+                case QueuePurpose.InstanceTemporary:
+                case QueuePurpose.SingleTemporary:
                     arguments.Add("x-expires", 0);
                     arguments.Add("x-queue-mode", "default");
                     break;
@@ -47,7 +48,7 @@ namespace QsMessaging.RabbitMq.Services
             catch (OperationInterruptedException)
             {
                 //This Queue already exist. For permanent queue (and instance and single), we can ignore this exception
-                if (queueType == QueueType.ConsumerTemporary)
+                if (queueType == QueuePurpose.ConsumerTemporary)
                 {
                     throw;
                 }
@@ -64,37 +65,5 @@ namespace QsMessaging.RabbitMq.Services
 
             return queueName;
         }
-
-        private record StoreQueueRecord(IChannel Channel, Type TModel, string ExchangeName, string QueueName);
-    }
-
-
-    internal enum QueueType
-    {
-        /// <summary>
-        /// Single queue. Permanent.
-        /// Message would be distributed to only one consumer which can consume message or wait when consumer would be ready.
-        /// </summary>
-        Permanent,
-
-        /// <summary>
-        /// Per Consumer queue. Temporary.
-        /// Message would be distributed to all consumers.
-        /// </summary>
-        ConsumerTemporary,
-
-        /// <summary>
-        /// Per instance queue. Temporary.
-        /// Every instance has own queue. Queue will be deleted after instance disconnect.
-        /// Message would be distributed for one consumer in every instance.
-        /// </summary>
-        InstanceTemporary,
-
-        /// <summary>
-        /// Single queue. Temporary.
-        /// Every instance consume one queue. Queue will be deleted after last consumer disconnect.
-        /// Message would be distributed for one consumer.
-        /// </summary>
-        SingleTemporary
     }
 }

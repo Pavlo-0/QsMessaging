@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using QsMessaging.Public.Handler;
 using QsMessaging.RabbitMq.Interfaces;
+using QsMessaging.RabbitMq.Models;
+using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -17,8 +19,7 @@ namespace QsMessaging.RabbitMq.Services
             IChannel channel,
             string queueName,
             IServiceProvider serviceProvider,
-            HandlerService.HandlersStoreRecord record
-            )
+            HandlersStoreRecord record)
         {
             if (storeConsumerRecords.Any(consumer => consumer.QueueName == queueName && consumer.Channel == channel))
             {
@@ -41,89 +42,64 @@ namespace QsMessaging.RabbitMq.Services
                         //TODO: Add loging  for extreame case
                     }
 
+                    var correlationId = ea.BasicProperties.CorrelationId ?? string.Empty;
                     byte[] body = ea.Body.ToArray();
                     var message = Encoding.UTF8.GetString(body);
-
                     // Deserialize the message into an instance of genericHandlerType
                     var modelInstance = System.Text.Json.JsonSerializer.Deserialize(message, record.GenericType);
 
                     //TODO: replace on proper interface. Not just IQsMessageHandler. Add IQsEventHandler options. In case of diffirent names
-                    var consumeMethod = record.HandlerType.GetMethod(nameof(IQsMessageHandler<object>.Consumer));
-                    var handlerInstance = serviceProvider.GetService(record.ConcreteHandlerInterfaceType);
-                    if (handlerInstance is null)
+                    var consumeMethod = record.HandlerType.GetMethod(nameof(IQsMessageHandler<object>.Consumer)) ?? throw new NullReferenceException("Ca'nt find methof for consume model");
+                    var handlerInstance = serviceProvider.GetService(record.ConcreteHandlerInterfaceType) ?? throw new Exception($"Handler instance for {record.ConcreteHandlerInterfaceType} is null.");
+
+                    try
                     {
-                        throw new Exception($"Handler instance for {record.ConcreteHandlerInterfaceType} is null.");
+                        switch (HardConfiguration.GetConsumerByInterfaceTypes(record.supportedInterfacesType))
+                        {
+                            case ConsumerPurpose.MessageEventConsumer:
+                                var resultAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
+                                break;
+
+                            case ConsumerPurpose.RRRequestConsumer:
+                                var resultModelAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
+
+                                if (resultModelAsync is Task task)
+                                {
+                                    await task;
+                                    var result = task.GetType().GetProperty("Result")?.GetValue(task)
+                                        ?? throw new NullReferenceException("RequestResponseHandler have to return result");
+
+                                    await sender.SendMessageCorrelationAsync(result, correlationId);
+                                }
+                                else
+                                {
+                                    throw new NullReferenceException("RequestResponseHandler have to return Task<result>");
+                                }
+                                break;
+
+                            case ConsumerPurpose.RRResponseConsumer:
+                                var resulttAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance, correlationId });
+                                break;
+
+                            default:
+                                //TODO: add warning that consumer not found
+                                break;
+                        }
                     }
-
-                    var correlationId = ea.BasicProperties.CorrelationId ?? string.Empty;
-
-                    if (consumeMethod != null)
+                    catch (Exception ex)
                     {
-                        try
-                        {
-                            switch (HardConfiguration.GetConsumerByInterfaceTypes(record.supportedInterfacesType))
-                            {
-                                case ConsumerType.MessageEventConsumer:
-                                    var resultAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
-                                    break;
-
-                                case ConsumerType.RRRequestConsumer:
-                                    var resultModelAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
-
-                                    if (resultModelAsync is Task task) // Check if it is a Task
-                                    {
-                                        await task; // Blocks until the task completes
-                                        var result = task.GetType().GetProperty("Result")?.GetValue(task);
-
-                                        await sender.SendMessageCorrelationAsync(result, correlationId);
-                                    }
-
-                                        /*
-                                        var resultTask = (Task<dynamic>)resultModelAsync;
-                                        resultTask.Wait(); // Blocks until the task completes
-                                        var result = resultTask.Result; // Gets the result of the Task<bool>
-                                        await rabbitMqSender.SendMessageAsync(result);*/
-                                        //We have send resultModelAsync back to the service.
-                                        /*if (resultModelAsync is Task resultTask && (record.GenericType2 is not null))
-                                        {
-
-
-
-                                            await rabbitMqSender.SendMessageAsync(result);
-                                        }
-                                        else
-                                        {
-                                            throw new Exception("Doesn't have type of object for return");
-                                        }*/
-                                        break;
-
-                                case ConsumerType.RRResponseConsumer:
-                                    // Get the CorrelationId (if set)
-                                    //var correlationId = ea.BasicProperties.CorrelationId ?? string.Empty;
-                                    var resulttAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance, correlationId });
-                                    break;
-
-                                default:
-                                    //TODO: add warning that consumer not found
-                                    break;
-
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            await ErrorAsync(
-                        ex,
-                        new ErrorConsumerDetail(
-                            modelInstance,
-                            body,
-                            queueName,
-                            record?.supportedInterfacesType?.FullName,
-                            record?.ConcreteHandlerInterfaceType?.FullName,
-                            record?.HandlerType?.FullName,
-                            record?.GenericType?.FullName,
-                            ErrorConsumerType.RecevingProblem),
-                        consumerErrorInstances);
-                        }
+                        await ErrorAsync(
+                            ex,
+                            new ErrorConsumerDetail(
+                                modelInstance,
+                                body,
+                                queueName,
+                                record?.supportedInterfacesType?.FullName,
+                                record?.ConcreteHandlerInterfaceType?.FullName,
+                                record?.HandlerType?.FullName,
+                                record?.GenericType?.FullName,
+                                ErrorConsumerType.RecevingProblem),
+                            consumerErrorInstances);
                     }
                 }
                 catch (Exception e)
@@ -167,14 +143,5 @@ namespace QsMessaging.RabbitMq.Services
                 //Add critical log
             }
         }
-
-        private record StoreConsumerRecord(IChannel Channel, string QueueName, string ConsumerTag);
-    }
-
-    public enum ConsumerType
-    {
-        MessageEventConsumer,
-        RRRequestConsumer,
-        RRResponseConsumer,
     }
 }

@@ -8,6 +8,6 @@ namespace QsMessaging.RabbitMq.Interface
 
         string GetExchangeNameFromType(Type TModel);
 
-        string GetQueueNameFromType(Type TModel, QueueType queueType);
+        string GetQueueNameFromType(Type TModel, QueuePurpose queueType);
     }
 }
