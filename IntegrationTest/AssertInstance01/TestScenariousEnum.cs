@@ -10,6 +10,9 @@
         Messages10,
         Message50Paused,
         MessageConsumerError,
-        RequestResponse1
+        RequestResponse1,
+        RequestResponse10OneByOne,
+        RequestResponse10AtOnce,
+        RequestResponse20AtOnceDif,
     }
 }

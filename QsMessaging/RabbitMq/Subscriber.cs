@@ -33,7 +33,7 @@ namespace QsMessaging.RabbitMq
             var channel = await channelService.GetOrCreateChannelAsync(connection, channelPurpose);
 
             var exchangename = await exchangeService.GetOrCreateExchangeAsync(channel, record.GenericType, exchangePurpose);
-            var queueName = await queueService.GetOrCreateQueuesAsync(channel, record.HandlerType, exchangename, queueType);
+            var queueName = await queueService.GetOrCreateQueuesAsync(channel, record.GenericType, exchangename, queueType);
 
             await consumerService.GetOrCreateConsumerAsync(channel, queueName, services, record);
         }

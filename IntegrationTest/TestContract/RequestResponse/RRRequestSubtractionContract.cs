@@ -1,13 +1,13 @@
 ﻿namespace TestContract.RequestResponse
 {
-    public class RRRequestContract
+    public class RRRequestSubtractionContract
     {
         public int Number1 { get;set; }
         public int Number2 { get; set; }
     }
 
-    public class RRResponseContract
+    public class RRResponseSubtractionContract
     {
-        public int SumAnswer { get; set; }
+        public int SubtractionAnswer { get; set; }
     }
 }

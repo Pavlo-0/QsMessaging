@@ -1,9 +1,4 @@
 ﻿using QsMessaging.Public;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TestContract.RequestResponse;
 
 namespace AssertInstance01.RequestResponse
@@ -12,14 +7,14 @@ namespace AssertInstance01.RequestResponse
     {
         public async Task Run()
         {
-            await Task.Delay(1000 * 5);
+            await Task.Delay(1000);
 
-            var answer = await qsMessaging.RequestResponse<RRRequestContract, RRResponseContract>(new RRRequestContract() {
+            var answer = await qsMessaging.RequestResponse<RRRequestAddContract, RRResponseAddContract>(new RRRequestAddContract() {
                 Number1 = 1,
                 Number2 = 2
             });
 
-            if (answer.SumAnswer == 2)
+            if (answer.SumAnswer == 3)
             {
                 CollectionTestResults.PassTest(TestScenariousEnum.RequestResponse1);
             }

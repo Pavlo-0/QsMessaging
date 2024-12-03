@@ -67,7 +67,9 @@
     "IntegrationTest": {
       "Projects": {
         "ArrangeInstance01": {},
-        "AssertInstance01": {}
+        "AssertInstance01": {},
+        "RequestResponseInstance01": {},
+        "RequestResponseInstance02": {}
       }
     }
   }
