@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "RequestResponseInstance01": {
+      "commandName": "Project",
+      "commandLineArgs": "1234",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true
+    }
+  },
+  "$schema": "http://json.schemastore.org/launchsettings.json"
+}

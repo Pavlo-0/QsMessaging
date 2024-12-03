@@ -1,4 +1,5 @@
-﻿using static QsMessaging.RabbitMq.Services.HandlerService;
+﻿using QsMessaging.RabbitMq.Models;
+using static QsMessaging.RabbitMq.Services.HandlerService;
 
 namespace QsMessaging.RabbitMq.Services.Interfaces
 {
@@ -9,6 +10,6 @@ namespace QsMessaging.RabbitMq.Services.Interfaces
 
         IEnumerable<ConsumerErrorHandlerStoreRecord> GetConsumerErrorHandlers();
 
-        IEnumerable<HandlersStoreRecord> GetPublishErrorHandlers();
+        HandlersStoreRecord AddRRResponseHandler<TContract>();
     }
 }

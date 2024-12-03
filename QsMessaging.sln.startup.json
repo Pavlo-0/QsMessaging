@@ -58,10 +58,18 @@
         "MessagesEventsInstance2": {}
       }
     },
+    "RequestResponse": {
+      "Projects": {
+        "RequestResponse.RequestInstance": {},
+        "RequestResponse.ResponseInstance": {}
+      }
+    },
     "IntegrationTest": {
       "Projects": {
         "ArrangeInstance01": {},
-        "AssertInstance01": {}
+        "AssertInstance01": {},
+        "RequestResponseInstance01": {},
+        "RequestResponseInstance02": {}
       }
     }
   }

@@ -19,29 +19,49 @@ namespace QsMessaging.RabbitMq.Services
             await _semaphore.WaitAsync();
             try
             {
-                var attempt = 0;
+                int attempt = 0;
                 if (connection != null && connection.IsOpen)
                 {
                     return connection;
                 }
 
-                do
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     try
                     {
-                        connection = await CreateConnectionAsync();
+                        connection = await CreateConnectionAsync(cancellationToken);
+                        if (connection != null && connection.IsOpen)
+                        {
+                            break;
+                        }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        //Log exception
+                        // Log the exception
+                        Console.WriteLine($"Attempt {attempt}: {ex.Message}");
                     }
 
-                    //TODO: Implement logariphmick waiting strategy
-                    await Task.Delay(attempt + 1000).WaitAsync(cancellationToken);
+                    // Implementing logarithmic waiting strategy
+                    int waitTime = (int)(Math.Pow(2, attempt) * 100); // e.g., exponential backoff with a base of 2
+                    waitTime = Math.Min(waitTime, 10000); // Cap the wait time to a maximum (e.g., 10 seconds)
+
+                    try
+                    {
+                        await Task.Delay(waitTime, cancellationToken);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        // Task was canceled
+                        break;
+                    }
+
                     attempt++;
                 }
-                while (!(connection != null && connection.IsOpen));
-                //TODO: Add cancelation request
+
+                if (connection == null || !connection.IsOpen)
+                {
+                    throw new InvalidOperationException("Failed to establish a connection after multiple attempts.");
+                }
 
                 return connection;
 
@@ -52,7 +72,7 @@ namespace QsMessaging.RabbitMq.Services
             }
         }
 
-        private async Task<IConnection> CreateConnectionAsync()
+        private async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
         {
             var factory = new ConnectionFactory()
             {
@@ -62,7 +82,7 @@ namespace QsMessaging.RabbitMq.Services
                 Port = configuration.RabbitMQ.Port
             };
 
-            return await factory.CreateConnectionAsync(configuration.ServiceName);
+            return await factory.CreateConnectionAsync(configuration.ServiceName, cancellationToken);
         }
     }
 }

@@ -1,10 +1,12 @@
 ﻿using QsMessaging.RabbitMq.Interface;
+using QsMessaging.RabbitMq.Services;
+using QsMessaging.RabbitMq.Services.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace QsMessaging.RabbitMq
 {
-    internal class NameGenerator : INameGenerator
+    internal class NameGenerator(IInstanceService instanceService) : INameGenerator
     {
         public string GetExchangeNameFromType<TModel>()
         {
@@ -21,7 +23,7 @@ namespace QsMessaging.RabbitMq
             return GenerateName(TModel, "ex");
         }
 
-        public string GetQueueNameFromType(Type TModel, QueueType queueType)
+        public string GetQueueNameFromType(Type TModel, QueuePurpose queueType)
         {
             if (TModel is null)
             {
@@ -32,14 +34,17 @@ namespace QsMessaging.RabbitMq
 
             switch (queueType)
             {
-                case QueueType.Permanent:
+                case QueuePurpose.Permanent:
                     return GenerateName(TModel, "permanent");
-                case QueueType.Temporary:
+                case QueuePurpose.ConsumerTemporary:
                     return GenerateName(TModel, Guid.NewGuid().ToString("N"));
+                case QueuePurpose.InstanceTemporary:
+                    return GenerateName(TModel, "livetime:" + instanceService.GetInstanceUID().ToString("N"));
+                case QueuePurpose.SingleTemporary:
+                    return GenerateName(TModel, "livetime");
                 default:
                     throw new ArgumentOutOfRangeException("Unknown QueueType");
             }
-
         }
         private string GenerateName(Type type, string endName = "")
         {
@@ -71,9 +76,4 @@ namespace QsMessaging.RabbitMq
         }
     }
 
-    internal enum QueueType
-    {
-        Permanent,
-        Temporary
-    }
 }

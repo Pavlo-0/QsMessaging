@@ -1,4 +1,7 @@
 ﻿using QsMessaging.Public.Handler;
+using QsMessaging.RabbitMq.Interfaces;
+using QsMessaging.RabbitMq.Models.Enums;
+using QsMessaging.RabbitMq.Services;
 
 namespace QsMessaging.RabbitMq
 {
@@ -7,7 +10,11 @@ namespace QsMessaging.RabbitMq
         public struct SupportedInterfacesStruct
         {
             public Type TypeInterface { get; set; }
-            public QueueType Queue { get; init; }
+            public ExchangePurpose ExchangePurpose { get; init; }
+            public QueuePurpose QueuePurpose { get; init; }
+            public ChannelPurpose ChannelPurpose { get; init; }
+            public ConsumerPurpose ConsumerPurpose { get; set; }
+
             public string Name
             {
                 get
@@ -26,13 +33,36 @@ namespace QsMessaging.RabbitMq
                     new SupportedInterfacesStruct
                     {
                         TypeInterface = typeof(IQsEventHandler<>),
-                        Queue = QueueType.Temporary
+                        ExchangePurpose = ExchangePurpose.Temporary,
+                        QueuePurpose = QueuePurpose.ConsumerTemporary,
+                        ChannelPurpose = ChannelPurpose.QueueConsumerTemporary,
+                        ConsumerPurpose = ConsumerPurpose.MessageEventConsumer
                     },
                     new SupportedInterfacesStruct
                     {
                         TypeInterface = typeof(IQsMessageHandler<>),
-                        Queue = QueueType.Permanent
-                    }
+                        ExchangePurpose = ExchangePurpose.Permanent,
+                        QueuePurpose = QueuePurpose.Permanent,
+                        ChannelPurpose = ChannelPurpose.QueuePermanent,
+                        ConsumerPurpose = ConsumerPurpose.MessageEventConsumer
+
+                    },
+                    new SupportedInterfacesStruct
+                    {
+                        TypeInterface = typeof(IRRResponseHandler),
+                        ExchangePurpose = ExchangePurpose.Temporary,
+                        QueuePurpose = QueuePurpose.InstanceTemporary,
+                        ChannelPurpose = ChannelPurpose.QueueInstanceTemporary,
+                        ConsumerPurpose = ConsumerPurpose.RRResponseConsumer
+                    },
+                    new SupportedInterfacesStruct
+                                        {
+                        TypeInterface = typeof(IQsRequestResponseHandler<,>),
+                        ExchangePurpose = ExchangePurpose.Temporary,
+                        QueuePurpose = QueuePurpose.SingleTemporary,
+                        ChannelPurpose = ChannelPurpose.QueueSingleTemporary,
+                        ConsumerPurpose = ConsumerPurpose.RRRequestConsumer
+                    },
                 };
             }
         }
@@ -45,9 +75,29 @@ namespace QsMessaging.RabbitMq
             }
         }
 
-        public static QueueType GetQueueByInterfaceTypes(Type interfaceType)
+        public static SupportedInterfacesStruct GetConfigurationByInterfaceTypes(Type interfaceType)
         {
-            return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).Queue;
+            return SupportedInterfaces.First(x => x.TypeInterface == interfaceType);
+        }
+
+        public static ExchangePurpose GetExchangeByInterfaceTypes(Type interfaceType)
+        {
+            return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).ExchangePurpose;
+        }
+
+        public static QueuePurpose GetQueueByInterfaceTypes(Type interfaceType)
+        {
+            return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).QueuePurpose;
+        }
+
+        public static ChannelPurpose GetChannelPurposeByInterfaceTypes(Type interfaceType)
+        {
+            return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).ChannelPurpose;
+        }
+
+        public static ConsumerPurpose GetConsumerByInterfaceTypes(Type interfaceType)
+        {
+            return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).ConsumerPurpose;
         }
     }
 }

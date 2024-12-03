@@ -1,4 +1,4 @@
-﻿using QsMessaging.Public.Handler;
+﻿using QsMessaging.RabbitMq.Interface;
 using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Services.Interfaces;
@@ -12,92 +12,84 @@ namespace QsMessaging.RabbitMq
         IConnectionService connectionService,
         IChannelService channelService,
         IExchangeService queuesService,
+
         IHandlerService handlerService,
-        IServiceProvider serviceProvider) : IRabbitMqSender
+        Lazy<ISubscriber> subscriber,
+
+        IRequestResponseMessageStore requestResponseMessageStore) : IRabbitMqSender, ISender
     {
-        public async Task<bool> SendMessageAsync<TMessage>(TMessage model) where TMessage : class
+        public async Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
         {
             var props = new BasicProperties();
             props.DeliveryMode = DeliveryModes.Persistent;
-            return await Send(model, props, MessageTypeEnum.Message);
+            await Send(model, typeof(TMessage), props, MessageTypeEnum.Message);
         }
 
-        public async Task<bool> SendEventAsync<TEvent>(TEvent model) where TEvent : class
+        public async Task SendMessageCorrelationAsync(object model, string correlationId)
+        {
+            var props = new BasicProperties();
+            props.DeliveryMode = DeliveryModes.Persistent;
+            props.CorrelationId = correlationId;
+            await Send(model, model.GetType(), props, MessageTypeEnum.Message, true);
+        }
+
+        public async Task SendEventAsync<TEvent>(TEvent model) where TEvent : class
         {
             var props = new BasicProperties();
             props.DeliveryMode = DeliveryModes.Transient;
             props.Expiration = "0";
-            return await Send(model, props, MessageTypeEnum.Event);
+
+            await Send(model, typeof(TEvent), props, MessageTypeEnum.Event);
         }
 
-        private async Task<bool> Send<TM>(TM model, BasicProperties props, MessageTypeEnum type) where TM : class
+        public async Task<TResponse> SendRequest<TRequest, TResponse>(TRequest model) where TRequest : class where TResponse : class 
         {
-            try
+            var props = new BasicProperties();
+            props.DeliveryMode = DeliveryModes.Persistent;
+            props.CorrelationId = Guid.NewGuid().ToString();
+
+            requestResponseMessageStore.AddRequestMessage(props.CorrelationId, model);
+
+            var handlerRecord = handlerService.AddRRResponseHandler<TResponse>();
+            await subscriber.Value.SubscribeHandlerAsync(handlerRecord);
+
+            await Send(model, typeof(TRequest),  props, MessageTypeEnum.Message, true);
+
+            var attempt = 0;
+            while (!requestResponseMessageStore.IsRespondedMessage(props.CorrelationId))
             {
-                if (model == null)
-                    throw new ArgumentNullException(nameof(model), "You can not send NULL data. You model is null");
+                await Task.Delay(100);
+                if (attempt++ > 100)
+                    throw new TimeoutException("Request timeout");
+            } 
 
-                var connection = await connectionService.GetOrCreateConnectionAsync();
-                var channel = await channelService.GetOrCreateChannelAsync(connection,
-                    type == MessageTypeEnum.Message ? ChannelService.ChannelPurpose.MessagePublish : ChannelService.ChannelPurpose.EventPublish
-                    );
+            (object message, Type messageType) = requestResponseMessageStore.GetRespondedMessage(props.CorrelationId);
+            if (message as TResponse == null || messageType == null)
+                throw new ArgumentNullException(nameof(TRequest), "Respond model is null");
 
-                string exchangeName = await queuesService.CreateExchange(channel, model.GetType());
-
-                var jsonMessage = JsonSerializer.Serialize(model);
-                var body = Encoding.UTF8.GetBytes(jsonMessage);
-                try
-                {
-                    await channel.BasicPublishAsync(
-                    exchange: exchangeName,
-                    routingKey: string.Empty,
-                    mandatory: type == MessageTypeEnum.Message,
-                    body: body,
-                    basicProperties: props);
-                }
-                catch (Exception ex)
-                {
-                    Error(handlerService, serviceProvider, model, ex, type, ErrorPublishType.PublishProblem);
-                    return false;
-                }
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Error(handlerService, serviceProvider, model, ex, type, ErrorPublishType.EstablishPublishConnection);
-                return false;
-            }
+            return message as TResponse;
         }
 
-        private static void Error<TM>(
-            IHandlerService handlerService,
-            IServiceProvider serviceProvider,
-            TM model,
-            Exception ex,
-            MessageTypeEnum messageType,
-            ErrorPublishType errorType) where TM : class
+        private async Task Send(object model, Type type, BasicProperties props, MessageTypeEnum messageType, bool isLiveTime = false)
         {
-            try
-            {
-                var listErrorHandlers = handlerService.GetPublishErrorHandlers();
-                listErrorHandlers.Where(handler => handler.GenericType == model.GetType()).ToList().ForEach(record =>
-                {
-                    var errorInstance = serviceProvider.GetService(record.ConcreteHandlerInterfaceType);
-                    var errorMethod = record.HandlerType.GetMethod(nameof(IQsMessagingPublishErrorHandler<object>.HandlerErrorAsync));
+            if (model == null)
+                throw new ArgumentNullException(nameof(model), "You can not send NULL data. You model is null");
 
-                    var detailModel = new ErrorPublishDetail<TM>(model, errorType, messageType.ToString());
+            var connection = await connectionService.GetOrCreateConnectionAsync();
+            var channel = await channelService.GetOrCreateChannelAsync(connection,
+                messageType == MessageTypeEnum.Message ? ChannelPurpose.MessagePublish : ChannelPurpose.EventPublish);
 
-                    if (errorMethod != null)
-                    {
-                        errorMethod.Invoke(errorInstance, new[] { ex, detailModel as object });
-                    }
-                });
-            }
-            catch
-            {
-                //TODO: Log error
-            }
+            string exchangeName = await queuesService.GetOrCreateExchangeAsync(channel, type,
+                messageType == MessageTypeEnum.Message && !isLiveTime ? ExchangePurpose.Permanent : ExchangePurpose.Temporary);
+
+            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(model));
+
+            await channel.BasicPublishAsync(
+            exchange: exchangeName,
+            routingKey: string.Empty,
+            mandatory: messageType == MessageTypeEnum.Message,
+            body: body,
+            basicProperties: props);
         }
 
         private enum MessageTypeEnum
