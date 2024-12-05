@@ -58,7 +58,7 @@ jobs:
         displayName: "Run Unit Tests"
 
       # Step 7: Copy README.md to the Artifact Staging Directory
-      - script: |
+      - powershell: |
           Copy-Item "$(Build.SourcesDirectory)\$(readmePath)" "$(Build.ArtifactStagingDirectory)\$(readmePath)"
         displayName: "Copy README.md to Artifact Staging Directory"
 
