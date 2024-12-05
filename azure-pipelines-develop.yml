@@ -51,7 +51,7 @@ jobs:
 
       # Step 7: Copy README.md to the Artifact Staging Directory
       - powershell: |
-          Copy-Item "$(Build.SourcesDirectory)\$(readmePath)" "$(projectUnitTestName)\$(readmePath)"
+          Copy-Item "$(Build.SourcesDirectory)\$(readmePath)" "$(solutionName)\$(readmePath)"
         displayName: "Copy README.md to Solution"        
 
       # Step 5: Build the Project
