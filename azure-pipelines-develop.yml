@@ -59,8 +59,12 @@ jobs:
 
       # Step 7: Copy README.md to the Artifact Staging Directory
       - script: |
-          if (Test-Path "$(Build.SourcesDirectory)\$(readmePath)") {
-              Copy-Item "$(Build.SourcesDirectory)\$(readmePath)" "$(Build.ArtifactStagingDirectory)\$(readmePath)"
+          Write-Host "Source path: $(Build.SourcesDirectory)\$(readmePath)"
+          Write-Host "Destination path: $(Build.ArtifactStagingDirectory)\$(readmePath)"      
+          Write-Host "Source path: $(readmePath)"
+          Write-Host "Destination path: $(readmePath)"      
+          if (Test-Path "$(readmePath)") {
+              Copy-Item "$(readmePath)" "$(readmePath)"
           }
         displayName: "Copy README.md to Artifact Staging Directory"
 
