@@ -9,7 +9,7 @@
 
 		<Authors>Pavlo S.</Authors>
 		<Description>A .NET Core 8 library for RabbitMQ messaging, providing a quick and simple API for common messaging patterns.</Description>
-		<PackageTags>RabbitMQ;Messaging;Library;Message</PackageTags>
+		<PackageTags>QsMessaging;RabbitMQ;Messaging;Library;Message</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryUrl>https://github.com/Pavlo-0/QsMessaging</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/Pavlo-0/QsMessaging</PackageProjectUrl>
