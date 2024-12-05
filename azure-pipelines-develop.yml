@@ -2,37 +2,37 @@ trigger:
   branches:
     include:
       - main
-  
 
 pool:
-  name: 'Default'
+  name: "Default"
 
 variables:
-  buildConfiguration: 'Release'
-  projectName: 'QsMessaging'
-  projectUnitTestName: 'QsMessagingUnitTests'
-  solutionName: 'QsMessaging'
-  nugetSource: 'https://api.nuget.org/v3/index.json'  # NuGet.org Feed
+  buildConfiguration: "Release"
+  projectName: "QsMessaging"
+  projectUnitTestName: "QsMessagingUnitTests"
+  solutionName: "QsMessaging"
+  nugetSource: "https://api.nuget.org/v3/index.json" # NuGet.org Feed
   #nugetApiKey: $(NuGetApiKey)  # Ensure this secret is defined in Azure DevOps
-  majorVersion: '1'
-  minorVersion: '0'
+  majorVersion: "1"
+  minorVersion: "0"
   patchVersion: $(Build.BuildId) # Use the build number as the patch version
   packageVersion: $(majorVersion).$(minorVersion).$(patchVersion)
-  prPackageVersion: '$(majorVersion).$(minorVersion).$(Build.BuildId)-pr'
-  packageName: 'QsMessaging-develop'
+  prPackageVersion: "$(majorVersion).$(minorVersion).$(Build.BuildId)-pr"
+  packageName: "QsMessaging-develop"
+  readmePath: "README.md" # Path to README.md (you can adjust this if it's located elsewhere)
 
 jobs:
   - job: BuildAndPublish
-    displayName: 'Build, Test, and Publish'
+    displayName: "Build, Test, and Publish"
     pool:
-      name: 'Default'
+      name: "Default"
 
     steps:
       # Step 1: Use .NET Core SDK
       - task: UseDotNet@2
         inputs:
-          packageType: 'sdk'
-          version: '8.x'
+          packageType: "sdk"
+          version: "8.x"
           installationPath: $(Agent.ToolsDirectory)/dotnet
 
       # Step 2: Install NuGet Tool
@@ -40,27 +40,34 @@ jobs:
 
       # Step 3: Restore Dependencies
       - script: dotnet restore $(projectName).sln
-        displayName: 'Restore NuGet Packages'
-      
+        displayName: "Restore NuGet Packages"
+
       # Step 4: Determine Package Version
       - powershell: |
           if ("$(Build.Reason)" -eq "PullRequest") {
               Write-Output "##vso[task.setvariable variable=packageVersion]$(prPackageVersion)"
           }
-        displayName: 'Set Version for PR Build'
+        displayName: "Set Version for PR Build"
 
       # Step 5: Build the Project
       - script: dotnet build $(projectName).sln --configuration $(buildConfiguration) --no-restore
-        displayName: 'Build Project'
+        displayName: "Build Project"
 
       # Step 6: Run Unit Tests (Optional)
       - script: dotnet test $(projectUnitTestName)/$(projectUnitTestName).csproj --configuration $(buildConfiguration) --no-build --logger trx
-        displayName: 'Run Unit Tests'
+        displayName: "Run Unit Tests"
+
+      # Step 7: Copy README.md to the Artifact Staging Directory
+      - script: |
+          if (Test-Path "$(Build.SourcesDirectory)/$(readmePath)") {
+              Copy-Item "$(Build.SourcesDirectory)/$(readmePath)" "$(Build.ArtifactStagingDirectory)/$(readmePath)"
+          }
+        displayName: "Copy README.md to Artifact Staging Directory"
 
       # Step 7: Pack the NuGet Package
       - script: dotnet pack $(solutionName)/$(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory) /p:PackageId=$(packageName) /p:PackageVersion=$(packageVersion)
-        displayName: 'Create NuGet Package'
+        displayName: "Create NuGet Package"
 
       # Step 8: Push pack
       - script: dotnet nuget push $(Build.ArtifactStagingDirectory)\*.nupkg --api-key $(NuGetApiKey2) --source https://api.nuget.org/v3/index.json
-        displayName: 'Push NuGet Package'
+        displayName: "Push NuGet Package"
