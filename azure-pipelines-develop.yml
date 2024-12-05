@@ -59,7 +59,7 @@ jobs:
 
       # Step 7: Copy README.md to the Artifact Staging Directory
       - script: |
-          cp $(Build.SourcesDirectory)\$(readmePath) $(Build.ArtifactStagingDirectory)\$(readmePath)
+          Copy-Item "$(Build.SourcesDirectory)\$(readmePath)" "$(Build.ArtifactStagingDirectory)\$(readmePath)"
         displayName: "Copy README.md to Artifact Staging Directory"
 
       # Step 7: Pack the NuGet Package
