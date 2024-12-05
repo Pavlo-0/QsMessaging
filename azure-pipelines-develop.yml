@@ -49,23 +49,23 @@ jobs:
           }
         displayName: "Set Version for PR Build"
 
-      # Step 7: Copy README.md to the Artifact Staging Directory
+      # Step 5: Copy README.md to the Artifact Staging Directory
       - powershell: |
           Copy-Item "$(Build.SourcesDirectory)\$(readmePath)" "$(solutionName)\$(readmePath)"
-        displayName: "Copy README.md to Solution"        
+        displayName: "Copy README.md to Solution"
 
-      # Step 5: Build the Project
+      # Step 6: Build the Project
       - script: dotnet build $(projectName).sln --configuration $(buildConfiguration) --no-restore
         displayName: "Build Project"
 
-      # Step 6: Run Unit Tests (Optional)
+      # Step 7: Run Unit Tests (Optional)
       - script: dotnet test $(projectUnitTestName)/$(projectUnitTestName).csproj --configuration $(buildConfiguration) --no-build --logger trx
         displayName: "Run Unit Tests"
 
-      # Step 7: Pack the NuGet Package
+      # Step 8: Pack the NuGet Package
       - script: dotnet pack $(solutionName)/$(projectName).csproj --configuration $(buildConfiguration) --no-build -o $(Build.ArtifactStagingDirectory) /p:PackageId=$(packageName) /p:PackageVersion=$(packageVersion)
         displayName: "Create NuGet Package"
 
-      # Step 8: Push pack
+      # Step 9: Push pack
       - script: dotnet nuget push $(Build.ArtifactStagingDirectory)\*.nupkg --api-key $(NuGetApiKey2) --source https://api.nuget.org/v3/index.json
         displayName: "Push NuGet Package"
