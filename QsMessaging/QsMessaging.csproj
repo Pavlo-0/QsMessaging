@@ -25,7 +25,7 @@
 	</ItemGroup>	
 
 	<ItemGroup>
-	  <None Update="icon.png">
+	  <None Update="icon.png" Pack="true" PackagePath="icon.png">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
 	</ItemGroup>
