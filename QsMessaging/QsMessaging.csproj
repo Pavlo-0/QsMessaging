@@ -23,8 +23,8 @@
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" />
 		<PackageReference Include="RabbitMQ.Client" Version="7.0.0" />
 	</ItemGroup>	
-
 	<ItemGroup>
+   	  <None Include="README.md" Pack="true" PackagePath="README.md" />
 	  <None Update="icon.png" Pack="true" PackagePath="icon.png">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
