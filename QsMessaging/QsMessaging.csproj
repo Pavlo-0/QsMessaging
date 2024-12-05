@@ -14,6 +14,7 @@
 		<RepositoryUrl>https://github.com/Pavlo-0/QsMessaging</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/Pavlo-0/QsMessaging</PackageProjectUrl>
 		<Copyright>© 2024 Pavlo S.</Copyright>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 	<ItemGroup>
 		<!-- Include the README.md file in the NuGet package -->
