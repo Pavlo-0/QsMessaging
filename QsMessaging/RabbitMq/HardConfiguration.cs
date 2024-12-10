@@ -80,22 +80,22 @@ namespace QsMessaging.RabbitMq
             return SupportedInterfaces.First(x => x.TypeInterface == interfaceType);
         }
 
-        public static ExchangePurpose GetExchangeByInterfaceTypes(Type interfaceType)
+        public static ExchangePurpose GetExchangePurpose(Type interfaceType)
         {
             return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).ExchangePurpose;
         }
 
-        public static QueuePurpose GetQueueByInterfaceTypes(Type interfaceType)
+        public static QueuePurpose GetQueuePurpose(Type interfaceType)
         {
             return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).QueuePurpose;
         }
 
-        public static ChannelPurpose GetChannelPurposeByInterfaceTypes(Type interfaceType)
+        public static ChannelPurpose GetChannelPurpose(Type interfaceType)
         {
             return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).ChannelPurpose;
         }
 
-        public static ConsumerPurpose GetConsumerByInterfaceTypes(Type interfaceType)
+        public static ConsumerPurpose GetConsumerPurpose(Type interfaceType)
         {
             return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).ConsumerPurpose;
         }

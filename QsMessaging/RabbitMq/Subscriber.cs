@@ -25,9 +25,9 @@ namespace QsMessaging.RabbitMq
 
         public async Task SubscribeHandlerAsync(HandlersStoreRecord record)
         {
-            var channelPurpose = HardConfiguration.GetChannelPurposeByInterfaceTypes(record.supportedInterfacesType);
-            var exchangePurpose = HardConfiguration.GetExchangeByInterfaceTypes(record.supportedInterfacesType);
-            var queueType = HardConfiguration.GetQueueByInterfaceTypes(record.supportedInterfacesType);
+            var channelPurpose = HardConfiguration.GetChannelPurpose(record.supportedInterfacesType);
+            var exchangePurpose = HardConfiguration.GetExchangePurpose(record.supportedInterfacesType);
+            var queueType = HardConfiguration.GetQueuePurpose(record.supportedInterfacesType);
 
             var connection = await connectionService.GetOrCreateConnectionAsync();
             var channel = await channelService.GetOrCreateChannelAsync(connection, channelPurpose);

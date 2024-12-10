@@ -54,7 +54,7 @@ namespace QsMessaging.RabbitMq.Services
 
                     try
                     {
-                        switch (HardConfiguration.GetConsumerByInterfaceTypes(record.supportedInterfacesType))
+                        switch (HardConfiguration.GetConsumerPurpose(record.supportedInterfacesType))
                         {
                             case ConsumerPurpose.MessageEventConsumer:
                                 var resultAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });

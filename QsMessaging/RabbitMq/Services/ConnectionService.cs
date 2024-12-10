@@ -30,6 +30,7 @@ namespace QsMessaging.RabbitMq.Services
                     try
                     {
                         connection = await CreateConnectionAsync(cancellationToken);
+
                         if (connection != null && connection.IsOpen)
                         {
                             break;
@@ -79,7 +80,9 @@ namespace QsMessaging.RabbitMq.Services
                 HostName = configuration.RabbitMQ.Host,
                 UserName = configuration.RabbitMQ.UserName,
                 Password = configuration.RabbitMQ.Password,
-                Port = configuration.RabbitMQ.Port
+                Port = configuration.RabbitMQ.Port,
+                AutomaticRecoveryEnabled = true,
+                NetworkRecoveryInterval = TimeSpan.FromSeconds(5)
             };
 
             return await factory.CreateConnectionAsync(configuration.ServiceName, cancellationToken);
