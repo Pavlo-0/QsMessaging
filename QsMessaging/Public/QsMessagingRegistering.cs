@@ -5,17 +5,18 @@ using QsMessaging.RabbitMq.Interface;
 using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Services.Interfaces;
-using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace QsMessaging.Public
 {
     public static class QsMessagingRegistering
     {
-        public static IServiceCollection AddQsMessaging(this IServiceCollection services, Action<QsMessagingConfiguration> options)
+        public static IServiceCollection AddQsMessaging(this IServiceCollection services, Action<IQsMessagingConfiguration> options)
         {
-            var configuration = new QsMessagingConfiguration();
+            var configuration = new Configuration();
             options(configuration);
+
+            services.AddTransient<IQsMessagingConfiguration, Configuration>();
 
             services.AddTransient<IInstanceService, InstanceService>();
             services.AddTransient<IQsMessaging, QsMessagingGate>();
@@ -27,10 +28,7 @@ namespace QsMessaging.Public
 
             services.AddTransient<INameGenerator, NameGenerator>();
 
-            services.AddSingleton<IConnectionService>(sp =>
-            {
-                return new ConnectionService(configuration);
-            });
+            services.AddSingleton<IConnectionService, ConnectionService>();
             services.AddTransient<IExchangeService, ExchangeService>();
             services.AddTransient<IChannelService, ChannelService>();
             services.AddTransient<IExchangeService, ExchangeService>();
@@ -57,7 +55,7 @@ namespace QsMessaging.Public
             var connection = await connectionStorage.GetOrCreateConnectionAsync();
 
             var subscriber = host.Services.GetRequiredService<ISubscriber>();
-            await subscriber.Subscribe();
+            await subscriber.SubscribeAsync();
            
             return host;
         }

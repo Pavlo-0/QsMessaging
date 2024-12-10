@@ -1,6 +1,6 @@
 ﻿
 using Moq;
-using QsMessaging.Public;
+using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using RabbitMQ.Client;
@@ -21,7 +21,7 @@ namespace QsMessagingUnitTests
         {
             _mockConnection = new Mock<IConnection>();
 
-            var config = new QsMessagingConfiguration();
+            var config = new Configuration();
 
             _connectionService = new ConnectionService(config);
             _mockConnection.Setup(c => c.IsOpen).Returns(true);

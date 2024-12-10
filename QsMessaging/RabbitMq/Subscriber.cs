@@ -15,7 +15,7 @@ namespace QsMessaging.RabbitMq
         IConsumerService consumerService) : ISubscriber
     {
 
-        public async Task Subscribe()
+        public async Task SubscribeAsync()
         {
             foreach (var record in handlerService.GetHandlers())
             {

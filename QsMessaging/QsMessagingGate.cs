@@ -15,9 +15,9 @@ namespace QsMessaging
             return rabbitMqSender.SendEventAsync(model);
         }
 
-        public Task<TResponse> RequestResponse<TRequest, TResponse>(TRequest request) where TRequest : class where TResponse : class
+        public Task<TResponse> RequestResponse<TRequest, TResponse>(TRequest request, CancellationToken cancellationToken) where TRequest : class where TResponse : class
         {
-            return rabbitMqSender.SendRequest<TRequest, TResponse>(request);    
+            return rabbitMqSender.SendRequest<TRequest, TResponse>(request, cancellationToken);    
         }
     }
 }

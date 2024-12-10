@@ -1,16 +1,30 @@
 ﻿using System.Collections.Concurrent;
+using System.Threading;
+using QsMessaging.Public;
 using QsMessaging.RabbitMq.Models;
 
 namespace QsMessaging.RabbitMq.Interfaces
 {
-    internal class RequestResponseMessageStore: IRequestResponseMessageStore
+    internal class RequestResponseMessageStore(IQsMessagingConfiguration config): IRequestResponseMessageStore
     {
         private static ConcurrentDictionary<string, StoreMessageRecord> storeConsumerRecords = new ConcurrentDictionary<string, StoreMessageRecord>();
 
-        public void AddRequestMessage(string correlationId, object message)
+        //Retrun task for wait response
+        public Task AddRequestMessageAsync(string correlationId, object message, CancellationToken cancellationToken)
         {
-            var record = new StoreMessageRecord(message, message.GetType(), null, null, false, DateTime.UtcNow);
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var record = new StoreMessageRecord(message, message.GetType(), null, null, false, DateTime.UtcNow, tcs);
             storeConsumerRecords[correlationId] = record;
+
+            // Create a timeout task
+            var timeoutTask = Task.Delay(config.RequestResponseTimeout, cancellationToken)
+                .ContinueWith(_ => tcs.TrySetException(new TimeoutException("Request timed out")),
+                              cancellationToken,
+                              TaskContinuationOptions.ExecuteSynchronously,
+                              TaskScheduler.Default);
+
+            return tcs.Task;
         }
 
         /// <summary>
@@ -27,6 +41,7 @@ namespace QsMessaging.RabbitMq.Interfaces
                     ResponseMessage = message, 
                     ResponseMessageType = message.GetType() };
                 storeConsumerRecords[correlationId] = updatedRecord;
+                record.task.TrySetResult(true);
             }
             else
             {
@@ -48,13 +63,13 @@ namespace QsMessaging.RabbitMq.Interfaces
         /// </summary>
         /// <param name="correlationId">The correlation ID of the message.</param>
         /// <returns>The message object if found, or null otherwise.</returns>
-        public (object message, Type messageType ) GetRespondedMessage(string correlationId)
+        public TResponse GetRespondedMessage<TResponse>(string correlationId)
         {
             if (storeConsumerRecords.TryGetValue(correlationId, out var record) && 
                 record.ResponseMessage is not null && 
                 record.ResponseMessageType is not null)
             {
-                return (record.ResponseMessage, record.ResponseMessageType);
+                return (TResponse)record.ResponseMessage;
             }
             throw new KeyNotFoundException($"Message with ID {correlationId} not found.");
         }

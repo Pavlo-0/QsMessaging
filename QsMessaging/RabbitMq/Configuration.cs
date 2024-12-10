@@ -1,11 +1,12 @@
 ﻿
 using System.Reflection;
+using QsMessaging.Public;
 
-namespace QsMessaging.Public
+namespace QsMessaging.RabbitMq
 {
-    public class QsMessagingConfiguration
+    internal class Configuration : IQsMessagingConfiguration
     {
-        public QsMessagingConfiguration()
+        public Configuration()
         {
             try
             {
@@ -26,6 +27,11 @@ namespace QsMessaging.Public
         /// Allows you to set a custom displayed service name. By default, it uses your assembly name.
         /// </summary>
         public string ServiceName { get; set; }
+
+        /// <summary>
+        /// How long QsMessaging will be waiting answer from another service. msec.
+        /// </summary>
+        public int RequestResponseTimeout { get; set; } = 10;
     }
 
     public class QsRabbitMQConfiguration

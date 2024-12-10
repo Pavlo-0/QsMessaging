@@ -34,6 +34,6 @@
         /// <typeparam name="TResponse">The type of the response. This type will be used to determine which handler should be called to consume the request.</typeparam>
         /// <param name="request"></param>
         /// <returns></returns>
-        Task<TResponse> RequestResponse<TRequest, TResponse>(TRequest request) where TRequest : class where TResponse : class;
+        Task<TResponse> RequestResponse<TRequest, TResponse>(TRequest request, CancellationToken cancellationToken = default) where TRequest : class where TResponse : class;
     }
 }

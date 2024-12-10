@@ -36,7 +36,7 @@ namespace QsMessaging.RabbitMq
 
         public async Task Open()
         {
-            await subscriber.Subscribe();
+            await subscriber.SubscribeAsync();
         }
 
         private bool IsConnected(IConnection? connection)

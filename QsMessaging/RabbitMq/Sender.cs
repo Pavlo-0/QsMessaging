@@ -1,4 +1,5 @@
-﻿using QsMessaging.RabbitMq.Interface;
+﻿using QsMessaging.Public;
+using QsMessaging.RabbitMq.Interface;
 using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Services.Interfaces;
@@ -9,6 +10,7 @@ using System.Text.Json;
 namespace QsMessaging.RabbitMq
 {
     internal class Sender(
+        IQsMessagingConfiguration config,
         IConnectionService connectionService,
         IChannelService channelService,
         IExchangeService queuesService,
@@ -25,6 +27,13 @@ namespace QsMessaging.RabbitMq
             await Send(model, typeof(TMessage), props, MessageTypeEnum.Message);
         }
 
+        /// <summary>
+        /// ISender interface. Used for internal purpose. 
+        /// Answer for RequestResponse strategy
+        /// </summary>
+        /// <param name="model"></param>
+        /// <param name="correlationId"></param>
+        /// <returns></returns>
         public async Task SendMessageCorrelationAsync(object model, string correlationId)
         {
             var props = new BasicProperties();
@@ -42,32 +51,22 @@ namespace QsMessaging.RabbitMq
             await Send(model, typeof(TEvent), props, MessageTypeEnum.Event);
         }
 
-        public async Task<TResponse> SendRequest<TRequest, TResponse>(TRequest model) where TRequest : class where TResponse : class 
+        public async Task<TResponse> SendRequest<TRequest, TResponse>(TRequest model, CancellationToken cancellationToken = default) where TRequest : class where TResponse : class 
         {
             var props = new BasicProperties();
             props.DeliveryMode = DeliveryModes.Persistent;
             props.CorrelationId = Guid.NewGuid().ToString();
 
-            requestResponseMessageStore.AddRequestMessage(props.CorrelationId, model);
+            var responseAsync = requestResponseMessageStore.AddRequestMessageAsync(props.CorrelationId, model, cancellationToken);
 
             var handlerRecord = handlerService.AddRRResponseHandler<TResponse>();
             await subscriber.Value.SubscribeHandlerAsync(handlerRecord);
 
             await Send(model, typeof(TRequest),  props, MessageTypeEnum.Message, true);
 
-            var attempt = 0;
-            while (!requestResponseMessageStore.IsRespondedMessage(props.CorrelationId))
-            {
-                await Task.Delay(100);
-                if (attempt++ > 100)
-                    throw new TimeoutException("Request timeout");
-            } 
+            await responseAsync;
 
-            (object message, Type messageType) = requestResponseMessageStore.GetRespondedMessage(props.CorrelationId);
-            if (message as TResponse == null || messageType == null)
-                throw new ArgumentNullException(nameof(TRequest), "Respond model is null");
-
-            return message as TResponse;
+            return requestResponseMessageStore.GetRespondedMessage<TResponse>(props.CorrelationId);
         }
 
         private async Task Send(object model, Type type, BasicProperties props, MessageTypeEnum messageType, bool isLiveTime = false)
