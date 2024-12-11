@@ -1,11 +1,13 @@
-﻿using QsMessaging.RabbitMq.Interface;
+﻿using Microsoft.Extensions.Logging;
+using QsMessaging.RabbitMq.Interface;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Exceptions;
 using System.Collections.Concurrent;
 
 namespace QsMessaging.RabbitMq.Services
 {
-    internal class ExchangeService(INameGenerator exchangeNameGenerator) : IExchangeService
+    internal class ExchangeService(ILogger<ExchangeService> logger, INameGenerator exchangeNameGenerator) : IExchangeService
     {
         private readonly static ConcurrentBag<StoreExchangeRecord> storeExchangeRecords = new ConcurrentBag<StoreExchangeRecord>();
 
@@ -13,12 +15,22 @@ namespace QsMessaging.RabbitMq.Services
         {
             var name = exchangeNameGenerator.GetExchangeNameFromType(TModel);
 
-            await channel.ExchangeDeclareAsync(
-                           exchange: name,
-                           type: ExchangeType.Fanout,
-                           durable: true,
-                           autoDelete: purpose == ExchangePurpose.Permanent ? false : true,
-                           arguments: null);
+            logger.LogTrace("Attempting to declare exchange");
+
+            try
+            {
+                await channel.ExchangeDeclareAsync(
+                               exchange: name,
+                               type: ExchangeType.Fanout,
+                               durable: true,
+                               autoDelete: purpose == ExchangePurpose.Permanent ? false : true,
+                               arguments: null);
+            }
+            catch (OperationInterruptedException ex) when (ex.ShutdownReason != null && ex.ShutdownReason.ReplyCode == 406)
+            {
+                // Exchange already exists but with different settings
+                logger.LogError("Failed to declare the exchange. This exchange may already exist but with a different configuration. Please manually remove the exchange using RabbitMQ Management. The application will continue running, but proper message delivery cannot be guaranteed during service interruptions.");
+            }
 
             storeExchangeRecords.Add(new StoreExchangeRecord(channel, TModel, name));
 
