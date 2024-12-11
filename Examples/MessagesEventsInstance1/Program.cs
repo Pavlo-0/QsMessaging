@@ -26,7 +26,7 @@ namespace MessagesEventsInstance1
             var host = builder.Build();
 
             await host.UseQsMessaging();
-            
+
             host.Run();
         }
     }
