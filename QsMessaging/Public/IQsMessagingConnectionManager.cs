@@ -6,7 +6,7 @@
         /// Close the connection to RabbitMQ.
         /// </summary>
         /// <returns></returns>
-        Task Close();
+        Task Close(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Re-establish the connection to RabbitMQ along with the associated queue and consumers.

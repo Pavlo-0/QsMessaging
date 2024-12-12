@@ -1,17 +1,20 @@
 ﻿using System.Collections.Concurrent;
-using System.Threading;
+using Microsoft.Extensions.Logging;
 using QsMessaging.Public;
 using QsMessaging.RabbitMq.Models;
 
 namespace QsMessaging.RabbitMq.Interfaces
 {
-    internal class RequestResponseMessageStore(IQsMessagingConfiguration config): IRequestResponseMessageStore
+    internal class RequestResponseMessageStore(ILogger<RequestResponseMessageStore> logger, IQsMessagingConfiguration config): IRequestResponseMessageStore
     {
         private static ConcurrentDictionary<string, StoreMessageRecord> storeConsumerRecords = new ConcurrentDictionary<string, StoreMessageRecord>();
 
-        //Retrun task for wait response
+        //Return task for wait response
         public Task AddRequestMessageAsync(string correlationId, object message, CancellationToken cancellationToken)
         {
+            logger.LogTrace("Request message added with Correlation ID: {CorrelationId}.", correlationId);
+
+
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var record = new StoreMessageRecord(message, message.GetType(), null, null, false, DateTime.UtcNow, tcs);
@@ -33,6 +36,8 @@ namespace QsMessaging.RabbitMq.Interfaces
         /// <param name="correlationId">Unique identifier of the message to mark as responded.</param>
         public void MarkAsResponded(string correlationId, object message)
         {
+            logger.LogTrace("Message marked as responded. Correlation ID: {CorrelationId}.", correlationId);
+
             if (storeConsumerRecords.TryGetValue(correlationId, out var record))
             {
                 // Update the record with IsResponsed set to true
@@ -45,7 +50,7 @@ namespace QsMessaging.RabbitMq.Interfaces
             }
             else
             {
-                throw new KeyNotFoundException($"Message with ID {correlationId} not found.");
+                logger.LogTrace("Message with ID {CorrelationId} ignored because it is not intended for this node", correlationId);
             }
         }
 
@@ -80,8 +85,8 @@ namespace QsMessaging.RabbitMq.Interfaces
         /// <param name="correlationId">The correlation ID of the message to remove.</param>
         public void RemoveMessage(string correlationId)
         {
+            logger.LogTrace("Message removed from the store. Correlation ID: {CorrelationId}.", correlationId);
             storeConsumerRecords.TryRemove(correlationId, out _);
         }
     }
-
 }

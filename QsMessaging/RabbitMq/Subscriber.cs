@@ -2,10 +2,12 @@
 using QsMessaging.RabbitMq.Services.Interfaces;
 using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Models;
+using Microsoft.Extensions.Logging;
 
 namespace QsMessaging.RabbitMq
 {
     internal class Subscriber(
+        ILogger<Subscriber> logger,
         IConnectionService connectionService,
         IChannelService channelService,
         IExchangeService exchangeService,
@@ -24,6 +26,9 @@ namespace QsMessaging.RabbitMq
 
         public async Task SubscribeHandlerAsync(HandlersStoreRecord record)
         {
+            logger.LogInformation("Subscribing handler to the message queue.");
+            logger.LogDebug("{Type}", record.GenericType.FullName);
+
             var channelPurpose = HardConfiguration.GetChannelPurpose(record.supportedInterfacesType);
             var exchangePurpose = HardConfiguration.GetExchangePurpose(record.supportedInterfacesType);
             var queueType = HardConfiguration.GetQueuePurpose(record.supportedInterfacesType);

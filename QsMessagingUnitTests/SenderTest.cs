@@ -13,12 +13,14 @@ using QsMessaging.RabbitMq.Interface;
 using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Models;
+using Microsoft.Extensions.Logging;
 
 namespace QsMessaging.Tests
 {
     [TestClass]
     public class SenderTests
     {
+        private Mock<ILogger<Sender>> _mockLogger;
         private Mock<IQsMessagingConfiguration> _mockConfig;
         private Mock<IConnectionService> _mockConnectionService;
         private Mock<IChannelService> _mockChannelService;
@@ -31,6 +33,7 @@ namespace QsMessaging.Tests
         [TestInitialize]
         public void Setup()
         {
+            _mockLogger = new Mock<ILogger<Sender>>();
             _mockConnectionService = new Mock<IConnectionService>();
             _mockChannelService = new Mock<IChannelService>();
             _mockExchangeService = new Mock<IExchangeService>();
@@ -39,6 +42,7 @@ namespace QsMessaging.Tests
             _mockMessageStore = new Mock<IRequestResponseMessageStore>();
 
             _sender = new Sender(
+                _mockLogger.Object,
                 _mockConnectionService.Object,
                 _mockChannelService.Object,
                 _mockExchangeService.Object,

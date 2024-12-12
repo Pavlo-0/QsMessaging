@@ -1,4 +1,5 @@
-﻿using QsMessaging.Public;
+﻿using Microsoft.Extensions.Logging;
+using QsMessaging.Public;
 using QsMessaging.RabbitMq.Interface;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using RabbitMQ.Client;
@@ -6,11 +7,13 @@ using RabbitMQ.Client;
 namespace QsMessaging.RabbitMq
 {
     internal class ConnectionManager(
+        ILogger<ConnectionManager> logger,
         IConnectionService connectionWorker, 
         ISubscriber subscriber) : IQsMessagingConnectionManager
     {
-        public async Task Close()
+        public async Task Close(CancellationToken cancellationToken = default)
         {
+            logger.LogInformation("Closing connection to RabbitMQ.");
             var conn = connectionWorker.GetConnection();
             if (conn is null)
             {
@@ -25,17 +28,17 @@ namespace QsMessaging.RabbitMq
             do
             {
                 await Task.Delay(10);
-            } while (conn != null && conn.IsOpen);
+            } while (conn != null && conn.IsOpen && !cancellationToken.IsCancellationRequested);
         }
 
         public bool IsConnected()
         {
-
             return IsConnected(connectionWorker.GetConnection());
         }
 
         public async Task Open()
         {
+            logger.LogInformation("Opening connection to RabbitMQ.");
             await subscriber.SubscribeAsync();
         }
 

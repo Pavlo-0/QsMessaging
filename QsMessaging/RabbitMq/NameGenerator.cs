@@ -75,5 +75,4 @@ namespace QsMessaging.RabbitMq
             }
         }
     }
-
 }
