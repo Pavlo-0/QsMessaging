@@ -20,6 +20,7 @@ namespace QsMessaging.Tests
     [TestClass]
     public class SenderTests
     {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private Mock<ILogger<Sender>> _mockLogger;
         private Mock<IQsMessagingConfiguration> _mockConfig;
         private Mock<IConnectionService> _mockConnectionService;
@@ -29,6 +30,7 @@ namespace QsMessaging.Tests
         private Mock<ISubscriber> _mockSubscriber;
         private Mock<IRequestResponseMessageStore> _mockMessageStore;
         private Sender _sender;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
         [TestInitialize]
         public void Setup()
@@ -93,7 +95,9 @@ namespace QsMessaging.Tests
         public async Task SendMessageAsync_ShouldThrowException_WhenModelIsNull()
         {
             // Act
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
             await _sender.SendMessageAsync<object>(null);
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
         }
 
         [TestMethod]
@@ -244,12 +248,12 @@ namespace QsMessaging.Tests
 
         private class RequestModel
         {
-            public string Name { get; set; }
+            public string Name { get; set; } = "";
         }
 
         private class ResponseModel
         {
-            public string Name { get; set; }
+            public string Name { get; set; } = "";
         }
     }
 }
