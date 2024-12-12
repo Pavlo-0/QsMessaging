@@ -34,9 +34,13 @@
         /// </summary>
         /// <typeparam name="TRequest">The type of the request. This type will be used to determine which handler should be called to consume the request.</typeparam>
         /// <typeparam name="TResponse">The type of the response. This type will be used to determine which handler should be called to consume the request. 
-        /// Must be a class or record, but cannot be <see cref="string"/> or <see cref="object"/>.</typeparam>
+        /// Must be a class or record, but cannot be <see cref="string"/> or <see cref="object"/>.
+        /// The request type and response type must be different and cannot be the same. </typeparam>
         /// <typeparam name="request">The type of the message to request. Must be a class or record, but cannot be <see cref="string"/> or <see cref="object"/>.</typeparam>
         /// <exception cref="NotSupportedException">Thrown if <typeparamref name="TRequest"/> is <see cref="string"/> or <see cref="object"/>.</exception>
+        /// <exception cref="NotSupportedException">Thrown if <typeparamref name="TResponse"/> is <see cref="string"/> or <see cref="object"/>.</exception>
+        /// <exception cref="NotSupportedException">Thrown if <typeparamref name="TRequest"/> and <typeparamref name="TResponse"/> the same type.</exception>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="request"/> is null.</exception>
         /// <returns></returns>
         Task<TResponse> RequestResponse<TRequest, TResponse>(TRequest request, CancellationToken cancellationToken = default) where TRequest : class where TResponse : class;
     }

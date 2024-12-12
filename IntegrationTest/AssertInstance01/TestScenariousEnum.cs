@@ -14,5 +14,6 @@
         RequestResponse10OneByOne,
         RequestResponse10AtOnce,
         RequestResponse20AtOnceDif,
+        TwoInstanceRequest,
     }
 }

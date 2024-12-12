@@ -47,6 +47,9 @@ namespace QsMessaging
             ValidationType<TResponse>("Response");
             ValidationModel(request);
 
+            if (typeof(TRequest) == typeof(TResponse))
+                throw new NotSupportedException("The request type and response type must be different and cannot be the same.");
+
             try
             {
                 return rabbitMqSender.SendRequest<TRequest, TResponse>(request, cancellationToken);

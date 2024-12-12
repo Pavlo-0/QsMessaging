@@ -1,10 +1,4 @@
-﻿using System;
-using System.Text;
-using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
+﻿using Moq;
 using RabbitMQ.Client;
 using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Services.Interfaces;
