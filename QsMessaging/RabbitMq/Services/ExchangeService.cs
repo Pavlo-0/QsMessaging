@@ -13,9 +13,12 @@ namespace QsMessaging.RabbitMq.Services
 
         public async Task<string> GetOrCreateExchangeAsync(IChannel channel, Type TModel, ExchangePurpose purpose)
         {
-            var name = exchangeNameGenerator.GetExchangeNameFromType(TModel);
+            logger.LogDebug("Attempting to declare exchange");
 
-            logger.LogTrace("Attempting to declare exchange");
+            var name = exchangeNameGenerator.GetExchangeNameFromType(TModel);
+            var isAutoDelete = purpose == ExchangePurpose.Permanent ? false : true;
+
+            logger.LogDebug("{Name}:{IsAutoDelete}", name, isAutoDelete);
 
             try
             {
@@ -23,7 +26,7 @@ namespace QsMessaging.RabbitMq.Services
                                exchange: name,
                                type: ExchangeType.Fanout,
                                durable: true,
-                               autoDelete: purpose == ExchangePurpose.Permanent ? false : true,
+                               autoDelete: isAutoDelete,
                                arguments: null);
             }
             catch (OperationInterruptedException ex) when (ex.ShutdownReason != null && ex.ShutdownReason.ReplyCode == 406)

@@ -10,7 +10,6 @@ namespace QsMessaging.RabbitMq.Services
 {
     internal class HandlerService : IHandlerService
     {
-
         private static ConcurrentBag<HandlersStoreRecord> _handlers = new ConcurrentBag<HandlersStoreRecord>();
         private static ConcurrentBag<ConsumerErrorHandlerStoreRecord> _consumerErrorHandler = new ConcurrentBag<ConsumerErrorHandlerStoreRecord>();
 
@@ -81,7 +80,6 @@ namespace QsMessaging.RabbitMq.Services
                                         && type.IsClass                     // Ensure it's a class
                                         && !type.IsAbstract)               // Ensure it's not abstract
                            .Select(type => new ConsumerErrorHandlerStoreRecord(type));
-            //TODO: Refactor. Remove specefic type ConsumerErrorHandlerStoreRecord from method.
 
             foreach (var record in records)
             {

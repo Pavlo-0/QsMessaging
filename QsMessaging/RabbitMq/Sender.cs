@@ -10,7 +10,6 @@ using System.Text.Json;
 namespace QsMessaging.RabbitMq
 {
     internal class Sender(
-        IQsMessagingConfiguration config,
         IConnectionService connectionService,
         IChannelService channelService,
         IExchangeService queuesService,

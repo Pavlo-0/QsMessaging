@@ -31,7 +31,6 @@ namespace QsMessaging.Tests
         [TestInitialize]
         public void Setup()
         {
-            _mockConfig = new Mock<IQsMessagingConfiguration>();
             _mockConnectionService = new Mock<IConnectionService>();
             _mockChannelService = new Mock<IChannelService>();
             _mockExchangeService = new Mock<IExchangeService>();
@@ -40,7 +39,6 @@ namespace QsMessaging.Tests
             _mockMessageStore = new Mock<IRequestResponseMessageStore>();
 
             _sender = new Sender(
-                _mockConfig.Object,
                 _mockConnectionService.Object,
                 _mockChannelService.Object,
                 _mockExchangeService.Object,
@@ -72,7 +70,6 @@ namespace QsMessaging.Tests
             await _sender.SendMessageAsync(model);
 
             // Assert
-
             _mockExchangeService.Verify(x => x.GetOrCreateExchangeAsync(channel.Object, modelType, ExchangePurpose.Permanent), Times.Once);
             _mockChannelService.Verify(GetType => GetType.GetOrCreateChannelAsync(connection.Object, ChannelPurpose.MessagePublish, CancellationToken.None), Times.Once);
             _mockConnectionService.Verify(x => x.GetOrCreateConnectionAsync(CancellationToken.None), Times.Once);

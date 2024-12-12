@@ -6,7 +6,6 @@ using QsMessaging.RabbitMq.Models;
 namespace QsMessaging.RabbitMq
 {
     internal class Subscriber(
-        IServiceProvider services,
         IConnectionService connectionService,
         IChannelService channelService,
         IExchangeService exchangeService,
@@ -35,7 +34,7 @@ namespace QsMessaging.RabbitMq
             var exchangename = await exchangeService.GetOrCreateExchangeAsync(channel, record.GenericType, exchangePurpose);
             var queueName = await queueService.GetOrCreateQueuesAsync(channel, record.GenericType, exchangename, queueType);
 
-            await consumerService.GetOrCreateConsumerAsync(channel, queueName, services, record);
+            await consumerService.GetOrCreateConsumerAsync(channel, queueName, record);
         }
     }
 }
