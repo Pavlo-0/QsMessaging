@@ -1,16 +1,33 @@
 ﻿using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
+using QsMessaging.Public;
 using QsMessaging.RabbitMq.Models;
 
 namespace QsMessaging.RabbitMq.Interfaces
 {
-    internal class RequestResponseMessageStore: IRequestResponseMessageStore
+    internal class RequestResponseMessageStore(ILogger<RequestResponseMessageStore> logger, IQsMessagingConfiguration config): IRequestResponseMessageStore
     {
         private static ConcurrentDictionary<string, StoreMessageRecord> storeConsumerRecords = new ConcurrentDictionary<string, StoreMessageRecord>();
 
-        public void AddRequestMessage(string correlationId, object message)
+        //Return task for wait response
+        public Task AddRequestMessageAsync(string correlationId, object message, CancellationToken cancellationToken)
         {
-            var record = new StoreMessageRecord(message, message.GetType(), null, null, false, DateTime.UtcNow);
+            logger.LogTrace("Request message added with Correlation ID: {CorrelationId}.", correlationId);
+
+
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var record = new StoreMessageRecord(message, message.GetType(), null, null, false, DateTime.UtcNow, tcs);
             storeConsumerRecords[correlationId] = record;
+
+            // Create a timeout task
+            var timeoutTask = Task.Delay(config.RequestResponseTimeout, cancellationToken)
+                .ContinueWith(_ => tcs.TrySetException(new TimeoutException("Request timed out")),
+                              cancellationToken,
+                              TaskContinuationOptions.ExecuteSynchronously,
+                              TaskScheduler.Default);
+
+            return tcs.Task;
         }
 
         /// <summary>
@@ -19,6 +36,8 @@ namespace QsMessaging.RabbitMq.Interfaces
         /// <param name="correlationId">Unique identifier of the message to mark as responded.</param>
         public void MarkAsResponded(string correlationId, object message)
         {
+            logger.LogTrace("Message marked as responded. Correlation ID: {CorrelationId}.", correlationId);
+
             if (storeConsumerRecords.TryGetValue(correlationId, out var record))
             {
                 // Update the record with IsResponsed set to true
@@ -27,10 +46,11 @@ namespace QsMessaging.RabbitMq.Interfaces
                     ResponseMessage = message, 
                     ResponseMessageType = message.GetType() };
                 storeConsumerRecords[correlationId] = updatedRecord;
+                record.task.TrySetResult(true);
             }
             else
             {
-                throw new KeyNotFoundException($"Message with ID {correlationId} not found.");
+                logger.LogTrace("Message with ID {CorrelationId} ignored because it is not intended for this node", correlationId);
             }
         }
 
@@ -48,13 +68,13 @@ namespace QsMessaging.RabbitMq.Interfaces
         /// </summary>
         /// <param name="correlationId">The correlation ID of the message.</param>
         /// <returns>The message object if found, or null otherwise.</returns>
-        public (object message, Type messageType ) GetRespondedMessage(string correlationId)
+        public TResponse GetRespondedMessage<TResponse>(string correlationId)
         {
             if (storeConsumerRecords.TryGetValue(correlationId, out var record) && 
                 record.ResponseMessage is not null && 
                 record.ResponseMessageType is not null)
             {
-                return (record.ResponseMessage, record.ResponseMessageType);
+                return (TResponse)record.ResponseMessage;
             }
             throw new KeyNotFoundException($"Message with ID {correlationId} not found.");
         }
@@ -65,8 +85,8 @@ namespace QsMessaging.RabbitMq.Interfaces
         /// <param name="correlationId">The correlation ID of the message to remove.</param>
         public void RemoveMessage(string correlationId)
         {
+            logger.LogTrace("Message removed from the store. Correlation ID: {CorrelationId}.", correlationId);
             storeConsumerRecords.TryRemove(correlationId, out _);
         }
     }
-
 }

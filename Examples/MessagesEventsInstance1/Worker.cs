@@ -33,6 +33,7 @@ namespace MessagesEventsInstance1
                 {
                     MyTextEvent = "My event."
                 });
+                await _qsMessaging.SendMessageAsync(new RegularMessageContract2("My record message"));
 
                 Console.WriteLine("Message& event has been sent");
 

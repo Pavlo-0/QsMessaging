@@ -1,6 +1,7 @@
 ﻿
+using Microsoft.Extensions.Logging;
 using Moq;
-using QsMessaging.Public;
+using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using RabbitMQ.Client;
@@ -13,6 +14,7 @@ namespace QsMessagingUnitTests
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         //private Mock<QsMessagingConfiguration> _mockConfig;
         private Mock<IConnection> _mockConnection;
+        private Mock<ILogger<ConnectionService>> _mockLogger;
         private IConnectionService _connectionService;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
@@ -20,10 +22,10 @@ namespace QsMessagingUnitTests
         public void Setup()
         {
             _mockConnection = new Mock<IConnection>();
+            _mockLogger = new Mock<ILogger<ConnectionService>>();
+            var config = new Configuration();
 
-            var config = new QsMessagingConfiguration();
-
-            _connectionService = new ConnectionService(config);
+            _connectionService = new ConnectionService(_mockLogger.Object, config);
             _mockConnection.Setup(c => c.IsOpen).Returns(true);
         }
 

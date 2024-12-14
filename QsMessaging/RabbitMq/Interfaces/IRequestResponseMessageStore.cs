@@ -2,10 +2,10 @@
 {
     internal interface IRequestResponseMessageStore
     {
-        void AddRequestMessage(string correlationId, object message);
+        Task AddRequestMessageAsync(string correlationId, object message, CancellationToken cancellationToken);
         void MarkAsResponded(string correlationId, object message);
         bool IsRespondedMessage(string correlationId);
-        (object message, Type messageType) GetRespondedMessage(string correlationId);
+        TResponse GetRespondedMessage<TResponse>(string correlationId);
         void RemoveMessage(string correlationId);
     }
 

@@ -1,8 +1,9 @@
-﻿using QsMessaging.RabbitMq.Interfaces;
+﻿using Microsoft.Extensions.Logging;
+using QsMessaging.RabbitMq.Interfaces;
 
 namespace QsMessaging.RabbitMq
 {
-    internal class RRResponseHandler(IRequestResponseMessageStore store) : IRRResponseHandler
+    internal class RRResponseHandler(ILogger<RRResponseHandler> logger, IRequestResponseMessageStore store) : IRRResponseHandler
     {
         public Task Consumer(object contract, string correlationId)
         {
@@ -10,9 +11,9 @@ namespace QsMessaging.RabbitMq
             {
                 store.MarkAsResponded(correlationId, contract);
             }
-            catch
+            catch (Exception ex) 
             {
-                //TODO: Correlation could not be found cause this is can be another instances.
+                logger.LogCritical(ex, "An unexpected internal error occurred while marking the message as responded.");
             }
             return Task.CompletedTask;
         }

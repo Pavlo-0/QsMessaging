@@ -8,7 +8,6 @@ namespace QsMessaging.RabbitMq.Services.Interfaces
         Task<string> GetOrCreateConsumerAsync(
             IChannel channel, 
             string queueName,
-            IServiceProvider serviceProvider,
             HandlersStoreRecord record);
 
         IEnumerable<string> GetConsumersByChannel(IChannel channel);
