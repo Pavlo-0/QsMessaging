@@ -141,14 +141,6 @@ public class MyRequestHandler : IQsRequestResponseHandler<MyRequestContract, MyR
 }
 ```
 
----
-
-**That's all, folks!**
-
-## Documentation
-
-For detailed documentation, visit the [QsMessaging Wiki](https://github.com/Pavlo-0/QsMessaging/wiki).
-
 ## Dependency Injection Examples
 
 The examples below show how handlers can consume dependencies through constructor injection.
@@ -227,3 +219,12 @@ public class GetUserHandler : IQsRequestResponseHandler<GetUserRequest, GetUserR
     }
 }
 ```
+
+
+---
+
+**That's all, folks!**
+
+## Documentation
+
+For detailed documentation, visit the [QsMessaging Wiki](https://github.com/Pavlo-0/QsMessaging/wiki).
