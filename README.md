@@ -2,7 +2,7 @@
 
 **QsMessaging** is a .NET 8 library designed for sending and receiving messages between services or components of your application using **RabbitMQ**. It supports horizontal scalability, allowing multiple instances of the same service to handle messages efficiently.  
 Available on NuGet for seamless integration:  
-[![NuGet](https://img.shields.io/nuget/v/QsMessaging.svg)](https://www.nuget.org/packages/QsMessaging/)  
+[![NuGet](https://img.shields.io/nuget/v/QsMessaging.svg)](https://www.nuget.org/packages/QsMessaging/)
 
 A simple, scalable messaging solution for distributed systems.
 
@@ -28,10 +28,11 @@ await host.UseQsMessaging();
 
 ### Default Configuration
 
-**RabbitMQ**  
-- Host: `localhost`  
-- UserName: `guest`  
-- Password: `guest`  
+**RabbitMQ**
+
+- Host: `localhost`
+- UserName: `guest`
+- Password: `guest`
 - Port: `5672`
 
 ## Usage
@@ -45,7 +46,7 @@ Define a message contract:
 ```csharp
 public class RegularMessageContract
 {
-    public required string MyTextMessage { get; set; } 
+    public required string MyTextMessage { get; set; }
 }
 ```
 
@@ -77,6 +78,9 @@ public class RegularMessageContractHandler : IQsMessageHandler<RegularMessageCon
     }
 }
 ```
+
+All handlers discovered by QsMessaging are registered in DI as **Transient**.
+This means each message/request is handled by a fresh handler instance, and handlers have full support for constructor injection of your application services.
 
 ---
 
@@ -144,3 +148,82 @@ public class MyRequestHandler : IQsRequestResponseHandler<MyRequestContract, MyR
 ## Documentation
 
 For detailed documentation, visit the [QsMessaging Wiki](https://github.com/Pavlo-0/QsMessaging/wiki).
+
+## Dependency Injection Examples
+
+The examples below show how handlers can consume dependencies through constructor injection.
+
+### 1) Message Handler with Injected Services
+
+```csharp
+public interface IOrderProcessor
+{
+    Task ProcessAsync(CreateOrderMessage message);
+}
+
+public class CreateOrderMessage
+{
+    public required string OrderId { get; set; }
+}
+
+public class CreateOrderMessageHandler : IQsMessageHandler<CreateOrderMessage>
+{
+    private readonly IOrderProcessor _orderProcessor;
+    private readonly ILogger<CreateOrderMessageHandler> _logger;
+
+    public CreateOrderMessageHandler(
+        IOrderProcessor orderProcessor,
+        ILogger<CreateOrderMessageHandler> logger)
+    {
+        _orderProcessor = orderProcessor;
+        _logger = logger;
+    }
+
+    public async Task<bool> Consumer(CreateOrderMessage contractModel)
+    {
+        _logger.LogInformation("Processing order {OrderId}", contractModel.OrderId);
+        await _orderProcessor.ProcessAsync(contractModel);
+        return true;
+    }
+}
+```
+
+### 2) Request/Response Handler with Injected Repository
+
+```csharp
+public interface IUserRepository
+{
+    Task<UserDto?> GetByIdAsync(Guid id);
+}
+
+public class GetUserRequest
+{
+    public Guid UserId { get; set; }
+}
+
+public class GetUserResponse
+{
+    public string? Name { get; set; }
+    public bool Found { get; set; }
+}
+
+public class GetUserHandler : IQsRequestResponseHandler<GetUserRequest, GetUserResponse>
+{
+    private readonly IUserRepository _userRepository;
+
+    public GetUserHandler(IUserRepository userRepository)
+    {
+        _userRepository = userRepository;
+    }
+
+    public async Task<GetUserResponse> Handle(GetUserRequest request)
+    {
+        var user = await _userRepository.GetByIdAsync(request.UserId);
+        return new GetUserResponse
+        {
+            Found = user is not null,
+            Name = user?.Name
+        };
+    }
+}
+```
