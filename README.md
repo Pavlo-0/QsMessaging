@@ -223,8 +223,8 @@ public class GetUserHandler : IQsRequestResponseHandler<GetUserRequest, GetUserR
 
 ---
 
-**That's all, folks!**
-
 ## Documentation
 
 For detailed documentation, visit the [QsMessaging Wiki](https://github.com/Pavlo-0/QsMessaging/wiki).
+
+**That's all, folks!**
