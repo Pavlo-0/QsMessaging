@@ -203,7 +203,7 @@ public class GetUserRequest
 
 public class GetUserResponse
 {
-    public required string? Name { get; set; }
+    public string? Name { get; set; }
     public bool Found { get; set; }
 }
 
