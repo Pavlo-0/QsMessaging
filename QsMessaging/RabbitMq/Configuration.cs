@@ -1,5 +1,6 @@
 ﻿
 using System.Reflection;
+using QsMessaging.AzureServiceBus;
 using QsMessaging.Public;
 
 namespace QsMessaging.RabbitMq
@@ -19,6 +20,11 @@ namespace QsMessaging.RabbitMq
         }
 
         /// <summary>
+        /// Configuration settings related to the connection with Azure Service Bus.
+        /// </summary>
+        public QsAzureServiceBusConfiguration AzureServiceBus { get; set; } = new QsAzureServiceBusConfiguration();
+
+        /// <summary>
         /// Configuration settings related to the connection with the RabbitMQ instance.
         /// </summary>
         public QsRabbitMQConfiguration RabbitMQ { get; set; } = new QsRabbitMQConfiguration();
@@ -32,6 +38,11 @@ namespace QsMessaging.RabbitMq
         /// How long QsMessaging will be waiting answer from another service. msec.
         /// </summary>
         public int RequestResponseTimeout { get; set; } = 10 * 1000;
+
+        /// <summary>
+        /// Active transport used by QsMessaging.
+        /// </summary>
+        public QsMessagingTransport Transport { get; set; } = QsMessagingTransport.RabbitMq;
     }
 
     public class QsRabbitMQConfiguration

@@ -1,229 +1,141 @@
 # QsMessaging
 
-**QsMessaging** is a .NET 8 library designed for sending and receiving messages between services or components of your application using **RabbitMQ**. It supports horizontal scalability, allowing multiple instances of the same service to handle messages efficiently.  
-Available on NuGet for seamless integration:  
+**QsMessaging** is a .NET 8 library for message-based communication between console or worker applications.
+It supports both **RabbitMQ** and **Azure Service Bus** behind the same public API.
+
 [![NuGet](https://img.shields.io/nuget/v/QsMessaging.svg)](https://www.nuget.org/packages/QsMessaging/)
 
-A simple, scalable messaging solution for distributed systems.
-
 ## Installation
-
-Install the package using the following command:
 
 ```bash
 dotnet add package QsMessaging
 ```
 
-## Registering the Library
+## Registration
 
-Registering the library is simple. Add the following two lines of code to your `Program.cs`:
+Register QsMessaging in `Program.cs`, then start it once after the host is built.
+
+### RabbitMQ
+
+RabbitMQ remains the default transport.
 
 ```csharp
-// Add QsMessaging (use the default configuration)...
-builder.Services.AddQsMessaging(options => { });
+builder.Services.AddQsMessaging(options =>
+{
+    options.RabbitMQ.Host = "localhost";
+    options.RabbitMQ.UserName = "guest";
+    options.RabbitMQ.Password = "guest";
+    options.RabbitMQ.Port = 5672;
+});
 
-...
+var host = builder.Build();
 await host.UseQsMessaging();
 ```
 
-### Default Configuration
+### Azure Service Bus
 
-**RabbitMQ**
+```csharp
+builder.Services.AddQsMessaging(options =>
+{
+    options.Transport = QsMessagingTransport.AzureServiceBus;
+    options.AzureServiceBus.ConnectionString =
+        "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
+});
 
-- Host: `localhost`
-- UserName: `guest`
-- Password: `guest`
-- Port: `5672`
+var host = builder.Build();
+await host.UseQsMessaging();
+```
 
-## Usage
+For the Azure Service Bus emulator, QsMessaging automatically derives the management connection string on port `5300` when `UseDevelopmentEmulator=true` is present and the endpoint has no port.
+If your emulator uses a different management endpoint, set `options.AzureServiceBus.AdministrationConnectionString` explicitly.
 
-### Sending Messages
-
-#### Contract
-
-Define a message contract:
+## Sending Messages
 
 ```csharp
 public class RegularMessageContract
 {
     public required string MyTextMessage { get; set; }
 }
+
+public class MyService(IQsMessaging qsMessaging)
+{
+    public Task SendAsync()
+    {
+        return qsMessaging.SendMessageAsync(
+            new RegularMessageContract { MyTextMessage = "Hello" });
+    }
+}
 ```
 
-#### Sending a Message
-
-Inject `IQsMessaging` into your class:
-
-```csharp
-public YourClass(IQsMessaging qsMessaging) {}
-```
-
-Then, use it to send a message:
-
-```csharp
-await qsMessaging.SendMessageAsync(new RegularMessageContract { MyTextMessage = "My message." });
-```
-
-### Handling Messages
-
-To handle the message, create a handler:
+## Handling Messages
 
 ```csharp
 public class RegularMessageContractHandler : IQsMessageHandler<RegularMessageContract>
 {
-    public Task<bool> Consumer(RegularMessageContract contractModel)
+    public Task Consumer(RegularMessageContract contractModel)
     {
-        // Process the message here
-        return Task.FromResult(true);
+        return Task.CompletedTask;
     }
 }
 ```
 
-All handlers discovered by QsMessaging are registered in DI as **Transient**.
-This means each message/request is handled by a fresh handler instance, and handlers have full support for constructor injection of your application services.
+Handlers discovered by QsMessaging are registered automatically as transient services, so constructor injection works normally.
 
----
-
-### Request/Response Pattern
-
-You can also use the **Request/Response** pattern to send a request and await a response. This is useful when you need to communicate between services and expect a response.
-
-#### Request/Response Contract
-
-Define the request and response contracts:
+## Request/Response
 
 ```csharp
-public class MyRequestContract
+public class MyRequest
 {
     public required string RequestMessage { get; set; }
 }
 
-public class MyResponseContract
+public class MyResponse
 {
     public required string ResponseMessage { get; set; }
 }
-```
 
-#### Sending a Request and Receiving a Response
-
-To send a request and await a response, use the `RequestResponse<TRequest, TResponse>`:
-
-```csharp
-public class MyService
+public class RequestClient(IQsMessaging qsMessaging)
 {
-    private readonly IQsMessaging _qsMessaging;
-
-    public MyService(IQsMessaging qsMessaging)
+    public Task<MyResponse> SendAsync(MyRequest request)
     {
-        _qsMessaging = qsMessaging;
-    }
-
-    public async Task<MyResponseContract> SendRequestAsync(MyRequestContract request)
-    {
-        var response = await _qsMessaging.SendRequestResponseAsync<MyRequestContract, MyResponseContract>(request);
-        return response;
+        return qsMessaging.RequestResponse<MyRequest, MyResponse>(request);
     }
 }
 ```
 
-#### Handling Requests
-
-To handle requests, implement the `IQsRequestResponseHandler<TRequest, TResponse>` interface:
-
 ```csharp
-public class MyRequestHandler : IQsRequestResponseHandler<MyRequestContract, MyResponseContract>
+public class MyRequestHandler : IQsRequestResponseHandler<MyRequest, MyResponse>
 {
-    public Task<MyResponseContract> Handle(MyRequestContract request)
+    public Task<MyResponse> Consumer(MyRequest request)
     {
-        // Process the request and create a response
-        return Task.FromResult(new MyResponseContract { ResponseMessage = "Response to: " + request.RequestMessage });
+        return Task.FromResult(new MyResponse
+        {
+            ResponseMessage = $"Response to: {request.RequestMessage}"
+        });
     }
 }
 ```
 
----
-
-**That's all, folks!**
-
-## Documentation
-
-For detailed documentation, visit the [QsMessaging Wiki](https://github.com/Pavlo-0/QsMessaging/wiki).
-
-## Dependency Injection Examples
-
-The examples below show how handlers can consume dependencies through constructor injection.
-
-### 1) Message Handler with Injected Services
+## Event Handlers
 
 ```csharp
-public interface IOrderProcessor
-{
-    Task ProcessAsync(CreateOrderMessage message);
-}
-
-public class CreateOrderMessage
+public class OrderCreatedEvent
 {
     public required string OrderId { get; set; }
 }
 
-public class CreateOrderMessageHandler : IQsMessageHandler<CreateOrderMessage>
+public class OrderCreatedHandler : IQsEventHandler<OrderCreatedEvent>
 {
-    private readonly IOrderProcessor _orderProcessor;
-    private readonly ILogger<CreateOrderMessageHandler> _logger;
-
-    public CreateOrderMessageHandler(
-        IOrderProcessor orderProcessor,
-        ILogger<CreateOrderMessageHandler> logger)
+    public Task Consumer(OrderCreatedEvent contract)
     {
-        _orderProcessor = orderProcessor;
-        _logger = logger;
-    }
-
-    public async Task<bool> Consumer(CreateOrderMessage contractModel)
-    {
-        _logger.LogInformation("Processing order {OrderId}", contractModel.OrderId);
-        await _orderProcessor.ProcessAsync(contractModel);
-        return true;
+        return Task.CompletedTask;
     }
 }
 ```
 
-### 2) Request/Response Handler with Injected Repository
+## Notes
 
-```csharp
-public interface IUserRepository
-{
-    Task<UserDto?> GetByIdAsync(Guid id);
-}
-
-public class GetUserRequest
-{
-    public Guid UserId { get; set; }
-}
-
-public class GetUserResponse
-{
-    public required string? Name { get; set; }
-    public bool Found { get; set; }
-}
-
-public class GetUserHandler : IQsRequestResponseHandler<GetUserRequest, GetUserResponse>
-{
-    private readonly IUserRepository _userRepository;
-
-    public GetUserHandler(IUserRepository userRepository)
-    {
-        _userRepository = userRepository;
-    }
-
-    public async Task<GetUserResponse> Handle(GetUserRequest request)
-    {
-        var user = await _userRepository.GetByIdAsync(request.UserId);
-        return new GetUserResponse
-        {
-            Found = user is not null,
-            Name = user?.Name
-        };
-    }
-}
-```
+- `IQsMessaging` stays the same for both transports.
+- RabbitMQ is still the default transport.
+- Azure Service Bus requires a namespace-level connection string with management permissions because QsMessaging creates queues, topics, and subscriptions automatically.
+- The package examples in this repository still demonstrate the general handler and messaging patterns and can be adapted for either transport.

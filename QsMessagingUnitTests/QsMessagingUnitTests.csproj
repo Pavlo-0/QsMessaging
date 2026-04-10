@@ -19,6 +19,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="bin\**\*.cs" />
+    <Compile Remove="obj\**\*.cs" />
+    <Compile Remove=".codexverify\**\*.cs" />
+    <EmbeddedResource Remove="bin\**" />
+    <EmbeddedResource Remove="obj\**" />
+    <EmbeddedResource Remove=".codexverify\**" />
+    <None Remove="bin\**" />
+    <None Remove="obj\**" />
+    <None Remove=".codexverify\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\QsMessaging\QsMessaging.csproj" />
   </ItemGroup>
 

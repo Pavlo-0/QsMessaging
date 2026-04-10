@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
 using QsMessaging.Public;
-using QsMessaging.RabbitMq.Interfaces;
+using QsMessaging.Transporting.Interfaces;
 
 namespace QsMessaging
 {
-    internal class QsMessagingGate(ILogger<QsMessagingGate> logger, IRabbitMqSender rabbitMqSender) : IQsMessaging
+    internal class QsMessagingGate(ILogger<QsMessagingGate> logger, ITransportSender sender) : IQsMessaging
     {
         public Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
         {
@@ -13,7 +13,7 @@ namespace QsMessaging
 
             try
             {
-                return rabbitMqSender.SendMessageAsync(model);
+                return sender.SendMessageAsync(model);
             }
             catch (OperationCanceledException oce)
             {
@@ -30,7 +30,7 @@ namespace QsMessaging
 
             try
             {
-                return rabbitMqSender.SendEventAsync(model);
+                return sender.SendEventAsync(model);
             }
             catch (OperationCanceledException oce)
             {
@@ -52,7 +52,7 @@ namespace QsMessaging
 
             try
             {
-                return rabbitMqSender.SendRequest<TRequest, TResponse>(request, cancellationToken);
+                return sender.SendRequest<TRequest, TResponse>(request, cancellationToken);
             }
             catch (OperationCanceledException oce)
             {
