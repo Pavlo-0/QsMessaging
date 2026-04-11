@@ -2,13 +2,13 @@ using Azure;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
-using QsMessaging.RabbitMq;
-using QsMessaging.RabbitMq.Interface;
-using QsMessaging.RabbitMq.Models;
-using QsMessaging.RabbitMq.Services;
-using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared.Interface;
 using QsMessaging.Public;
 using System.Collections.Concurrent;
+using QsMessaging.RabbitMq;
+using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.RabbitMq.Models;
+using QsMessaging.RabbitMq.Models.Enums;
 
 namespace QsMessaging.AzureServiceBus.Services
 {
@@ -41,18 +41,21 @@ namespace QsMessaging.AzureServiceBus.Services
 
         public string GetQueueName(Type contractType, QueuePurpose purpose)
         {
-            return nameGenerator.GetQueueNameFromType(contractType, purpose);
+            return ServiceBusEntityNameFormatter.FormatQueueName(
+                nameGenerator.GetQueueNameFromType(contractType, purpose));
         }
 
         public async Task<bool> QueueExistsAsync(string queueName, CancellationToken cancellationToken = default)
         {
             var client = await GetOrCreateAdministrationClientAsync(cancellationToken);
-            return await client.QueueExistsAsync(queueName, cancellationToken);
+            var normalizedQueueName = ServiceBusEntityNameFormatter.FormatQueueName(queueName);
+            return await client.QueueExistsAsync(normalizedQueueName, cancellationToken);
         }
 
         public async Task<string> GetOrCreateTopicAsync(Type contractType, CancellationToken cancellationToken = default)
         {
-            var topicName = nameGenerator.GetExchangeNameFromType(contractType);
+            var topicName = ServiceBusEntityNameFormatter.FormatTopicName(
+                nameGenerator.GetExchangeNameFromType(contractType));
             var client = await GetOrCreateAdministrationClientAsync(cancellationToken);
 
             if (await client.TopicExistsAsync(topicName, cancellationToken))
@@ -84,7 +87,8 @@ namespace QsMessaging.AzureServiceBus.Services
 
         public async Task<string> GetOrCreateSubscriptionAsync(HandlersStoreRecord record, CancellationToken cancellationToken = default)
         {
-            var topicName = nameGenerator.GetExchangeNameFromType(record.GenericType);
+            var topicName = ServiceBusEntityNameFormatter.FormatTopicName(
+                nameGenerator.GetExchangeNameFromType(record.GenericType));
             var subscriptionName = BuildSubscriptionName(record);
             var client = await GetOrCreateAdministrationClientAsync(cancellationToken);
 
@@ -207,7 +211,7 @@ namespace QsMessaging.AzureServiceBus.Services
         {
             var rawName = $"{record.GenericType.FullName}:{record.HandlerType.FullName}:{instanceService.GetInstanceUID():N}";
             var suffix = NameGenerator.HashString(rawName, 160);
-            return $"Qs:sub:{suffix}";
+            return ServiceBusEntityNameFormatter.FormatSubscriptionName($"Qs:sub:{suffix}");
         }
 
         private async Task<ServiceBusAdministrationClient> GetOrCreateAdministrationClientAsync(CancellationToken cancellationToken)

@@ -1,14 +1,19 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using QsMessaging.AzureServiceBus.Services.Interfaces;
+using QsMessaging.AzureServiceBus;
+using QsMessaging.AzureServiceBus.Services;
 using QsMessaging.RabbitMq;
-using QsMessaging.RabbitMq.Interface;
-using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Services.Interfaces;
-using QsMessaging.AzureServiceBus.Services.Interfaces;
-using QsMessaging.Transporting;
-using QsMessaging.Transporting.Interfaces;
+using QsMessaging.RabbitMq.Interfaces;
+using QsMessaging.Shared.Interface;
+using QsMessaging.Shared.Services.Interfaces;
+using QsMessaging.Shared.Services;
+using QsMessaging.Shared;
 using System.Reflection;
+using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IConnectionService;
+using RabbitConnectionService = QsMessaging.Shared.Interface.IConnectionService;
 
 namespace QsMessaging.Public
 {
@@ -53,28 +58,27 @@ namespace QsMessaging.Public
             switch (configuration.Transport)
             {
                 case QsMessagingTransport.RabbitMq:
-                    services.AddTransient<IQsMessagingConnectionManager, ConnectionManager>();
-                    services.AddTransient<ISubscriber, Subscriber>();
-                    services.AddTransient<IRabbitMqSender, Sender>();
-                    services.AddTransient<ISender, Sender>();
-                    services.AddTransient<ITransportSender, RabbitMqTransportSenderAdapter>();
+                    services.AddTransient<ISubscriber, RqSubscriber>();
+                    services.AddTransient<IQsMessagingConnectionManager, RqConnectionManager>();
+                    services.AddSingleton<RabbitConnectionService, RbConnectionService>();
 
-                    services.AddSingleton<IConnectionService, ConnectionService>();
+
+                    services.AddTransient<ISender, RqSender>();
+
+
                     services.AddTransient<IExchangeService, ExchangeService>();
                     services.AddTransient<IChannelService, ChannelService>();
-                    services.AddTransient<IExchangeService, ExchangeService>();
                     services.AddTransient<IQueueService, QueueService>();
                     services.AddTransient<IConsumerService, ConsumerService>();
                     break;
 
                 case QsMessagingTransport.AzureServiceBus:
-                    services.AddSingleton<IQsMessagingConnectionManager, AzureServiceBus.ConnectionManager>();
-                    services.AddSingleton<AzureServiceBus.Sender>();
-                    services.AddSingleton<ITransportSender>(sp => sp.GetRequiredService<AzureServiceBus.Sender>());
-                    services.AddSingleton<AzureServiceBus.IAzureServiceBusResponseSender>(sp => sp.GetRequiredService<AzureServiceBus.Sender>());
-                    services.AddSingleton<IClientService, AzureServiceBus.Services.ClientService>();
-                    services.AddSingleton<IAdministrationService, AzureServiceBus.Services.AdministrationService>();
-                    services.AddSingleton<AzureServiceBus.IAzureServiceBusSubscriber, AzureServiceBus.Subscriber>();
+                    services.AddTransient<ISubscriber, AsbSubscriber>();
+                    services.AddTransient<IQsMessagingConnectionManager, AsbConnectionManager>();
+                    services.AddSingleton<AzureConnectionService, AsbConnectionService>();
+                    services.AddTransient<ISender, AsbSender>();
+
+                    services.AddTransient<IAdministrationService, AdministrationService>();
                     break;
 
                 default:

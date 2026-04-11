@@ -1,3 +1,4 @@
+using IntegrationTest.Common;
 using QsMessaging.Public;
 using System.Reflection;
 
@@ -11,7 +12,7 @@ namespace AssertInstance01
             builder.Services.AddHostedService<Worker>();
             builder.Services.AddHostedService<RunTestWorker>();
 
-            builder.Services.AddQsMessaging(options => { });
+            builder.Services.AddConfiguredQsMessaging(builder.Configuration);
 
             // Register all classes that implement IRunScenario
             var assembly = Assembly.GetExecutingAssembly();

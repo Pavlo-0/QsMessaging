@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
-using QsMessaging.RabbitMq.Interface;
+using QsMessaging.RabbitMq.Models;
+using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared.Interface;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
 using System.Collections.Concurrent;

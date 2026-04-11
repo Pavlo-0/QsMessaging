@@ -1,6 +1,7 @@
-﻿using RabbitMQ.Client;
+﻿using QsMessaging.RabbitMq.Models.Enums;
+using RabbitMQ.Client;
 
-namespace QsMessaging.RabbitMq.Services
+namespace QsMessaging.RabbitMq.Services.Interfaces
 {
     internal interface IQueueService
     {

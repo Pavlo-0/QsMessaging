@@ -24,7 +24,7 @@ namespace ArrangeInstance01
                 await scenario.Run();
                 Console.WriteLine($" executed");
             }
-
+            /*
             Console.WriteLine($"------ Run repeatable tests: {DateTimeOffset.Now} -------");
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -37,6 +37,7 @@ namespace ArrangeInstance01
                     Console.WriteLine($" executed");
                 }
                 Console.WriteLine($"----------------------");
-            }
+                await Task.Delay(3000, stoppingToken);
+            }*/
         }
     }}

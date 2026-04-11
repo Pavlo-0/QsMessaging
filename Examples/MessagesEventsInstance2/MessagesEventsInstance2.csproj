@@ -15,4 +15,8 @@
     <ProjectReference Include="..\..\QsMessaging\QsMessaging.csproj" />
     <ProjectReference Include="..\Contract\Contract.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Common\ExampleQsMessagingRegistration.cs" Link="Common\ExampleQsMessagingRegistration.cs" />
+  </ItemGroup>
 </Project>

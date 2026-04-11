@@ -20,11 +20,51 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
         }
 
         [TestMethod]
+        public void GetClientConnectionString_WhenEmulatorConnectionHasNoPort_AppendsAmqpPort()
+        {
+            var configuration = new QsAzureServiceBusConfiguration
+            {
+                ConnectionString = "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+            };
+
+            var result = ConnectionStringHelper.GetClientConnectionString(configuration);
+
+            StringAssert.Contains(result, "Endpoint=sb://localhost:5672");
+        }
+
+        [TestMethod]
+        public void GetClientConnectionString_WhenCustomAmqpPortIsConfigured_AppendsConfiguredPort()
+        {
+            var configuration = new QsAzureServiceBusConfiguration
+            {
+                ConnectionString = "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;",
+                EmulatorAmqpPort = 5673
+            };
+
+            var result = ConnectionStringHelper.GetClientConnectionString(configuration);
+
+            StringAssert.Contains(result, "Endpoint=sb://localhost:5673");
+        }
+
+        [TestMethod]
         public void GetAdministrationConnectionString_WhenEmulatorConnectionHasNoPort_AppendsManagementPort()
         {
             var configuration = new QsAzureServiceBusConfiguration
             {
                 ConnectionString = "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+            };
+
+            var result = ConnectionStringHelper.GetAdministrationConnectionString(configuration);
+
+            StringAssert.Contains(result, "Endpoint=sb://localhost:5300");
+        }
+
+        [TestMethod]
+        public void GetAdministrationConnectionString_WhenMainEmulatorConnectionUsesExplicitAmqpPort_RewritesToManagementPort()
+        {
+            var configuration = new QsAzureServiceBusConfiguration
+            {
+                ConnectionString = "Endpoint=sb://localhost:5673;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
             };
 
             var result = ConnectionStringHelper.GetAdministrationConnectionString(configuration);

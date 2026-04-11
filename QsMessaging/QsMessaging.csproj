@@ -28,6 +28,11 @@
 		<Compile Remove="bin\**\*.cs" />
 		<Compile Remove="obj\**\*.cs" />
 		<Compile Remove=".codexverify\**\*.cs" />
+		<Compile Remove="AzureServiceBus\IAzureServiceBusResponseSender.cs" />
+		<Compile Remove="AzureServiceBus\IAzureServiceBusSubscriber.cs" />
+		<Compile Remove="AzureServiceBus\Services\ClientService.cs" />
+		<Compile Remove="AzureServiceBus\Services\ServiceBusConnectionAdapter.cs" />
+		<Compile Remove="AzureServiceBus\Services\Interfaces\IClientService.cs" />
 		<EmbeddedResource Remove="bin\**" />
 		<EmbeddedResource Remove="obj\**" />
 		<EmbeddedResource Remove=".codexverify\**" />
@@ -41,5 +46,4 @@
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
 	</ItemGroup>
-
 </Project>

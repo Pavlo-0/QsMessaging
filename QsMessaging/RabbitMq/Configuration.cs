@@ -37,7 +37,7 @@ namespace QsMessaging.RabbitMq
         /// <summary>
         /// How long QsMessaging will be waiting answer from another service. msec.
         /// </summary>
-        public int RequestResponseTimeout { get; set; } = 10 * 1000;
+        public int RequestResponseTimeout { get; set; } = 50 * 1000;
 
         /// <summary>
         /// Active transport used by QsMessaging.

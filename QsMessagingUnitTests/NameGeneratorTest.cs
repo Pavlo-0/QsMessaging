@@ -1,8 +1,8 @@
 ﻿
 using Moq;
-using QsMessaging.RabbitMq;
-using QsMessaging.RabbitMq.Services;
+using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.RabbitMq;
 
 namespace QsMessagingUnitTests
 {

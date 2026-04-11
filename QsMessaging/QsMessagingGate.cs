@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
 using QsMessaging.Public;
-using QsMessaging.Transporting.Interfaces;
+using QsMessaging.RabbitMq.Interfaces;
 
 namespace QsMessaging
 {
-    internal class QsMessagingGate(ILogger<QsMessagingGate> logger, ITransportSender sender) : IQsMessaging
+    internal class QsMessagingGate(ILogger<QsMessagingGate> logger, ISender sender) : IQsMessaging
     {
         public Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
         {

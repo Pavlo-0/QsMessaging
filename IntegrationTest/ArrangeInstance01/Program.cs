@@ -1,3 +1,4 @@
+using IntegrationTest.Common;
 using QsMessaging.Public;
 using System.Reflection;
 
@@ -10,7 +11,7 @@ namespace ArrangeInstance01
             var builder = Host.CreateApplicationBuilder(args);
             builder.Services.AddHostedService<Worker>();
 
-            builder.Services.AddQsMessaging(options => { });
+            builder.Services.AddConfiguredQsMessaging(builder.Configuration);
 
             // Register all classes that implement IRunScenario
             var assembly = Assembly.GetExecutingAssembly();

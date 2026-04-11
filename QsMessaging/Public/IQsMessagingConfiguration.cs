@@ -1,6 +1,5 @@
-﻿using QsMessaging.RabbitMq;
-
-using QsMessaging.AzureServiceBus;
+﻿using QsMessaging.AzureServiceBus;
+using QsMessaging.RabbitMq;
 
 namespace QsMessaging.Public
 {

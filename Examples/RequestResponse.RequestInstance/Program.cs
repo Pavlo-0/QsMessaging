@@ -1,3 +1,4 @@
+using Examples.Common;
 using QsMessaging.Public;
 
 namespace RequestResponse.RequestInstance
@@ -9,7 +10,7 @@ namespace RequestResponse.RequestInstance
             var builder = Host.CreateApplicationBuilder(args);
             builder.Services.AddHostedService<Worker>();
 
-            builder.Services.AddQsMessaging(options => { });
+            builder.Services.AddConfiguredQsMessaging(builder.Configuration);
 
             var host = builder.Build();
 

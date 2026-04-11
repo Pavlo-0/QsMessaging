@@ -1,13 +1,12 @@
 ﻿using Moq;
 using RabbitMQ.Client;
+using Microsoft.Extensions.Logging;
+using QsMessaging.Shared.Interface;
 using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Services.Interfaces;
-using QsMessaging.Public;
-using QsMessaging.RabbitMq.Interface;
-using QsMessaging.RabbitMq.Interfaces;
-using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Models;
-using Microsoft.Extensions.Logging;
+using QsMessaging.RabbitMq.Models.Enums;
+using QsMessaging.Shared.Services.Interfaces;
 
 namespace QsMessaging.Tests
 {
@@ -15,21 +14,20 @@ namespace QsMessaging.Tests
     public class SenderTests
     {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-        private Mock<ILogger<Sender>> _mockLogger;
-        private Mock<IQsMessagingConfiguration> _mockConfig;
+        private Mock<ILogger<RqSender>> _mockLogger;
         private Mock<IConnectionService> _mockConnectionService;
         private Mock<IChannelService> _mockChannelService;
         private Mock<IExchangeService> _mockExchangeService;
         private Mock<IHandlerService> _mockHandlerService;
         private Mock<ISubscriber> _mockSubscriber;
         private Mock<IRequestResponseMessageStore> _mockMessageStore;
-        private Sender _sender;
+        private RqSender _sender;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
         [TestInitialize]
         public void Setup()
         {
-            _mockLogger = new Mock<ILogger<Sender>>();
+            _mockLogger = new Mock<ILogger<RqSender>>();
             _mockConnectionService = new Mock<IConnectionService>();
             _mockChannelService = new Mock<IChannelService>();
             _mockExchangeService = new Mock<IExchangeService>();
@@ -37,7 +35,7 @@ namespace QsMessaging.Tests
             _mockSubscriber = new Mock<ISubscriber>();
             _mockMessageStore = new Mock<IRequestResponseMessageStore>();
 
-            _sender = new Sender(
+            _sender = new RqSender(
                 _mockLogger.Object,
                 _mockConnectionService.Object,
                 _mockChannelService.Object,
@@ -163,7 +161,7 @@ namespace QsMessaging.Tests
             _mockHandlerService.Setup(x => x.AddRRResponseHandler<ResponseModel>())
                 .Returns(new HandlersStoreRecord(typeof(object), typeof(object), typeof(object), typeof(object))  );
 
-            _mockSubscriber.Setup(x => x.SubscribeHandlerAsync(It.IsAny<HandlersStoreRecord>()))
+            _mockSubscriber.Setup(x => x.SubscribeHandlerAsync(It.IsAny<HandlersStoreRecord>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             _mockConnectionService.Setup(x => x.GetOrCreateConnectionAsync(CancellationToken.None))
@@ -183,7 +181,7 @@ namespace QsMessaging.Tests
             _mockExchangeService.Verify(x => x.GetOrCreateExchangeAsync(channel.Object, requestModel.GetType(), ExchangePurpose.Temporary), Times.Once);
             _mockChannelService.Verify(x => x.GetOrCreateChannelAsync(connection.Object, ChannelPurpose.MessagePublish, CancellationToken.None), Times.Once);
             _mockConnectionService.Verify(x => x.GetOrCreateConnectionAsync(CancellationToken.None), Times.Once);
-            _mockSubscriber.Verify(x => x.SubscribeHandlerAsync(It.IsAny<HandlersStoreRecord>()), Times.Once);
+            _mockSubscriber.Verify(x => x.SubscribeHandlerAsync(It.IsAny<HandlersStoreRecord>(), It.IsAny<CancellationToken>()), Times.Once);
             _mockHandlerService.Verify(x => x.AddRRResponseHandler<ResponseModel>(), Times.Once);
             _mockHandlerService.Verify(x => x.AddRRResponseHandler<ResponseModel>(), Times.Once);
             _mockMessageStore.Verify(x => x.AddRequestMessageAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -234,7 +232,7 @@ namespace QsMessaging.Tests
                 exchangeName,
                 string.Empty,
                 false,
-                It.Is<BasicProperties>(props => props.Expiration == "0" && props.DeliveryMode == DeliveryModes.Transient),
+                It.Is<BasicProperties>(props => string.IsNullOrEmpty(props.Expiration) && props.DeliveryMode == DeliveryModes.Transient),
                 It.Is<ReadOnlyMemory<byte>>(p=> p.Length == 25),
                 It.IsAny<CancellationToken>()), 
               Times.Once);

@@ -2,6 +2,16 @@
 {
     internal interface ISender
     {
-        internal Task SendMessageCorrelationAsync(object model, string correlationId);
+        public Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class;
+
+        public Task SendEventAsync<TEvent>(TEvent model) where TEvent : class;
+
+        Task<TResponse> SendRequest<TRequest, TResponse>(TRequest model, CancellationToken cancellationToken) where TRequest : class where TResponse : class;
+
+        internal Task SendMessageCorrelationAsync(
+            object model,
+            string correlationId,
+            string? replyTo = null,
+            CancellationToken cancellationToken = default);
     }
 }

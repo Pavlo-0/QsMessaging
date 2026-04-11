@@ -1,9 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using QsMessaging.Public.Handler;
-using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Models;
-using QsMessaging.RabbitMq.Services;
-using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared.Interface;
+using QsMessaging.Shared.Services;
+using QsMessaging.Shared.Services.Interfaces;
 using System.Collections.Concurrent;
 using System.Reflection;
 

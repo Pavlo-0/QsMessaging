@@ -1,7 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
+using QsMessaging.AzureServiceBus;
+using QsMessaging.AzureServiceBus.Services;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Public;
-using QsMessaging.Transporting.Interfaces;
+using QsMessaging.RabbitMq;
+using QsMessaging.RabbitMq.Interfaces;
+using QsMessaging.Shared.Interface;
+using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IConnectionService;
+using RabbitConnectionService = QsMessaging.Shared.Interface.IConnectionService;
 
 namespace QsMessagingUnitTests.Public
 {
@@ -33,12 +39,17 @@ namespace QsMessagingUnitTests.Public
                 options.AzureServiceBus.ConnectionString = "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
             });
 
-            Assert.IsTrue(services.Any(s => s.ServiceType == typeof(ITransportSender)));
-            Assert.IsTrue(services.Any(s => s.ServiceType == typeof(IClientService)));
+            Assert.IsTrue(services.Any(s => s.ServiceType == typeof(AzureConnectionService)));
             Assert.IsTrue(services.Any(s => s.ServiceType == typeof(IAdministrationService)));
             Assert.IsTrue(services.Any(s =>
                 s.ServiceType == typeof(IQsMessagingConnectionManager) &&
-                s.ImplementationType == typeof(QsMessaging.AzureServiceBus.ConnectionManager)));
+                s.ImplementationType == typeof(AsbConnectionManager)));
+            Assert.IsTrue(services.Any(s =>
+                s.ServiceType == typeof(AzureConnectionService) &&
+                s.ImplementationType == typeof(AsbConnectionService)));
+            Assert.IsTrue(services.Any(s =>
+                s.ServiceType == typeof(IAdministrationService) &&
+                s.ImplementationType == typeof(AdministrationService)));
         }
 
         [TestMethod]
@@ -48,10 +59,13 @@ namespace QsMessagingUnitTests.Public
 
             services.AddQsMessaging(_ => { });
 
-            Assert.IsTrue(services.Any(s => s.ServiceType == typeof(ITransportSender)));
+            Assert.IsTrue(services.Any(s => s.ServiceType == typeof(ISender)));
+            Assert.IsTrue(services.Any(s =>
+                s.ServiceType == typeof(RabbitConnectionService) &&
+                s.ImplementationType == typeof(QsMessaging.RabbitMq.Services.RbConnectionService)));
             Assert.IsTrue(services.Any(s =>
                 s.ServiceType == typeof(IQsMessagingConnectionManager) &&
-                s.ImplementationType == typeof(QsMessaging.RabbitMq.ConnectionManager)));
+                s.ImplementationType == typeof(RqConnectionManager)));
         }
     }
 }

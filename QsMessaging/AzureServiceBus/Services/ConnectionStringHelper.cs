@@ -4,36 +4,50 @@ namespace QsMessaging.AzureServiceBus.Services
 {
     internal static class ConnectionStringHelper
     {
+        public static string GetClientConnectionString(QsAzureServiceBusConfiguration configuration)
+        {
+            return ApplyEmulatorPortIfNeeded(configuration.ConnectionString, configuration.EmulatorAmqpPort, overwriteExplicitPort: false);
+        }
+
         public static string GetAdministrationConnectionString(QsAzureServiceBusConfiguration configuration)
         {
             if (!string.IsNullOrWhiteSpace(configuration.AdministrationConnectionString))
             {
-                return configuration.AdministrationConnectionString;
+                return ApplyEmulatorPortIfNeeded(configuration.AdministrationConnectionString, configuration.EmulatorManagementPort, overwriteExplicitPort: false);
             }
 
-            if (string.IsNullOrWhiteSpace(configuration.ConnectionString))
+            return ApplyEmulatorPortIfNeeded(configuration.ConnectionString, configuration.EmulatorManagementPort, overwriteExplicitPort: true);
+        }
+
+        private static string ApplyEmulatorPortIfNeeded(string connectionString, int emulatorPort, bool overwriteExplicitPort)
+        {
+            if (string.IsNullOrWhiteSpace(connectionString))
             {
-                return configuration.ConnectionString;
+                return connectionString;
             }
 
-            var sections = Parse(configuration.ConnectionString);
+            var sections = Parse(connectionString);
             if (!sections.TryGetValue("UseDevelopmentEmulator", out var useDevelopmentEmulator) ||
                 !bool.TryParse(useDevelopmentEmulator, out var isDevelopmentEmulator) ||
                 !isDevelopmentEmulator)
             {
-                return configuration.ConnectionString;
+                return connectionString;
             }
 
             if (!sections.TryGetValue("Endpoint", out var endpointRaw) ||
-                !Uri.TryCreate(endpointRaw, UriKind.Absolute, out var endpoint) ||
-                !endpoint.IsDefaultPort)
+                !Uri.TryCreate(endpointRaw, UriKind.Absolute, out var endpoint))
             {
-                return configuration.ConnectionString;
+                return connectionString;
+            }
+
+            if (!overwriteExplicitPort && !endpoint.IsDefaultPort)
+            {
+                return connectionString;
             }
 
             var builder = new UriBuilder(endpoint)
             {
-                Port = configuration.EmulatorManagementPort
+                Port = emulatorPort
             };
 
             sections["Endpoint"] = builder.Uri.GetLeftPart(UriPartial.Authority);

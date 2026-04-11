@@ -1,5 +1,5 @@
 using QsMessaging.RabbitMq.Models;
-using QsMessaging.RabbitMq.Services;
+using QsMessaging.RabbitMq.Models.Enums;
 
 namespace QsMessaging.AzureServiceBus.Services.Interfaces
 {

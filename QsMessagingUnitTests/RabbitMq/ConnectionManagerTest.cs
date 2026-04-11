@@ -1,10 +1,9 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using QsMessaging.Public;
-using QsMessaging.RabbitMq;
-using QsMessaging.RabbitMq.Interface;
-using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared.Interface;
 using RabbitMQ.Client;
+using QsMessaging.RabbitMq;
 
 namespace QsMessagingUnitTests.RabbitMq
 {
@@ -12,7 +11,7 @@ namespace QsMessagingUnitTests.RabbitMq
     public class ConnectionManagerTest
     {
 #pragma warning disable CS8618
-        private Mock<ILogger<ConnectionManager>> _mockLogger;
+        private Mock<ILogger<RqConnectionManager>> _mockLogger;
         private Mock<IConnectionService> _mockConnectionService;
         private Mock<ISubscriber> _mockSubscriber;
         private Mock<IConnection> _mockConnection;
@@ -22,12 +21,12 @@ namespace QsMessagingUnitTests.RabbitMq
         [TestInitialize]
         public void Setup()
         {
-            _mockLogger = new Mock<ILogger<ConnectionManager>>();
+            _mockLogger = new Mock<ILogger<RqConnectionManager>>();
             _mockConnectionService = new Mock<IConnectionService>();
             _mockSubscriber = new Mock<ISubscriber>();
             _mockConnection = new Mock<IConnection>();
 
-            _connectionManager = new ConnectionManager(_mockLogger.Object, _mockConnectionService.Object, _mockSubscriber.Object);
+            _connectionManager = new RqConnectionManager(_mockLogger.Object, _mockConnectionService.Object, _mockSubscriber.Object);
         }
 
         [TestMethod]
@@ -101,11 +100,11 @@ namespace QsMessagingUnitTests.RabbitMq
         [TestMethod]
         public async Task Open_CallsSubscriberSubscribeAsync()
         {
-            _mockSubscriber.Setup(s => s.SubscribeAsync()).Returns(Task.CompletedTask);
+            _mockSubscriber.Setup(s => s.SubscribeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
             await _connectionManager.Open();
 
-            _mockSubscriber.Verify(s => s.SubscribeAsync(), Times.Once);
+            _mockSubscriber.Verify(s => s.SubscribeAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

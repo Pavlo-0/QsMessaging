@@ -46,8 +46,12 @@ var host = builder.Build();
 await host.UseQsMessaging();
 ```
 
-For the Azure Service Bus emulator, QsMessaging automatically derives the management connection string on port `5300` when `UseDevelopmentEmulator=true` is present and the endpoint has no port.
+For cloud namespaces, keep the regular Azure Service Bus connection string in `appsettings.json`.
+For the Azure Service Bus emulator, place the emulator connection string and emulator-only port settings in `appsettings.Development.json`.
+QsMessaging automatically derives the AMQP endpoint on port `5672` and the management endpoint on port `5300` when `UseDevelopmentEmulator=true` is present and the endpoint has no port.
+If your emulator uses a different AMQP port, set `options.AzureServiceBus.EmulatorAmqpPort`.
 If your emulator uses a different management endpoint, set `options.AzureServiceBus.AdministrationConnectionString` explicitly.
+In this repository's local Docker setup, RabbitMQ uses host port `5672`, so the Service Bus emulator is published on host port `5673`.
 
 ## Sending Messages
 

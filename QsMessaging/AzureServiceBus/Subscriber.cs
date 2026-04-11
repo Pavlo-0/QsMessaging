@@ -1,25 +1,27 @@
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using QsMessaging.Public.Handler;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
+using QsMessaging.Public.Handler;
 using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Models;
 using QsMessaging.RabbitMq.Models.Enums;
-using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared.Interface;
+using QsMessaging.Shared.Services.Interfaces;
 using System.Collections.Concurrent;
 using System.Text.Json;
+using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IConnectionService;
 
 namespace QsMessaging.AzureServiceBus
 {
-    internal class Subscriber(
-        ILogger<Subscriber> logger,
-        IClientService clientService,
+    internal class AsbSubscriber(
+        ILogger<AsbSubscriber> logger,
+        AzureConnectionService connectionService,
         IAdministrationService administrationService,
         IHandlerService handlerService,
         IServiceProvider services,
-        IAzureServiceBusResponseSender responseSender) : IAzureServiceBusSubscriber, IAsyncDisposable
+        ISender responseSender) : ISubscriber, IAsyncDisposable
     {
         private readonly SemaphoreSlim _semaphore = new(1, 1);
         private readonly ConcurrentDictionary<string, ServiceBusProcessor> _processors = new(StringComparer.OrdinalIgnoreCase);
@@ -34,14 +36,11 @@ namespace QsMessaging.AzureServiceBus
 
         public async Task SubscribeHandlerAsync(HandlersStoreRecord record, CancellationToken cancellationToken = default)
         {
-            var client = await clientService.GetOrCreateClientAsync(cancellationToken);
+            logger.LogInformation("Subscribing handler to the message queue.");
+            logger.LogDebug("{Type}", record.GenericType.FullName);
+
             var processorTarget = await GetProcessorTargetAsync(record, cancellationToken);
             var processorKey = processorTarget.Key;
-
-            if (_processors.ContainsKey(processorKey))
-            {
-                return;
-            }
 
             await _semaphore.WaitAsync(cancellationToken);
             try
@@ -51,6 +50,7 @@ namespace QsMessaging.AzureServiceBus
                     return;
                 }
 
+                var client = await GetClientAsync(cancellationToken);
                 var processor = processorTarget.IsSubscription
                     ? client.CreateProcessor(
                         processorTarget.EntityName,
@@ -61,32 +61,31 @@ namespace QsMessaging.AzureServiceBus
                 processor.ProcessMessageAsync += args => HandleMessageAsync(args, record, processorTarget.DisplayName);
                 processor.ProcessErrorAsync += args => HandleProcessingErrorAsync(args, processorTarget.DisplayName);
 
+                await processor.StartProcessingAsync(cancellationToken);
                 _processors[processorKey] = processor;
             }
             finally
             {
                 _semaphore.Release();
             }
-
-            await _processors[processorKey].StartProcessingAsync(cancellationToken);
         }
 
         public async Task CloseAsync(CancellationToken cancellationToken = default)
         {
-            foreach (var processor in _processors.Values)
+            await _semaphore.WaitAsync(cancellationToken);
+            try
             {
-                try
+                foreach (var processor in _processors.Values)
                 {
-                    await processor.StopProcessingAsync(cancellationToken);
-                    await processor.DisposeAsync();
+                    await StopAndDisposeProcessorAsync(processor, cancellationToken);
                 }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "Failed to stop Azure Service Bus processor cleanly.");
-                }
-            }
 
-            _processors.Clear();
+                _processors.Clear();
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
         }
 
         public async ValueTask DisposeAsync()
@@ -125,7 +124,7 @@ namespace QsMessaging.AzureServiceBus
                         await task;
                         var responseModel = task.GetType().GetProperty("Result")?.GetValue(task)
                             ?? throw new NullReferenceException("RequestResponseHandler have to return result.");
-                        await responseSender.SendResponseAsync(
+                        await responseSender.SendMessageCorrelationAsync(
                             responseModel,
                             args.Message.CorrelationId ?? string.Empty,
                             args.Message.ReplyTo ?? string.Empty,
@@ -162,6 +161,15 @@ namespace QsMessaging.AzureServiceBus
 
         private Task HandleProcessingErrorAsync(ProcessErrorEventArgs args, string entityDisplayName)
         {
+            if (args.Exception is ObjectDisposedException)
+            {
+                logger.LogDebug(
+                    "Azure Service Bus processor is stopping for {EntityDisplayName}. Identifier: {Identifier}.",
+                    entityDisplayName,
+                    args.Identifier);
+                return Task.CompletedTask;
+            }
+
             logger.LogError(
                 args.Exception,
                 "Azure Service Bus processor error on {EntityDisplayName}. Identifier: {Identifier}.",
@@ -195,9 +203,18 @@ namespace QsMessaging.AzureServiceBus
 
         private async Task CompleteMessageAsync(ProcessMessageEventArgs args)
         {
+            if (args.CancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
             try
             {
                 await args.CompleteMessageAsync(args.Message);
+            }
+            catch (ObjectDisposedException)
+            {
+                logger.LogDebug("Azure Service Bus connection was disposed before completing message {MessageId}.", args.Message.MessageId);
             }
             catch (Exception ex)
             {
@@ -232,6 +249,49 @@ namespace QsMessaging.AzureServiceBus
                 AutoCompleteMessages = false,
                 MaxConcurrentCalls = 1
             };
+        }
+
+        private async Task StopAndDisposeProcessorAsync(ServiceBusProcessor processor, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (!processor.IsClosed && processor.IsProcessing)
+                {
+                    // Use CancellationToken.None so the processor waits for in-flight handlers
+                    // to complete before returning. Passing the external token can cause the stop
+                    // to abort early, leaving handlers running while the connection is disposed.
+                    await processor.StopProcessingAsync(CancellationToken.None);
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                logger.LogDebug("Azure Service Bus processor was already disposed during shutdown.");
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to stop Azure Service Bus processor cleanly.");
+            }
+
+            try
+            {
+                if (!processor.IsClosed)
+                {
+                    await processor.DisposeAsync();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already disposed, nothing to do.
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to dispose Azure Service Bus processor.");
+            }
+        }
+
+        private async Task<ServiceBusClient> GetClientAsync(CancellationToken cancellationToken)
+        {
+            return await connectionService.GetOrCreateConnectionAsync(cancellationToken);
         }
     }
 }

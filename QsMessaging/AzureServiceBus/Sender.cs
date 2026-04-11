@@ -1,21 +1,23 @@
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Logging;
+using QsMessaging.AzureServiceBus.Services;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.RabbitMq.Interfaces;
-using QsMessaging.RabbitMq.Services;
-using QsMessaging.RabbitMq.Services.Interfaces;
-using QsMessaging.Transporting.Interfaces;
+using QsMessaging.RabbitMq.Models.Enums;
+using QsMessaging.Shared.Interface;
+using QsMessaging.Shared.Services.Interfaces;
 using System.Text.Json;
+using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IConnectionService;
 
 namespace QsMessaging.AzureServiceBus
 {
-    internal class Sender(
-        ILogger<Sender> logger,
-        IClientService clientService,
+    internal class AsbSender(
+        ILogger<AsbSender> logger,
+        AzureConnectionService connectionService,
         IAdministrationService administrationService,
         IHandlerService handlerService,
-        Lazy<IAzureServiceBusSubscriber> subscriber,
-        IRequestResponseMessageStore requestResponseMessageStore) : ITransportSender, IAzureServiceBusResponseSender
+        Lazy<ISubscriber> subscriber,
+        IRequestResponseMessageStore requestResponseMessageStore) : ISender
     {
         public async Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
         {
@@ -62,7 +64,11 @@ namespace QsMessaging.AzureServiceBus
             return response;
         }
 
-        public async Task SendResponseAsync(object model, string correlationId, string replyTo, CancellationToken cancellationToken = default)
+        public async Task SendMessageCorrelationAsync(
+            object model,
+            string correlationId,
+            string? replyTo = null,
+            CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(replyTo))
             {
@@ -85,8 +91,9 @@ namespace QsMessaging.AzureServiceBus
 
         private async Task SendToEntityAsync(string entityName, ServiceBusMessage message, CancellationToken cancellationToken = default)
         {
-            var client = await clientService.GetOrCreateClientAsync(cancellationToken);
-            await using var sender = client.CreateSender(entityName);
+            var client = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
+            var normalizedEntityName = ServiceBusEntityNameFormatter.FormatEntityPath(entityName);
+            await using var sender = client.CreateSender(normalizedEntityName);
             await sender.SendMessageAsync(message, cancellationToken);
         }
 

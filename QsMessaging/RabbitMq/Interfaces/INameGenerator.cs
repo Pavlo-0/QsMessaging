@@ -1,6 +1,6 @@
-﻿using QsMessaging.RabbitMq.Services;
+﻿using QsMessaging.RabbitMq.Models.Enums;
 
-namespace QsMessaging.RabbitMq.Interface
+namespace QsMessaging.Shared.Interface
 {
     internal interface INameGenerator
     {

@@ -1,4 +1,4 @@
-﻿namespace QsMessaging.RabbitMq.Services
+﻿namespace QsMessaging.RabbitMq.Models.Enums
 {
     public enum ChannelPurpose
     {

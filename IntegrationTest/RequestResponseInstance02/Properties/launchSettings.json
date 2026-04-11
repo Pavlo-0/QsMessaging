@@ -1,8 +1,8 @@
 {
   "profiles": {
-    "RequestResponseInstance01": {
+    "RequestResponseInstance02": {
       "commandName": "Project",
-      "commandLineArgs": "1234",
+      "commandLineArgs": "QsMessaging:Transport=AzureServiceBus",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
       },

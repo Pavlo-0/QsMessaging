@@ -1,5 +1,4 @@
-﻿
-namespace QsMessaging.RabbitMq.Services.Interfaces
+﻿namespace QsMessaging.RabbitMq.Services.Interfaces
 {
     internal interface IInstanceService
     {
