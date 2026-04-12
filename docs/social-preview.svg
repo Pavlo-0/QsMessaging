@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">QsMessaging social preview</title>
+  <desc id="desc">Social preview image for the QsMessaging GitHub Pages site.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#172033" />
+      <stop offset="45%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316" />
+      <stop offset="100%" stop-color="#0ea5e9" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)" />
+  <circle cx="1015" cy="130" r="120" fill="#f97316" opacity="0.22" />
+  <circle cx="1035" cy="500" r="150" fill="#0ea5e9" opacity="0.16" />
+  <circle cx="160" cy="120" r="90" fill="#fb7185" opacity="0.18" />
+  <rect x="70" y="86" width="1060" height="458" rx="36" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.12)" />
+  <text x="110" y="200" fill="#f8fafc" font-family="Segoe UI, Arial, sans-serif" font-size="72" font-weight="700">QsMessaging</text>
+  <text x="110" y="270" fill="#fdba74" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="600">.NET 8 messaging library for RabbitMQ and Azure Service Bus</text>
+  <text x="110" y="360" fill="#e2e8f0" font-family="Segoe UI, Arial, sans-serif" font-size="36">Typed messages • Events • Request/response • DI-friendly handlers</text>
+  <text x="110" y="430" fill="#cbd5e1" font-family="Segoe UI, Arial, sans-serif" font-size="30">github.com/Pavlo-0/QsMessaging</text>
+  <g transform="translate(780 195)">
+    <circle cx="0" cy="0" r="38" fill="#f97316" />
+    <circle cx="180" cy="-20" r="30" fill="#0ea5e9" />
+    <circle cx="210" cy="155" r="38" fill="#14b8a6" />
+    <circle cx="35" cy="175" r="46" fill="#fb7185" />
+    <path d="M0 0L180 -20L210 155L35 175L0 0Z" fill="none" stroke="#f8fafc" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M35 175L180 -20" fill="none" stroke="url(#accent)" stroke-width="12" stroke-linecap="round" />
+  </g>
+</svg>

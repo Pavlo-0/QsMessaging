@@ -1,0 +1,18 @@
+{
+  "name": "QsMessaging",
+  "short_name": "QsMessaging",
+  "description": "A .NET 8 messaging library for RabbitMQ and Azure Service Bus.",
+  "start_url": "/QsMessaging/",
+  "scope": "/QsMessaging/",
+  "display": "standalone",
+  "background_color": "#fffaf2",
+  "theme_color": "#172033",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">QsMessaging icon</title>
+  <desc id="desc">An abstract messaging network icon for the QsMessaging project.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#172033" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316" />
+      <stop offset="100%" stop-color="#0ea5e9" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)" />
+  <circle cx="33" cy="37" r="14" fill="#f97316" />
+  <circle cx="95" cy="33" r="11" fill="#0ea5e9" />
+  <circle cx="95" cy="93" r="14" fill="#14b8a6" />
+  <circle cx="41" cy="91" r="18" fill="#fb7185" />
+  <path d="M33 37L95 33L95 93L41 91L33 37Z" fill="none" stroke="#f8fafc" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M41 91L95 33" fill="none" stroke="url(#accent)" stroke-width="6" stroke-linecap="round" />
+</svg>
