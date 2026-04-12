@@ -31,7 +31,6 @@ namespace QsMessagingUnitTests.AzureServiceBus
             _mockHandlerService = new Mock<IHandlerService>();
             _mockServiceProvider = new Mock<IServiceProvider>();
             _mockResponseSender = new Mock<ISender>();
-
         }
 
         [TestMethod]

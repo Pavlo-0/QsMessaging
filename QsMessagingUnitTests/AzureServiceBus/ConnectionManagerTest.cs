@@ -30,7 +30,6 @@ namespace QsMessagingUnitTests.AzureServiceBus
             _connectionManager = new AsbConnectionManager(
                 _mockLogger.Object,
                 _mockConnectionService.Object,
-                _mockAdministrationService.Object,
                 _mockSubscriber.Object);
         }
 

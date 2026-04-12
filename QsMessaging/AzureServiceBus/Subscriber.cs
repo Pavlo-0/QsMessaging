@@ -100,6 +100,7 @@ namespace QsMessaging.AzureServiceBus
         {
             object? modelInstance = null;
             var bodyBytes = args.Message.Body.ToMemory().ToArray();
+            using var _ = AsbMessageHandlerExecutionContext.Enter();
 
             try
             {
