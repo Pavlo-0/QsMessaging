@@ -1,10 +1,12 @@
 # QsMessaging
 
-**QsMessaging** is a .NET 8 library designed for sending and receiving messages between services or components of your application using **RabbitMQ**. It supports horizontal scalability, allowing multiple instances of the same service to handle messages efficiently.  
+**QsMessaging** is a .NET 8 library designed for sending and receiving messages between services or components of your application using **RabbitMQ** or **Azure Service Bus**. It supports horizontal scalability, allowing multiple instances of the same service to handle messages efficiently.  
 Available on NuGet for seamless integration:  
 [![NuGet](https://img.shields.io/nuget/v/QsMessaging.svg)](https://www.nuget.org/packages/QsMessaging/)
 
 A simple, scalable messaging solution for distributed systems.
+
+> **Note:** Azure Service Bus support is in an early, not fully tested or implemented state. The API is the same as for RabbitMQ, but some features may be missing or behave unexpectedly.
 
 ## Installation
 
@@ -28,12 +30,82 @@ await host.UseQsMessaging();
 
 ### Default Configuration
 
-**RabbitMQ**
+**RabbitMQ** (default transport)
 
 - Host: `localhost`
 - UserName: `guest`
 - Password: `guest`
 - Port: `5672`
+
+### Custom RabbitMQ Configuration
+
+```csharp
+builder.Services.AddQsMessaging(options =>
+{
+    options.RabbitMQ.Host = "my-rabbitmq-host";
+    options.RabbitMQ.UserName = "myuser";
+    options.RabbitMQ.Password = "mypassword";
+    options.RabbitMQ.Port = 5672;
+});
+```
+
+---
+
+## Azure Service Bus Support _(Early Preview)_
+
+> Azure Service Bus support is available but is **not fully tested or implemented**. The public interface (`IQsMessaging`) is identical to RabbitMQ — no code changes are needed in your handlers or senders.
+
+### Registering with Azure Service Bus
+
+Set `options.Transport = QsMessagingTransport.AzureServiceBus` and supply a connection string:
+
+```csharp
+builder.Services.AddQsMessaging(options =>
+{
+    options.Transport = QsMessagingTransport.AzureServiceBus;
+    options.AzureServiceBus.ConnectionString = "<your-connection-string>";
+});
+
+...
+await host.UseQsMessaging();
+```
+
+### Configuration for Cloud (Azure)
+
+Use your Azure Service Bus namespace connection string directly:
+
+```csharp
+builder.Services.AddQsMessaging(options =>
+{
+    options.Transport = QsMessagingTransport.AzureServiceBus;
+    options.AzureServiceBus.ConnectionString =
+        "Endpoint=sb://your-namespace.servicebus.windows.net/;" +
+        "SharedAccessKeyName=RootManageSharedAccessKey;" +
+        "SharedAccessKey=YOUR_KEY;";
+});
+```
+
+### Configuration for Emulator (Local Development)
+
+The [Azure Service Bus Emulator](https://learn.microsoft.com/en-us/azure/service-bus-messaging/overview-emulator) uses separate ports for AMQP (messaging) and the management API:
+
+```csharp
+builder.Services.AddQsMessaging(options =>
+{
+    options.Transport = QsMessagingTransport.AzureServiceBus;
+    options.AzureServiceBus.ConnectionString =
+        "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
+    options.AzureServiceBus.EmulatorAmqpPort = 5672;
+    options.AzureServiceBus.EmulatorManagementPort = 5300;
+});
+```
+
+| Property                         | Default      | Description                                                                                              |
+| -------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------- |
+| `ConnectionString`               | _(required)_ | Azure Service Bus connection string (cloud or emulator)                                                  |
+| `EmulatorAmqpPort`               | `5672`       | AMQP port for the local emulator. Ignored for cloud namespaces.                                          |
+| `EmulatorManagementPort`         | `5300`       | Management/admin port for the local emulator. Ignored for cloud namespaces.                              |
+| `AdministrationConnectionString` | `null`       | Optional separate connection string for admin operations. Falls back to `ConnectionString` when omitted. |
 
 ## Usage
 
@@ -219,7 +291,6 @@ public class GetUserHandler : IQsRequestResponseHandler<GetUserRequest, GetUserR
     }
 }
 ```
-
 
 ---
 
