@@ -30,22 +30,27 @@ namespace QsMessagingUnitTests.AzureServiceBus
             _connectionManager = new AsbConnectionManager(
                 _mockLogger.Object,
                 _mockConnectionService.Object,
+                _mockAdministrationService.Object,
                 _mockSubscriber.Object);
         }
 
         [TestMethod]
-        public async Task Close_WhenDeleteOwnedEntitiesThrows_StillDisposesConnection()
+        public async Task Close_WhenSubscriberCloseThrows_StillDisposesConnection()
         {
             _mockSubscriber
                 .Setup(s => s.CloseAsync(It.IsAny<CancellationToken>()))
-                .Returns(Task.CompletedTask);
+                .ThrowsAsync(new InvalidOperationException("close failed"));
             _mockConnectionService
                 .Setup(s => s.CloseAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            _mockConnectionService
+                .Setup(s => s.CloseAdministrationClientAsync(It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _connectionManager.Close());
 
             _mockConnectionService.Verify(s => s.CloseAsync(It.IsAny<CancellationToken>()), Times.Once);
+            _mockConnectionService.Verify(s => s.CloseAdministrationClientAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [TestMethod]
@@ -85,6 +90,53 @@ namespace QsMessagingUnitTests.AzureServiceBus
 
             await Task.WhenAll(closeTask, openTask);
 
+            _mockSubscriber.Verify(s => s.SubscribeAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task CloseAndOpen_WhenCalledInsideMessageHandler_DefersOpenUntilCloseCompletes()
+        {
+            var closeStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var allowCloseToFinish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var subscribeStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            _mockSubscriber
+                .Setup(s => s.CloseAsync(It.IsAny<CancellationToken>()))
+                .Returns(async () =>
+                {
+                    closeStarted.TrySetResult();
+                    await allowCloseToFinish.Task;
+                });
+            _mockConnectionService
+                .Setup(s => s.CloseAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            _mockConnectionService
+                .Setup(s => s.CloseAdministrationClientAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            _mockSubscriber
+                .Setup(s => s.SubscribeAsync(It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    subscribeStarted.TrySetResult();
+                    return Task.CompletedTask;
+                });
+
+            using (AsbMessageHandlerExecutionContext.Enter())
+            {
+                await _connectionManager.Close();
+                await closeStarted.Task;
+
+                var openTask = _connectionManager.Open();
+
+                _mockSubscriber.Verify(s => s.SubscribeAsync(It.IsAny<CancellationToken>()), Times.Never);
+                Assert.IsTrue(openTask.IsCompletedSuccessfully);
+            }
+
+            allowCloseToFinish.TrySetResult();
+
+            await subscribeStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            _mockSubscriber.Verify(s => s.CloseAsync(It.IsAny<CancellationToken>()), Times.Once);
             _mockSubscriber.Verify(s => s.SubscribeAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
     }

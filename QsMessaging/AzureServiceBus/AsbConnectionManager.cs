@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Public;
 using QsMessaging.Shared.Interface;
+using System.Runtime.ExceptionServices;
 using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAbsConnectionService;
 
 namespace QsMessaging.AzureServiceBus
@@ -9,22 +10,25 @@ namespace QsMessaging.AzureServiceBus
     internal class AsbConnectionManager(
         ILogger<AsbConnectionManager> logger,
         AzureConnectionService connectionWorker,
+        IAdministrationService administrationService,
         ISubscriber subscriber) : IQsMessagingConnectionManager
     {
         private readonly SemaphoreSlim _lifecycleSemaphore = new(1, 1);
-        private readonly object _queuedLifecycleSync = new();
-        private Task _queuedLifecycleTask = Task.CompletedTask;
+        private readonly object _deferredLifecycleSync = new();
+        private readonly IAdministrationService _administrationService = administrationService;
+        private Task _deferredLifecycleTask = Task.CompletedTask;
 
-        public Task Close(CancellationToken cancellationToken = default)
+        public async Task Close(CancellationToken cancellationToken = default)
         {
             if (AsbMessageHandlerExecutionContext.IsInsideHandler)
             {
                 logger.LogInformation("Deferring Azure Service Bus close requested from inside a message handler.");
-                _ = QueueLifecycleOperation("close", CloseCoreAsync, CancellationToken.None, awaitCompletion: false);
-                return Task.CompletedTask;
+                await DeferCloseFromHandlerAsync();
+                return;
             }
 
-            return QueueLifecycleOperation("close", CloseCoreAsync, cancellationToken, awaitCompletion: true);
+            await WaitForDeferredLifecycleCompletionAsync();
+            await CloseCoreAsync(cancellationToken);
         }
 
         public bool IsConnected()
@@ -32,57 +36,60 @@ namespace QsMessaging.AzureServiceBus
             return connectionWorker.GetConnection() is { IsClosed: false };
         }
 
-        public Task Open()
+        public async Task Open()
         {
             if (AsbMessageHandlerExecutionContext.IsInsideHandler)
             {
                 logger.LogInformation("Deferring Azure Service Bus open requested from inside a message handler.");
-                _ = QueueLifecycleOperation("open", _ => OpenCoreAsync(), CancellationToken.None, awaitCompletion: false);
-                return Task.CompletedTask;
+                DeferLifecycleOperation("open", () => OpenCoreAsync(CancellationToken.None));
+                return;
             }
 
-            return QueueLifecycleOperation("open", _ => OpenCoreAsync(), CancellationToken.None, awaitCompletion: true);
+            await WaitForDeferredLifecycleCompletionAsync();
+            await OpenCoreAsync(CancellationToken.None);
         }
 
-        private Task QueueLifecycleOperation(
-            string operationName,
-            Func<CancellationToken, Task> operation,
-            CancellationToken cancellationToken,
-            bool awaitCompletion)
+        private async Task DeferCloseFromHandlerAsync()
         {
-            Task scheduledTask;
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            DeferLifecycleOperation(
+                "close",
+                async () =>
+                {
+                    started.TrySetResult();
+                    await CloseCoreAsync(CancellationToken.None);
+                });
 
-            lock (_queuedLifecycleSync)
+            await started.Task;
+        }
+
+        private void DeferLifecycleOperation(
+            string operationName,
+            Func<Task> operation)
+        {
+            lock (_deferredLifecycleSync)
             {
-                var previousTask = _queuedLifecycleTask;
-                scheduledTask = _queuedLifecycleTask = previousTask.ContinueWith(
+                var previousTask = _deferredLifecycleTask;
+                _deferredLifecycleTask = previousTask.ContinueWith(
                     async previous =>
                     {
                         if (previous.IsFaulted)
                         {
-                            logger.LogError(previous.Exception, "A queued Azure Service Bus lifecycle operation failed before {Operation}.", operationName);
+                            logger.LogError(previous.Exception, "A deferred Azure Service Bus lifecycle operation failed before {Operation}.", operationName);
                         }
 
-                        cancellationToken.ThrowIfCancellationRequested();
-                        await operation(cancellationToken);
+                        await operation();
                     },
                     CancellationToken.None,
                     TaskContinuationOptions.None,
                     TaskScheduler.Default).Unwrap();
             }
 
-            if (!awaitCompletion)
-            {
-                _ = scheduledTask.ContinueWith(
-                    task => logger.LogError(task.Exception, "Deferred Azure Service Bus {Operation} operation failed.", operationName),
-                    CancellationToken.None,
-                    TaskContinuationOptions.OnlyOnFaulted,
-                    TaskScheduler.Default);
-
-                return Task.CompletedTask;
-            }
-
-            return scheduledTask;
+            _ = _deferredLifecycleTask.ContinueWith(
+                task => logger.LogError(task.Exception, "Deferred Azure Service Bus {Operation} operation failed.", operationName),
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted,
+                TaskScheduler.Default);
         }
 
         private async Task CloseCoreAsync(CancellationToken cancellationToken)
@@ -91,15 +98,33 @@ namespace QsMessaging.AzureServiceBus
             try
             {
                 logger.LogInformation("Closing Azure Service Bus transport.");
-                await subscriber.CloseAsync(cancellationToken);
-                await connectionWorker.CloseAsync(cancellationToken);
-                await connectionWorker.CloseAdministrationClientAsync(cancellationToken);
+                Exception? closeFailure = null;
+
                 try
                 {
-                    //await administrationService.DeleteOwnedEntitiesAsync(cancellationToken);
+                    await subscriber.CloseAsync(cancellationToken);
+                    try
+                    {
+                        // await _administrationService.DeleteOwnedEntitiesAsync(cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        closeFailure = ex;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    closeFailure = ex;
                 }
                 finally
                 {
+                    await connectionWorker.CloseAsync(cancellationToken);
+                    await connectionWorker.CloseAdministrationClientAsync(cancellationToken);
+                }
+
+                if (closeFailure is not null)
+                {
+                    ExceptionDispatchInfo.Capture(closeFailure).Throw();
                 }
             }
             finally
@@ -108,17 +133,36 @@ namespace QsMessaging.AzureServiceBus
             }
         }
 
-        private async Task OpenCoreAsync()
+        private async Task OpenCoreAsync(CancellationToken cancellationToken)
         {
-            await _lifecycleSemaphore.WaitAsync();
+            await _lifecycleSemaphore.WaitAsync(cancellationToken);
             try
             {
                 logger.LogInformation("Opening Azure Service Bus transport.");
-                await subscriber.SubscribeAsync();
+                await subscriber.SubscribeAsync(cancellationToken);
             }
             finally
             {
                 _lifecycleSemaphore.Release();
+            }
+        }
+
+        private async Task WaitForDeferredLifecycleCompletionAsync()
+        {
+            Task deferredTask;
+
+            lock (_deferredLifecycleSync)
+            {
+                deferredTask = _deferredLifecycleTask;
+            }
+
+            try
+            {
+                await deferredTask;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "A deferred Azure Service Bus lifecycle operation failed before the current request.");
             }
         }
     }
