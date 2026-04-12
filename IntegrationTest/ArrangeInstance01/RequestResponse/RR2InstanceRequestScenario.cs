@@ -3,7 +3,7 @@ using TestContract.RequestResponse;
 
 namespace ArrangeInstance01.RequestResponse
 {
-    internal class RR2InstanceRequestScenario(IQsMessaging messaging) : IScenario
+    internal class RR2InstanceRequestScenario(IQsMessaging messaging) //: IScenario
     {
         public bool IsRepeatable => false;
 

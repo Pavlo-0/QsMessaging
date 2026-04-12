@@ -1,7 +1,6 @@
 ﻿using QsMessaging.Public.Handler;
-using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Models.Enums;
-using QsMessaging.RabbitMq.Services;
+using QsMessaging.Shared.Interface;
 
 namespace QsMessaging.RabbitMq
 {

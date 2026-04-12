@@ -1,14 +1,14 @@
-﻿using QsMessaging.RabbitMq.Interface;
+﻿using Microsoft.Extensions.Logging;
+using QsMessaging.Shared.Interface;
 using QsMessaging.RabbitMq.Services.Interfaces;
-using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Models;
-using Microsoft.Extensions.Logging;
+using QsMessaging.Shared.Services.Interfaces;
 
 namespace QsMessaging.RabbitMq
 {
-    internal class Subscriber(
-        ILogger<Subscriber> logger,
-        IConnectionService connectionService,
+    internal class RqSubscriber(
+        ILogger<RqSubscriber> logger,
+        IRbConnectionService connectionService,
         IChannelService channelService,
         IExchangeService exchangeService,
         IQueueService queueService,
@@ -16,15 +16,15 @@ namespace QsMessaging.RabbitMq
         IConsumerService consumerService) : ISubscriber
     {
 
-        public async Task SubscribeAsync()
+        public async Task SubscribeAsync(CancellationToken cancellationToken = default)
         {
             foreach (var record in handlerService.GetHandlers())
             {
-                await SubscribeHandlerAsync(record);
+                await SubscribeHandlerAsync(record, cancellationToken);
             }
         }
 
-        public async Task SubscribeHandlerAsync(HandlersStoreRecord record)
+        public async Task SubscribeHandlerAsync(HandlersStoreRecord record, CancellationToken cancellationToken = default)
         {
             logger.LogInformation("Subscribing handler to the message queue.");
             logger.LogDebug("{Type}", record.GenericType.FullName);

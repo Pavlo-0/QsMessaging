@@ -14,7 +14,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
     {
 #pragma warning disable CS8618
         private Mock<ILogger<ChannelService>> _mockLogger;
-        private Mock<IConnectionService> _mockConnectionService;
+        private Mock<IRbConnectionService> _mockConnectionService;
         private Mock<IConnection> _mockConnection;
         private Mock<IChannel> _mockChannel;
         private IChannelService _channelService;
@@ -24,7 +24,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         public void Setup()
         {
             _mockLogger = new Mock<ILogger<ChannelService>>();
-            _mockConnectionService = new Mock<IConnectionService>();
+            _mockConnectionService = new Mock<IRbConnectionService>();
             _mockConnection = new Mock<IConnection>();
             _mockChannel = new Mock<IChannel>();
 

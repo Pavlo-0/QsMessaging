@@ -1,9 +1,10 @@
 using Microsoft.Extensions.Logging;
 using Moq;
-using QsMessaging.RabbitMq.Interface;
 using QsMessaging.RabbitMq.Models;
 using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.RabbitMq.Services;
+using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared.Interface;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;

@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Logging;
 using Moq;
-using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Services;
-using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.RabbitMq;
 using RabbitMQ.Client;
 using System.Reflection;
+using QsMessaging.RabbitMq.Services.Interfaces;
 
 namespace QsMessagingUnitTests.RabbitMq.Services
 {
@@ -12,21 +12,21 @@ namespace QsMessagingUnitTests.RabbitMq.Services
     public class ConnectionServiceTest
     {
 #pragma warning disable CS8618
-        private Mock<ILogger<ConnectionService>> _mockLogger;
+        private Mock<ILogger<RbConnectionService>> _mockLogger;
         private Mock<IConnection> _mockConnection;
-        private IConnectionService _connectionService;
+        private IRbConnectionService _connectionService;
 #pragma warning restore CS8618
 
         [TestInitialize]
         public void Setup()
         {
-            _mockLogger = new Mock<ILogger<ConnectionService>>();
+            _mockLogger = new Mock<ILogger<RbConnectionService>>();
             _mockConnection = new Mock<IConnection>();
 
-            _connectionService = new ConnectionService(_mockLogger.Object, new Configuration());
+            _connectionService = new RbConnectionService(_mockLogger.Object, new Configuration());
 
             // Reset static connection field between tests
-            var field = typeof(ConnectionService).GetField("connection", BindingFlags.NonPublic | BindingFlags.Static);
+            var field = typeof(RbConnectionService).GetField("connection", BindingFlags.NonPublic | BindingFlags.Static);
             field!.SetValue(null, null);
         }
 
@@ -41,7 +41,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         [TestMethod]
         public void GetConnection_WhenConnectionExists_ReturnsConnection()
         {
-            var field = typeof(ConnectionService).GetField("connection", BindingFlags.NonPublic | BindingFlags.Static);
+            var field = typeof(RbConnectionService).GetField("connection", BindingFlags.NonPublic | BindingFlags.Static);
             field!.SetValue(null, _mockConnection.Object);
 
             var result = _connectionService.GetConnection();
@@ -54,7 +54,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         {
             _mockConnection.Setup(c => c.IsOpen).Returns(true);
 
-            var field = typeof(ConnectionService).GetField("connection", BindingFlags.NonPublic | BindingFlags.Static);
+            var field = typeof(RbConnectionService).GetField("connection", BindingFlags.NonPublic | BindingFlags.Static);
             field!.SetValue(null, _mockConnection.Object);
 
             var result = await _connectionService.GetOrCreateConnectionAsync(CancellationToken.None);

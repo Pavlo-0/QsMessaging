@@ -1,6 +1,6 @@
-﻿using QsMessaging.RabbitMq.Services;
+﻿using QsMessaging.RabbitMq.Models.Enums;
 
-namespace QsMessaging.RabbitMq.Interface
+namespace QsMessaging.Shared.Interface
 {
     internal interface INameGenerator
     {
@@ -9,5 +9,9 @@ namespace QsMessaging.RabbitMq.Interface
         string GetExchangeNameFromType(Type TModel);
 
         string GetQueueNameFromType(Type TModel, QueuePurpose queueType);
+
+        string GetAsbQueueNameFromType(Type TModel);
+
+        string GetAsbTopicNameFromType(Type TModel);
     }
 }

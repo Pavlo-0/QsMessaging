@@ -1,6 +1,6 @@
-﻿using QsMessaging.RabbitMq.Interface;
-using QsMessaging.RabbitMq.Services;
+﻿using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared.Interface;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -46,6 +46,30 @@ namespace QsMessaging.RabbitMq
                     throw new ArgumentOutOfRangeException("Unknown QueueType");
             }
         }
+
+        public string GetAsbQueueNameFromType(Type TModel)
+        {
+            if (TModel is null)
+            {
+                throw new ArgumentNullException();
+            }
+
+            var fullName = TModel.FullName ?? "unknowType";
+            return "Qs-Queue-" + (fullName.Length > 200 ? HashString(fullName) : fullName);
+        }
+
+        public string GetAsbTopicNameFromType(Type TModel)
+        {
+            if (TModel is null)
+            {
+                throw new ArgumentNullException();
+            }
+
+            var fullName = TModel.FullName ?? "unknowType";
+            return "Qs-Topic-" + (fullName.Length > 200 ? HashString(fullName) : fullName);
+        }
+
+
         private string GenerateName(Type type, string endName = "")
         {
             var fullName = type.FullName ?? "unknowType";
@@ -74,5 +98,6 @@ namespace QsMessaging.RabbitMq
                 return hashString.Length > maxLength ? hashString.Substring(0, maxLength) : hashString;
             }
         }
+
     }
 }

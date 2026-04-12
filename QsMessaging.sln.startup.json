@@ -9,53 +9,15 @@
     /*  Create an item in the dropdown list for each project in the solution?  */
     "ListAllProjects": false,
 
-    /*
-        Dictionary of named configurations with one or multiple startup projects
-        and optional parameters like command line arguments and working directory.
-        Example:
-
-        "MultiProjectConfigurations": {
-          "A + B (Ext)": {
-            "Projects": {
-              "MyProjectA": {},
-              "MyProjectB": {
-                "CommandLineArguments": "1234",
-                "WorkingDirectory": "%USERPROFILE%\\test",
-                "StartExternalProgram": "c:\\myprogram.exe"
-              }
-            }
-          },
-          "A + B": {
-            "Projects": {
-              "MyProjectA": {},
-              "MyProjectB": {
-                "CommandLineArguments": "",
-                "WorkingDirectory": "",
-                "StartProject": true
-              }
-            }
-          },
-          "D (Debug x86)": {
-            "Projects": {
-              "MyProjectD": {}
-            },
-            "SolutionConfiguration": "Debug",
-            "SolutionPlatform": "x86",
-          },
-          "D (Release x64)": {
-            "Projects": {
-              "MyProjectD": {}
-            },
-            "SolutionConfiguration": "Release",
-            "SolutionPlatform": "x64",
-          }
-        }
-    */
   "MultiProjectConfigurations": {
     "MessagesEvent": {
       "Projects": {
-        "MessagesEventsInstance1": {},
-        "MessagesEventsInstance2": {}
+        "MessagesEventsInstance1": {
+          "CommandLineArguments": "QsMessaging:Transport=AzureServiceBus"
+        },
+        "MessagesEventsInstance2": {
+          "CommandLineArguments": "QsMessaging:Transport=AzureServiceBus"
+        }
       }
     },
     "RequestResponse": {
@@ -64,12 +26,37 @@
         "RequestResponse.ResponseInstance": {}
       }
     },
-    "IntegrationTest": {
+    "IntegrationTest.RabbitMq": {
       "Projects": {
-        "ArrangeInstance01": {},
-        "AssertInstance01": {},
-        "RequestResponseInstance01": {},
-        "RequestResponseInstance02": {}
+        "ArrangeInstance01": {
+          "CommandLineArguments": "QsMessaging:Transport=RabbitMq"
+        },
+        "AssertInstance01": {
+          "CommandLineArguments": "QsMessaging:Transport=RabbitMq"
+        },
+        "RequestResponseInstance01": {
+          "CommandLineArguments": "QsMessaging:Transport=RabbitMq"
+        },
+        "RequestResponseInstance02": {
+          "CommandLineArguments": "QsMessaging:Transport=RabbitMq"
+        }
+
+      }
+    },
+    "IntegrationTest.AzureServiceBus": {
+      "Projects": {
+        "ArrangeInstance01": {
+          "CommandLineArguments": "QsMessaging:Transport=AzureServiceBus"
+        },
+        "AssertInstance01": {
+          "CommandLineArguments": "QsMessaging:Transport=AzureServiceBus"
+        },
+        "RequestResponseInstance01": {
+          "CommandLineArguments": "QsMessaging:Transport=AzureServiceBus"
+        },
+        "RequestResponseInstance02": {
+          "CommandLineArguments": "QsMessaging:Transport=AzureServiceBus"
+        }
       }
     }
   }

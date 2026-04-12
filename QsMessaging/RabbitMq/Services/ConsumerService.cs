@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QsMessaging.Public.Handler;
+using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Models;
 using QsMessaging.RabbitMq.Models.Enums;

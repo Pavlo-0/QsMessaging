@@ -1,13 +1,13 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using QsMessaging.Public.Handler;
-using QsMessaging.RabbitMq;
-using QsMessaging.RabbitMq.Interface;
-using QsMessaging.RabbitMq.Models;
 using QsMessaging.RabbitMq.Models.Enums;
-using QsMessaging.RabbitMq.Services;
-using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared.Interface;
 using RabbitMQ.Client;
+using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.RabbitMq.Models;
+using QsMessaging.RabbitMq;
+using QsMessaging.Shared.Services.Interfaces;
 
 namespace QsMessagingUnitTests.RabbitMq
 {
@@ -15,8 +15,8 @@ namespace QsMessagingUnitTests.RabbitMq
     public class SubscriberTest
     {
 #pragma warning disable CS8618
-        private Mock<ILogger<Subscriber>> _mockLogger;
-        private Mock<IConnectionService> _mockConnectionService;
+        private Mock<ILogger<RqSubscriber>> _mockLogger;
+        private Mock<IRbConnectionService> _mockConnectionService;
         private Mock<IChannelService> _mockChannelService;
         private Mock<IExchangeService> _mockExchangeService;
         private Mock<IQueueService> _mockQueueService;
@@ -32,8 +32,8 @@ namespace QsMessagingUnitTests.RabbitMq
         [TestInitialize]
         public void Setup()
         {
-            _mockLogger = new Mock<ILogger<Subscriber>>();
-            _mockConnectionService = new Mock<IConnectionService>();
+            _mockLogger = new Mock<ILogger<RqSubscriber>>();
+            _mockConnectionService = new Mock<IRbConnectionService>();
             _mockChannelService = new Mock<IChannelService>();
             _mockExchangeService = new Mock<IExchangeService>();
             _mockQueueService = new Mock<IQueueService>();
@@ -42,7 +42,7 @@ namespace QsMessagingUnitTests.RabbitMq
             _mockConnection = new Mock<IConnection>();
             _mockChannel = new Mock<IChannel>();
 
-            _subscriber = new Subscriber(
+            _subscriber = new RqSubscriber(
                 _mockLogger.Object,
                 _mockConnectionService.Object,
                 _mockChannelService.Object,

@@ -1,24 +1,25 @@
 ﻿using Microsoft.Extensions.Logging;
-using QsMessaging.RabbitMq.Interface;
-using QsMessaging.RabbitMq.Interfaces;
-using QsMessaging.RabbitMq.Services;
-using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared.Interface;
 using RabbitMQ.Client;
 using System.Text;
 using System.Text.Json;
+using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.RabbitMq.Models.Enums;
+using QsMessaging.RabbitMq.Interfaces;
+using QsMessaging.Shared.Services.Interfaces;
 
 namespace QsMessaging.RabbitMq
 {
-    internal class Sender(
-        ILogger<Sender> logger,
-        IConnectionService connectionService,
+    internal class RqSender(
+        ILogger<RqSender> logger,
+        IRbConnectionService connectionService,
         IChannelService channelService,
         IExchangeService queuesService,
 
         IHandlerService handlerService,
         Lazy<ISubscriber> subscriber,
 
-        IRequestResponseMessageStore requestResponseMessageStore) : IRabbitMqSender, ISender
+        IRequestResponseMessageStore requestResponseMessageStore) : ISender
     {
         public async Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
         {
@@ -37,14 +38,18 @@ namespace QsMessaging.RabbitMq
         /// <param name="model"></param>
         /// <param name="correlationId"></param>
         /// <returns></returns>
-        public async Task SendMessageCorrelationAsync(object model, string correlationId)
+        public async Task SendMessageCorrelationAsync(
+            object model,
+            string correlationId,
+            string? replyTo = null,
+            CancellationToken cancellationToken = default)
         {
             logger.LogInformation("Sending message with Correlation ID {CorrelationId} as an internal response to a request.", correlationId);
 
             var props = new BasicProperties();
             props.DeliveryMode = DeliveryModes.Persistent;
             props.CorrelationId = correlationId;
-            await Send(model, model.GetType(), props, MessageTypeEnum.Message, true);
+            await Send(model, model.GetType(), props, MessageTypeEnum.Message, true, cancellationToken);
         }
 
         public async Task SendEventAsync<TEvent>(TEvent model) where TEvent : class
@@ -54,7 +59,6 @@ namespace QsMessaging.RabbitMq
 
             var props = new BasicProperties();
             props.DeliveryMode = DeliveryModes.Transient;
-            props.Expiration = "0";
 
             await Send(model, typeof(TEvent), props, MessageTypeEnum.Event);
         }
@@ -72,9 +76,9 @@ namespace QsMessaging.RabbitMq
             var responseAsync = requestResponseMessageStore.AddRequestMessageAsync(props.CorrelationId, model, cancellationToken);
 
             var handlerRecord = handlerService.AddRRResponseHandler<TResponse>();
-            await subscriber.Value.SubscribeHandlerAsync(handlerRecord);
+            await subscriber.Value.SubscribeHandlerAsync(handlerRecord, cancellationToken);
 
-            await Send(model, typeof(TRequest),  props, MessageTypeEnum.Message, true);
+            await Send(model, typeof(TRequest), props, MessageTypeEnum.Message, true, cancellationToken);
 
             await responseAsync;
 
@@ -86,14 +90,21 @@ namespace QsMessaging.RabbitMq
             return respondentMessage;
         }
 
-        private async Task Send(object model, Type type, BasicProperties props, MessageTypeEnum messageType, bool isLiveTime = false)
+        private async Task Send(
+            object model,
+            Type type,
+            BasicProperties props,
+            MessageTypeEnum messageType,
+            bool isLiveTime = false,
+            CancellationToken cancellationToken = default)
         {
             if (model == null)
                 throw new ArgumentNullException(nameof(model), "You can not send NULL data. You model is null");
 
-            var connection = await connectionService.GetOrCreateConnectionAsync();
+            var connection = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
             var channel = await channelService.GetOrCreateChannelAsync(connection,
-                messageType == MessageTypeEnum.Message ? ChannelPurpose.MessagePublish : ChannelPurpose.EventPublish);
+                messageType == MessageTypeEnum.Message ? ChannelPurpose.MessagePublish : ChannelPurpose.EventPublish,
+                cancellationToken);
 
             string exchangeName = await queuesService.GetOrCreateExchangeAsync(channel, type,
                 messageType == MessageTypeEnum.Message && !isLiveTime ? ExchangePurpose.Permanent : ExchangePurpose.Temporary);
@@ -105,7 +116,8 @@ namespace QsMessaging.RabbitMq
             routingKey: string.Empty,
             mandatory: messageType == MessageTypeEnum.Message,
             body: body,
-            basicProperties: props);
+            basicProperties: props,
+            cancellationToken: cancellationToken);
             logger.LogInformation("Message has been published");
             logger.LogDebug("{type}", type.FullName);
         }

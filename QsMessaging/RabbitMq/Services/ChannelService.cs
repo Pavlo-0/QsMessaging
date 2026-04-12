@@ -1,11 +1,12 @@
 ﻿using Microsoft.Extensions.Logging;
+using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using RabbitMQ.Client;
 using System.Collections.Concurrent;
 
 namespace QsMessaging.RabbitMq.Services
 {
-    internal class ChannelService(ILogger<ChannelService> logger, IConnectionService connectionService): IChannelService
+    internal class ChannelService(ILogger<ChannelService> logger, IRbConnectionService connectionService): IChannelService
     {
         private static ConcurrentDictionary<ChannelPurpose, (IConnection connection, IChannel channel)> _channels
             = new ConcurrentDictionary<ChannelPurpose, (IConnection connection, IChannel channel)>();

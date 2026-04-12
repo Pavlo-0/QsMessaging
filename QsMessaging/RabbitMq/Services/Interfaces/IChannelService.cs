@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using QsMessaging.RabbitMq.Models.Enums;
+using RabbitMQ.Client;
 using static QsMessaging.RabbitMq.Services.ChannelService;
 
 namespace QsMessaging.RabbitMq.Services.Interfaces

@@ -1,11 +1,18 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using QsMessaging.AzureServiceBus.Services.Interfaces;
+using QsMessaging.AzureServiceBus;
+using QsMessaging.AzureServiceBus.Services;
 using QsMessaging.RabbitMq;
-using QsMessaging.RabbitMq.Interface;
-using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.RabbitMq.Interfaces;
+using QsMessaging.Shared.Interface;
+using QsMessaging.Shared.Services.Interfaces;
+using QsMessaging.Shared.Services;
+using QsMessaging.Shared;
 using System.Reflection;
+
 
 namespace QsMessaging.Public
 {
@@ -15,24 +22,13 @@ namespace QsMessaging.Public
         {
             var configuration = new Configuration();
             options(configuration);
+            ValidateConfiguration(configuration);
 
             services.AddSingleton<IQsMessagingConfiguration>(configuration);
 
             services.AddTransient<IInstanceService, InstanceService>();
             services.AddTransient<IQsMessaging, QsMessagingGate>();
-            services.AddTransient<IQsMessagingConnectionManager, ConnectionManager>();
-
-            services.AddTransient<ISubscriber, Subscriber>();
-            services.AddTransient<IRabbitMqSender, Sender>();
-            services.AddTransient<ISender, Sender>();
-
             services.AddTransient<INameGenerator, NameGenerator>();
-
-            services.AddSingleton<IConnectionService, ConnectionService>();
-            services.AddTransient<IExchangeService, ExchangeService>();
-            services.AddTransient<IChannelService, ChannelService>();
-            services.AddTransient<IExchangeService, ExchangeService>();
-            services.AddTransient<IQueueService, QueueService>();
             var handlerGeneratorInstance = new HandlerService(services, Assembly.GetEntryAssembly()!);
             services.AddTransient<IHandlerService>(hg=>
             {
@@ -40,24 +36,68 @@ namespace QsMessaging.Public
             });
 
             handlerGeneratorInstance.RegisterAllHandlers();
-            services.AddTransient<IConsumerService, ConsumerService>();
-
             services.AddTransient<IRequestResponseMessageStore , RequestResponseMessageStore>();
 
             services.AddTransient(typeof(Lazy<>), typeof(LazyService<>));
+            RegisterTransportServices(services, configuration);
 
             return services;
         }
 
         public static async Task<IHost> UseQsMessaging(this IHost host)
         {
-            var connectionStorage = host.Services.GetRequiredService<IConnectionService>();
-            var connection = await connectionStorage.GetOrCreateConnectionAsync();
-
-            var subscriber = host.Services.GetRequiredService<ISubscriber>();
-            await subscriber.SubscribeAsync();
+            var manager = host.Services.GetRequiredService<IQsMessagingConnectionManager>();
+            await manager.Open();
            
             return host;
+        }
+
+        private static void RegisterTransportServices(IServiceCollection services, IQsMessagingConfiguration configuration)
+        {
+            switch (configuration.Transport)
+            {
+                case QsMessagingTransport.RabbitMq:
+                    services.AddTransient<ISubscriber, RqSubscriber>();
+                    services.AddTransient<IQsMessagingConnectionManager, RqConnectionManager>();
+                    services.AddSingleton<IRbConnectionService, RbConnectionService>();
+
+
+                    services.AddTransient<ISender, RqSender>();
+
+
+                    services.AddTransient<IExchangeService, ExchangeService>();
+                    services.AddTransient<IChannelService, ChannelService>();
+                    services.AddTransient<IQueueService, QueueService>();
+                    services.AddTransient<IConsumerService, ConsumerService>();
+                    break;
+
+                case QsMessagingTransport.AzureServiceBus:
+                    services.AddSingleton<ISubscriber, AsbSubscriber>();
+                    services.AddTransient<IQsMessagingConnectionManager, AsbConnectionManager>();
+                    services.AddSingleton<IAbsConnectionService, AsbConnectionService>();
+                    services.AddTransient<ISender, AsbSender>();
+
+                    services.AddTransient<IQueueAdministration, QueueAdministration>();
+                    services.AddTransient<IAdministrationService, TopicAdministrationService>();
+                    services.AddTransient<ISubscriptionService, SubscriptionAdministrationService>();
+                    break;
+
+                default:
+                    throw new NotSupportedException($"The transport '{configuration.Transport}' is not supported.");
+            }
+        }
+
+        private static void ValidateConfiguration(IQsMessagingConfiguration configuration)
+        {
+            if (configuration.Transport != QsMessagingTransport.AzureServiceBus)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(configuration.AzureServiceBus.ConnectionString))
+            {
+                throw new InvalidOperationException("Azure Service Bus transport requires AzureServiceBus.ConnectionString to be configured.");
+            }
         }
     }
 }
