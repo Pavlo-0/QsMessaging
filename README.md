@@ -154,6 +154,61 @@ public class RegularMessageContractHandler : IQsMessageHandler<RegularMessageCon
 All handlers discovered by QsMessaging are registered in DI as **Transient**.
 This means each message/request is handled by a fresh handler instance, and handlers have full support for constructor injection of your application services.
 
+### What Happens If A Handler Throws An Exception?
+
+If your handler throws an exception, QsMessaging catches it and passes it to every registered `IQsMessagingConsumerErrorHandler` implementation.
+
+- The exception does **not** crash the consumer loop.
+- The exception is forwarded to your custom error handler(s) together with message metadata.
+- The message is **not retried automatically** by QsMessaging.
+
+Current behavior by transport:
+
+- **RabbitMQ**: consumers use automatic acknowledge mode, so the message is treated as acknowledged even if the handler fails.
+- **Azure Service Bus**: after the handler pipeline finishes, QsMessaging completes the message, so it is not re-delivered automatically.
+
+If you need retry, dead-letter, alerting, or custom logging, implement `IQsMessagingConsumerErrorHandler` and handle the exception there.
+
+#### Short Operational Notes
+
+- **Queue/exchange naming**: RabbitMQ uses names like `Qs:{FullTypeName}:ex` for exchanges and `Qs:{FullTypeName}:permanent` for durable queues. Azure Service Bus uses `Qs-Queue-{FullTypeName}` and `Qs-Topic-{FullTypeName}`. Long names are hashed.
+- **Retry / dead-letter**: there is currently no built-in retry or dead-letter flow managed by QsMessaging.
+- **Multiple instances of one consumer**: for `IQsMessageHandler<T>`, instances compete on one shared queue, so one message is processed by one instance. For `IQsEventHandler<T>`, each instance gets its own temporary queue/subscription, so every instance receives the event.
+- **Unhappy path**: if a handler throws, the exception is sent to `IQsMessagingConsumerErrorHandler`, but the message is not automatically retried by the library.
+- **Request/response**: default timeout is `50000` ms. If no response arrives in time, the request fails with `TimeoutException`. Correlation ID is generated automatically per request as a new `Guid` string and copied to the response. Cancellation token is passed into transport operations, but timeout is the main response wait guard. Duplicate responses are not specially deduplicated by the library; late responses are ignored after the request is removed from the local store.
+
+#### Example: Custom Error Handler
+
+```csharp
+public class MessagingErrorHandler : IQsMessagingConsumerErrorHandler
+{
+    private readonly ILogger<MessagingErrorHandler> _logger;
+
+    public MessagingErrorHandler(ILogger<MessagingErrorHandler> logger)
+    {
+        _logger = logger;
+    }
+
+    public Task HandleErrorAsync(Exception exception, ErrorConsumerDetail detail)
+    {
+        _logger.LogError(
+            exception,
+            "Handler failed. Queue or entity: {QueueName}, Handler: {HandlerType}, Payload type: {PayloadType}",
+            detail.QueueName,
+            detail.HandlerType,
+            detail.GenericType);
+
+        // Add your own logic here:
+        // - save to database
+        // - send alert
+        // - push to dead-letter queue
+        // - trigger retry workflow
+
+        return Task.CompletedTask;
+    }
+}
+```
+
 ---
 
 ### Request/Response Pattern
