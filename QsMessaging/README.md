@@ -2,6 +2,8 @@
 
 QsMessaging supports both RabbitMQ and Azure Service Bus behind the same public API.
 
+Project website: https://pavlo-0.github.io/QsMessaging/
+
 ## RabbitMQ
 
 ```csharp

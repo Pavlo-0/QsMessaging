@@ -4,6 +4,9 @@
 Available on NuGet for seamless integration:  
 [![NuGet](https://img.shields.io/nuget/v/QsMessaging.svg)](https://www.nuget.org/packages/QsMessaging/)
 
+Project website:  
+https://pavlo-0.github.io/QsMessaging/
+
 A simple, scalable messaging solution for distributed systems.
 
 > **Note:** Azure Service Bus support is in an early, not fully tested or implemented state. The API is the same as for RabbitMQ, but some features may be missing or behave unexpectedly.

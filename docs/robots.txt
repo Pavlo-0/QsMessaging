@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pavlo-0.github.io/QsMessaging/sitemap.xml

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QsMessaging | .NET 8 messaging library for RabbitMQ and Azure Service Bus</title>
+    <meta name="description" content="QsMessaging is a .NET 8 messaging library for RabbitMQ and Azure Service Bus. It provides one developer-friendly API for typed messages, events, request/response flows, dependency injection, and scalable background processing.">
+    <meta name="keywords" content="QsMessaging, .NET 8 messaging library, RabbitMQ .NET, Azure Service Bus .NET, message bus, request response, event-driven architecture, background worker, microservices">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="Pavlo S.">
+    <meta name="theme-color" content="#172033">
+    <link rel="canonical" href="https://pavlo-0.github.io/QsMessaging/">
+    <meta property="og:title" content="QsMessaging">
+    <meta property="og:description" content="A .NET 8 messaging library with a unified API for RabbitMQ and Azure Service Bus, including typed messages, events, and request/response patterns.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pavlo-0.github.io/QsMessaging/">
+    <meta property="og:site_name" content="QsMessaging">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:image" content="https://pavlo-0.github.io/QsMessaging/social-preview.svg">
+    <meta property="og:image:alt" content="QsMessaging project page preview">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="QsMessaging">
+    <meta name="twitter:description" content="A .NET 8 messaging library with one API for RabbitMQ and Azure Service Bus.">
+    <meta name="twitter:image" content="https://pavlo-0.github.io/QsMessaging/social-preview.svg">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="manifest" href="site.webmanifest">
+    <link rel="stylesheet" href="styles.css">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareSourceCode",
+            "name": "QsMessaging",
+            "codeRepository": "https://github.com/Pavlo-0/QsMessaging",
+            "url": "https://pavlo-0.github.io/QsMessaging/",
+            "license": "https://github.com/Pavlo-0/QsMessaging/blob/AzureBus/LICENSE",
+            "programmingLanguage": "C#",
+            "runtimePlatform": ".NET 8",
+            "description": "QsMessaging is a .NET 8 library that unifies RabbitMQ and Azure Service Bus behind one API for typed messages, events, and request/response communication.",
+            "keywords": [
+                "RabbitMQ",
+                "Azure Service Bus",
+                ".NET 8",
+                "message bus",
+                "event-driven architecture",
+                "request response",
+                "microservices"
+            ],
+            "author": {
+                "@type": "Person",
+                "name": "Pavlo S."
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="page-shell">
+        <header class="hero">
+            <div class="hero-copy">
+                <div class="eyebrow">GitHub Pages Project Site</div>
+                <h1>QsMessaging</h1>
+                <p class="hero-text">
+                    A .NET 8 library for service-to-service messaging with a compact developer API,
+                    built around RabbitMQ today and Azure Service Bus in early preview.
+                </p>
+                <div class="hero-actions">
+                    <a class="button button-primary" href="https://github.com/Pavlo-0/QsMessaging" target="_blank" rel="noreferrer">Open Repository</a>
+                    <a class="button button-secondary" href="https://www.nuget.org/packages/QsMessaging/" target="_blank" rel="noreferrer">View on NuGet</a>
+                </div>
+                <ul class="hero-badges" aria-label="Project highlights">
+                    <li>.NET 8</li>
+                    <li>RabbitMQ</li>
+                    <li>Azure Service Bus Preview</li>
+                    <li>MIT License</li>
+                </ul>
+            </div>
+            <div class="hero-panel" aria-hidden="true">
+                <svg viewBox="0 0 520 420" role="presentation">
+                    <defs>
+                        <linearGradient id="heroGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#f97316"></stop>
+                            <stop offset="100%" stop-color="#0f172a"></stop>
+                        </linearGradient>
+                    </defs>
+                    <rect x="38" y="48" width="444" height="324" rx="32" fill="url(#heroGlow)" opacity="0.18"></rect>
+                    <circle cx="112" cy="118" r="42" fill="#f97316"></circle>
+                    <circle cx="262" cy="92" r="34" fill="#0ea5e9"></circle>
+                    <circle cx="394" cy="150" r="54" fill="#fb7185"></circle>
+                    <circle cx="164" cy="280" r="56" fill="#1d4ed8"></circle>
+                    <circle cx="348" cy="302" r="42" fill="#14b8a6"></circle>
+                    <path d="M112 118L262 92L394 150L348 302L164 280L112 118Z" fill="none" stroke="#f8fafc" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M164 280L262 92" fill="none" stroke="#f8fafc" stroke-width="10" stroke-linecap="round"></path>
+                    <path d="M112 118L348 302" fill="none" stroke="#f8fafc" stroke-width="10" stroke-linecap="round"></path>
+                </svg>
+            </div>
+        </header>
+
+        <main>
+            <section class="section intro-grid">
+                <article class="panel">
+                    <h2>What this project does</h2>
+                    <p>
+                        QsMessaging helps .NET applications exchange data asynchronously through a consistent API.
+                        Instead of writing transport-specific plumbing for every service, you register the library
+                        once, implement typed handlers, and send messages through <code>IQsMessaging</code>.
+                    </p>
+                    <p>
+                        The project is designed for distributed systems that need clean contracts, background
+                        processing, and a straightforward path to scale multiple consumer instances.
+                    </p>
+                    <p>
+                        The goal is practical messaging for real projects: keep contracts strongly typed, register
+                        handlers through dependency injection, and switch transports without rewriting business logic.
+                    </p>
+                </article>
+                <article class="panel">
+                    <h2>Where to find the code</h2>
+                    <p>
+                        The source code, examples, tests, and release metadata live in the GitHub repository:
+                    </p>
+                    <p class="repo-link">
+                        <a href="https://github.com/Pavlo-0/QsMessaging" target="_blank" rel="noreferrer">
+                            github.com/Pavlo-0/QsMessaging
+                        </a>
+                    </p>
+                    <p>
+                        Additional reference material is available in the
+                        <a href="https://github.com/Pavlo-0/QsMessaging/wiki" target="_blank" rel="noreferrer">project wiki</a>.
+                    </p>
+                </article>
+            </section>
+
+            <section class="section">
+                <div class="section-heading">
+                    <h2>Core capabilities</h2>
+                    <p>The library focuses on the messaging patterns most teams need first for .NET services and worker processes.</p>
+                </div>
+                <div class="card-grid">
+                    <article class="feature-card">
+                        <h3>Typed messages</h3>
+                        <p>Send strongly typed contracts between services instead of manual queue payload management.</p>
+                    </article>
+                    <article class="feature-card">
+                        <h3>Events</h3>
+                        <p>Broadcast event contracts so each running instance can react independently when needed.</p>
+                    </article>
+                    <article class="feature-card">
+                        <h3>Request / response</h3>
+                        <p>Send a request and await a typed response with correlation handled by the library.</p>
+                    </article>
+                    <article class="feature-card">
+                        <h3>Dependency injection</h3>
+                        <p>Handlers are discovered and registered in DI, so constructor injection works naturally.</p>
+                    </article>
+                    <article class="feature-card">
+                        <h3>Horizontal scaling</h3>
+                        <p>Run multiple consumer instances so the workload can be shared across services.</p>
+                    </article>
+                    <article class="feature-card">
+                        <h3>Error interception</h3>
+                        <p>Plug in custom consumer error handlers for logging, alerting, retry orchestration, or dead-letter flows.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="section split-layout">
+                <article class="panel">
+                    <h2>Why teams use QsMessaging</h2>
+                    <ul class="detail-list">
+                        <li>One API for multiple transports instead of transport-specific application code.</li>
+                        <li>Clear typed contracts for commands, integration messages, domain events, and responses.</li>
+                        <li>Low-friction integration with hosted services, worker services, and ASP.NET Core applications.</li>
+                        <li>Repository examples and integration tests that show the expected runtime behavior.</li>
+                    </ul>
+                </article>
+                <article class="panel">
+                    <h2>Quick start</h2>
+                    <div class="snippet">
+<pre><code>dotnet add package QsMessaging
+
+builder.Services.AddQsMessaging(options =&gt;
+{
+    options.Transport = QsMessagingTransport.RabbitMQ;
+});
+
+await host.UseQsMessaging();</code></pre>
+                    </div>
+                    <p>
+                        The package is published on NuGet and the repository contains example applications for
+                        messages, events, and request/response flows.
+                    </p>
+                </article>
+            </section>
+
+            <section class="section split-layout">
+                <article class="panel">
+                    <h2>Supported transports</h2>
+                    <div class="transport-card">
+                        <h3>RabbitMQ</h3>
+                        <p>
+                            RabbitMQ is the default transport and the most mature path in the project. It uses a
+                            conventional host, username, password, and port configuration and is ready for local
+                            development or hosted deployments.
+                        </p>
+                    </div>
+                    <div class="transport-card warning">
+                        <h3>Azure Service Bus</h3>
+                        <p>
+                            Azure Service Bus support is available behind the same public API, but it is still marked
+                            as early preview in the project documentation. The goal is transport flexibility without
+                            changing handler code, though some features may still evolve.
+                        </p>
+                    </div>
+                </article>
+                <article class="panel">
+                    <h2>Developer experience</h2>
+                    <div class="snippet">
+<pre><code>builder.Services.AddQsMessaging(options =&gt;
+{
+    options.Transport = QsMessagingTransport.RabbitMQ;
+});
+
+await host.UseQsMessaging();</code></pre>
+                    </div>
+                    <p>
+                        After registration, applications work with <code>IQsMessaging</code> for sending messages and
+                        requests, while handlers stay focused on domain logic instead of transport wiring.
+                    </p>
+                </article>
+            </section>
+
+            <section class="section">
+                <div class="section-heading">
+                    <h2>Messaging patterns supported by the project</h2>
+                    <p>QsMessaging is built around common service-to-service communication patterns used in modern .NET systems.</p>
+                </div>
+                <div class="card-grid pattern-grid">
+                    <article class="feature-card">
+                        <h3>Queue-based processing</h3>
+                        <p>Use messages for work items that should be processed by one consumer instance at a time.</p>
+                    </article>
+                    <article class="feature-card">
+                        <h3>Fan-out events</h3>
+                        <p>Publish typed events so multiple handlers or service instances can react independently.</p>
+                    </article>
+                    <article class="feature-card">
+                        <h3>Request and reply</h3>
+                        <p>Send typed requests and await typed responses without hand-building correlation plumbing.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="section-heading">
+                    <h2>How the library is organized</h2>
+                    <p>The repository includes code for the library, usage samples, and automated verification.</p>
+                </div>
+                <div class="timeline">
+                    <article class="timeline-item">
+                        <span class="step">01</span>
+                        <div>
+                            <h3>Main library</h3>
+                            <p>The <code>QsMessaging</code> project contains the public API, transport implementations, shared services, and registration code.</p>
+                        </div>
+                    </article>
+                    <article class="timeline-item">
+                        <span class="step">02</span>
+                        <div>
+                            <h3>Examples</h3>
+                            <p>The <code>Examples</code> folder demonstrates message/event consumers and request/response communication between sample applications.</p>
+                        </div>
+                    </article>
+                    <article class="timeline-item">
+                        <span class="step">03</span>
+                        <div>
+                            <h3>Tests</h3>
+                            <p>There are unit tests plus integration scenarios, including a dedicated Azure Service Bus integration test area.</p>
+                        </div>
+                    </article>
+                    <article class="timeline-item">
+                        <span class="step">04</span>
+                        <div>
+                            <h3>Documentation surface</h3>
+                            <p>The GitHub repository, wiki, NuGet package, and this Pages site work together as the public documentation entry points.</p>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="section split-layout">
+                <article class="panel">
+                    <h2>Operational notes</h2>
+                    <ul class="detail-list">
+                        <li>Handlers are registered as transient services.</li>
+                        <li>There is no built-in retry or dead-letter orchestration yet.</li>
+                        <li>Request/response uses correlation identifiers and a default timeout.</li>
+                        <li>Transport-specific entity names are generated automatically by the library.</li>
+                    </ul>
+                </article>
+                <article class="panel">
+                    <h2>When QsMessaging fits well</h2>
+                    <ul class="detail-list">
+                        <li>Microservices that want a quick messaging integration path.</li>
+                        <li>Background workers that need queue or topic communication.</li>
+                        <li>Teams that want one programming model across multiple transports.</li>
+                        <li>Projects that benefit from examples, tests, and packaged NuGet distribution.</li>
+                    </ul>
+                </article>
+            </section>
+
+            <section class="section callout">
+                <div>
+                    <h2>Project links</h2>
+                    <p>Use the repository for source code and issues, NuGet for package consumption, the wiki for extended documentation, and this page as a searchable project overview.</p>
+                </div>
+                <div class="link-stack">
+                    <a href="https://github.com/Pavlo-0/QsMessaging" target="_blank" rel="noreferrer">GitHub repository</a>
+                    <a href="https://www.nuget.org/packages/QsMessaging/" target="_blank" rel="noreferrer">NuGet package</a>
+                    <a href="https://github.com/Pavlo-0/QsMessaging/wiki" target="_blank" rel="noreferrer">Project wiki</a>
+                </div>
+            </section>
+        </main>
+
+        <footer class="site-footer">
+            <p>QsMessaging is an open-source .NET messaging library focused on RabbitMQ and Azure Service Bus integration.</p>
+            <p>
+                <a href="https://github.com/Pavlo-0/QsMessaging" target="_blank" rel="noreferrer">Repository</a>
+                <span aria-hidden="true">•</span>
+                <a href="https://pavlo-0.github.io/QsMessaging/">Project page</a>
+                <span aria-hidden="true">•</span>
+                <a href="https://github.com/Pavlo-0/QsMessaging/wiki" target="_blank" rel="noreferrer">Wiki</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
