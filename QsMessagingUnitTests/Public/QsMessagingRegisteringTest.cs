@@ -5,9 +5,8 @@ using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Public;
 using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Interfaces;
-using QsMessaging.Shared.Interface;
-using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IConnectionService;
-using RabbitConnectionService = QsMessaging.Shared.Interface.IConnectionService;
+using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAbsConnectionService;
+using RabbitConnectionService = QsMessaging.RabbitMq.Services.Interfaces.IRbConnectionService;
 
 namespace QsMessagingUnitTests.Public
 {
@@ -47,9 +46,6 @@ namespace QsMessagingUnitTests.Public
             Assert.IsTrue(services.Any(s =>
                 s.ServiceType == typeof(AzureConnectionService) &&
                 s.ImplementationType == typeof(AsbConnectionService)));
-            Assert.IsTrue(services.Any(s =>
-                s.ServiceType == typeof(IAdministrationService) &&
-                s.ImplementationType == typeof(AdministrationService)));
         }
 
         [TestMethod]

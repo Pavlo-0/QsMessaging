@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using QsMessaging.Public;
+using QsMessaging.RabbitMq.Services.Interfaces;
 using QsMessaging.Shared.Interface;
 using RabbitMQ.Client;
 
@@ -7,7 +8,7 @@ namespace QsMessaging.RabbitMq
 {
     internal class RqConnectionManager(
         ILogger<RqConnectionManager> logger,
-        IConnectionService connectionWorker, 
+        IRbConnectionService connectionWorker, 
         ISubscriber subscriber) : IQsMessagingConnectionManager
     {
         public async Task Close(CancellationToken cancellationToken = default)

@@ -3,6 +3,7 @@ using System.Text;
 
 namespace QsMessaging.AzureServiceBus.Services
 {
+    //TODO: normalized name should be in the place where we get the name. Move it to the administrative
     internal static class ServiceBusEntityNameFormatter
     {
         private const int QueueOrTopicMaxLength = 260;

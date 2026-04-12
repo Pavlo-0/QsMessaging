@@ -7,7 +7,7 @@ using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.Shared.Interface;
 using QsMessaging.Shared.Services.Interfaces;
 using System.Text.Json;
-using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IConnectionService;
+using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAbsConnectionService;
 
 namespace QsMessaging.AzureServiceBus
 {
@@ -15,13 +15,14 @@ namespace QsMessaging.AzureServiceBus
         ILogger<AsbSender> logger,
         AzureConnectionService connectionService,
         IAdministrationService administrationService,
+        IQueueAdministration queueAdministration,
         IHandlerService handlerService,
         Lazy<ISubscriber> subscriber,
         IRequestResponseMessageStore requestResponseMessageStore) : ISender
     {
         public async Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
         {
-            var queueName = await administrationService.GetOrCreateQueueAsync(typeof(TMessage), QueuePurpose.Permanent);
+            var queueName = await queueAdministration.GetOrCreateQueueAsync(typeof(TMessage), QueuePurpose.Permanent);
             await SendToEntityAsync(queueName, CreateMessage(model, typeof(TMessage)));
             logger.LogInformation("Message has been published to Azure Service Bus queue {QueueName}", queueName);
         }
@@ -40,22 +41,16 @@ namespace QsMessaging.AzureServiceBus
             var correlationId = Guid.NewGuid().ToString("N");
             var waitForResponse = requestResponseMessageStore.AddRequestMessageAsync(correlationId, model, cancellationToken);
 
+            //TODO: Should we remove at the end handler from here or check if exists or not to avoid duplicate. What if parallel requests
             var responseHandlerRecord = handlerService.AddRRResponseHandler<TResponse>();
             await subscriber.Value.SubscribeHandlerAsync(responseHandlerRecord, cancellationToken);
 
-            var requestQueueName = administrationService.GetQueueName(typeof(TRequest), QueuePurpose.SingleTemporary);
-            if (await administrationService.QueueExistsAsync(requestQueueName, cancellationToken))
-            {
-                var responseQueueName = administrationService.GetQueueName(typeof(TResponse), QueuePurpose.InstanceTemporary);
-                var requestMessage = CreateMessage(model, typeof(TRequest), correlationId, responseQueueName);
-                await SendToEntityAsync(requestQueueName, requestMessage, cancellationToken);
-            }
-            else
-            {
-                logger.LogWarning(
-                    "Azure Service Bus request queue {QueueName} does not exist. The request will time out if no consumer creates it.",
-                    requestQueueName);
-            }
+            //TODO: reconsidering  queue purpose type
+            var requestQueueName = await queueAdministration.GetOrCreateQueueAsync(typeof(TRequest), QueuePurpose.Permanent);
+            var responseQueueName = await queueAdministration.GetOrCreateQueueAsync(typeof(TResponse), QueuePurpose.Permanent);
+
+            var requestMessage = CreateMessage(model, typeof(TRequest), correlationId, responseQueueName);
+            await SendToEntityAsync(requestQueueName, requestMessage, cancellationToken);
 
             await waitForResponse;
 
@@ -82,6 +77,7 @@ namespace QsMessaging.AzureServiceBus
             }
             catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
             {
+                //TODO: Make exception. Maybe should be called error handler.
                 logger.LogInformation(
                     "Azure Service Bus reply destination {ReplyTo} no longer exists. The response with correlation {CorrelationId} was ignored.",
                     replyTo,
@@ -93,8 +89,11 @@ namespace QsMessaging.AzureServiceBus
         {
             var client = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
             var normalizedEntityName = ServiceBusEntityNameFormatter.FormatEntityPath(entityName);
+            //TODO: create sender every time. Better re use them for every queue or topic but can be limited
+            message.TimeToLive = TimeSpan.FromMinutes(10);
             await using var sender = client.CreateSender(normalizedEntityName);
             await sender.SendMessageAsync(message, cancellationToken);
+            await sender.CloseAsync();
         }
 
         private static ServiceBusMessage CreateMessage(object model, Type contractType, string? correlationId = null, string? replyTo = null)

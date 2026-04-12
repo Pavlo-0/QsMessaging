@@ -15,7 +15,7 @@ namespace QsMessaging.Tests
     {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private Mock<ILogger<RqSender>> _mockLogger;
-        private Mock<IConnectionService> _mockConnectionService;
+        private Mock<IRbConnectionService> _mockConnectionService;
         private Mock<IChannelService> _mockChannelService;
         private Mock<IExchangeService> _mockExchangeService;
         private Mock<IHandlerService> _mockHandlerService;
@@ -28,7 +28,7 @@ namespace QsMessaging.Tests
         public void Setup()
         {
             _mockLogger = new Mock<ILogger<RqSender>>();
-            _mockConnectionService = new Mock<IConnectionService>();
+            _mockConnectionService = new Mock<IRbConnectionService>();
             _mockChannelService = new Mock<IChannelService>();
             _mockExchangeService = new Mock<IExchangeService>();
             _mockHandlerService = new Mock<IHandlerService>();

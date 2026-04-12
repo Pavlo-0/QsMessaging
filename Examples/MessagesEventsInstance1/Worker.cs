@@ -26,14 +26,14 @@ namespace MessagesEventsInstance1
 
                 await _qsMessaging.SendMessageAsync(new RegularMessageContract
                 {
-                    MyTextMessage = "My message."
+                    MyTextMessage = "My message. " + DateTimeOffset.Now.ToString(),
                 });
 
                 await _qsMessaging.SendEventAsync(new RegularEventContract
                 {
-                    MyTextEvent = "My event."
+                    MyTextEvent = "My event. " + DateTimeOffset.Now.ToString()
                 });
-                await _qsMessaging.SendMessageAsync(new RegularMessageContract2("My record message"));
+                await _qsMessaging.SendMessageAsync(new RegularMessageContract2("My record message " + DateTimeOffset.Now.ToString()));
 
                 Console.WriteLine("Message& event has been sent");
 

@@ -14,7 +14,7 @@ namespace QsMessagingUnitTests.AzureServiceBus
     {
 #pragma warning disable CS8618
         private Mock<ILogger<AsbSubscriber>> _mockLogger;
-        private Mock<IConnectionService> _mockConnectionService;
+        private Mock<IAbsConnectionService> _mockConnectionService;
         private Mock<IAdministrationService> _mockAdministrationService;
         private Mock<IHandlerService> _mockHandlerService;
         private Mock<IServiceProvider> _mockServiceProvider;
@@ -26,19 +26,12 @@ namespace QsMessagingUnitTests.AzureServiceBus
         public void Setup()
         {
             _mockLogger = new Mock<ILogger<AsbSubscriber>>();
-            _mockConnectionService = new Mock<IConnectionService>();
+            _mockConnectionService = new Mock<IAbsConnectionService>();
             _mockAdministrationService = new Mock<IAdministrationService>();
             _mockHandlerService = new Mock<IHandlerService>();
             _mockServiceProvider = new Mock<IServiceProvider>();
             _mockResponseSender = new Mock<ISender>();
 
-            _subscriber = new AsbSubscriber(
-                _mockLogger.Object,
-                _mockConnectionService.Object,
-                _mockAdministrationService.Object,
-                _mockHandlerService.Object,
-                _mockServiceProvider.Object,
-                _mockResponseSender.Object);
         }
 
         [TestMethod]

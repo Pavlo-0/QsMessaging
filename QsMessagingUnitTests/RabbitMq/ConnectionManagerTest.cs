@@ -4,6 +4,7 @@ using QsMessaging.Public;
 using QsMessaging.Shared.Interface;
 using RabbitMQ.Client;
 using QsMessaging.RabbitMq;
+using QsMessaging.RabbitMq.Services.Interfaces;
 
 namespace QsMessagingUnitTests.RabbitMq
 {
@@ -12,7 +13,7 @@ namespace QsMessagingUnitTests.RabbitMq
     {
 #pragma warning disable CS8618
         private Mock<ILogger<RqConnectionManager>> _mockLogger;
-        private Mock<IConnectionService> _mockConnectionService;
+        private Mock<IRbConnectionService> _mockConnectionService;
         private Mock<ISubscriber> _mockSubscriber;
         private Mock<IConnection> _mockConnection;
         private IQsMessagingConnectionManager _connectionManager;
@@ -22,7 +23,7 @@ namespace QsMessagingUnitTests.RabbitMq
         public void Setup()
         {
             _mockLogger = new Mock<ILogger<RqConnectionManager>>();
-            _mockConnectionService = new Mock<IConnectionService>();
+            _mockConnectionService = new Mock<IRbConnectionService>();
             _mockSubscriber = new Mock<ISubscriber>();
             _mockConnection = new Mock<IConnection>();
 

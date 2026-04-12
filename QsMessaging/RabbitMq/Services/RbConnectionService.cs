@@ -1,11 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
 using QsMessaging.Public;
-using QsMessaging.Shared.Interface;
+using QsMessaging.RabbitMq.Services.Interfaces;
 using RabbitMQ.Client;
 
 namespace QsMessaging.RabbitMq.Services
 {
-    internal class RbConnectionService(ILogger<RbConnectionService> logger, IQsMessagingConfiguration configuration) : IConnectionService
+    internal class RbConnectionService(ILogger<RbConnectionService> logger, IQsMessagingConfiguration configuration) : IRbConnectionService
     {
         private static IConnection? connection;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);

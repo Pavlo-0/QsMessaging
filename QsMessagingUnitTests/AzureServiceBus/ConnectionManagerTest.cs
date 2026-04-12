@@ -4,7 +4,7 @@ using Moq;
 using QsMessaging.AzureServiceBus;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Shared.Interface;
-using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IConnectionService;
+using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAbsConnectionService;
 
 namespace QsMessagingUnitTests.AzureServiceBus
 {
@@ -40,9 +40,6 @@ namespace QsMessagingUnitTests.AzureServiceBus
             _mockSubscriber
                 .Setup(s => s.CloseAsync(It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
-            _mockAdministrationService
-                .Setup(s => s.DeleteOwnedEntitiesAsync(It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new InvalidOperationException("cleanup failed"));
             _mockConnectionService
                 .Setup(s => s.CloseAsync(It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
@@ -67,9 +64,6 @@ namespace QsMessagingUnitTests.AzureServiceBus
                     await allowCloseToFinish.Task;
                     closeFinished = true;
                 });
-            _mockAdministrationService
-                .Setup(s => s.DeleteOwnedEntitiesAsync(It.IsAny<CancellationToken>()))
-                .Returns(Task.CompletedTask);
             _mockConnectionService
                 .Setup(s => s.GetConnection())
                 .Returns((ServiceBusClient?)null);

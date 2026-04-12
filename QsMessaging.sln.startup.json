@@ -12,8 +12,12 @@
   "MultiProjectConfigurations": {
     "MessagesEvent": {
       "Projects": {
-        "MessagesEventsInstance1": {},
-        "MessagesEventsInstance2": {}
+        "MessagesEventsInstance1": {
+          "CommandLineArguments": "QsMessaging:Transport=AzureServiceBus"
+        },
+        "MessagesEventsInstance2": {
+          "CommandLineArguments": "QsMessaging:Transport=AzureServiceBus"
+        }
       }
     },
     "RequestResponse": {

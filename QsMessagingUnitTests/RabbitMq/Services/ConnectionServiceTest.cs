@@ -4,7 +4,7 @@ using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq;
 using RabbitMQ.Client;
 using System.Reflection;
-using QsMessaging.Shared.Interface;
+using QsMessaging.RabbitMq.Services.Interfaces;
 
 namespace QsMessagingUnitTests.RabbitMq.Services
 {
@@ -14,7 +14,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
 #pragma warning disable CS8618
         private Mock<ILogger<RbConnectionService>> _mockLogger;
         private Mock<IConnection> _mockConnection;
-        private IConnectionService _connectionService;
+        private IRbConnectionService _connectionService;
 #pragma warning restore CS8618
 
         [TestInitialize]

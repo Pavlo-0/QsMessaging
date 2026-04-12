@@ -12,8 +12,7 @@ using QsMessaging.Shared.Services.Interfaces;
 using QsMessaging.Shared.Services;
 using QsMessaging.Shared;
 using System.Reflection;
-using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IConnectionService;
-using RabbitConnectionService = QsMessaging.Shared.Interface.IConnectionService;
+
 
 namespace QsMessaging.Public
 {
@@ -60,7 +59,7 @@ namespace QsMessaging.Public
                 case QsMessagingTransport.RabbitMq:
                     services.AddTransient<ISubscriber, RqSubscriber>();
                     services.AddTransient<IQsMessagingConnectionManager, RqConnectionManager>();
-                    services.AddSingleton<RabbitConnectionService, RbConnectionService>();
+                    services.AddSingleton<IRbConnectionService, RbConnectionService>();
 
 
                     services.AddTransient<ISender, RqSender>();
@@ -73,12 +72,14 @@ namespace QsMessaging.Public
                     break;
 
                 case QsMessagingTransport.AzureServiceBus:
-                    services.AddTransient<ISubscriber, AsbSubscriber>();
+                    services.AddSingleton<ISubscriber, AsbSubscriber>();
                     services.AddTransient<IQsMessagingConnectionManager, AsbConnectionManager>();
-                    services.AddSingleton<AzureConnectionService, AsbConnectionService>();
+                    services.AddSingleton<IAbsConnectionService, AsbConnectionService>();
                     services.AddTransient<ISender, AsbSender>();
 
-                    services.AddTransient<IAdministrationService, AdministrationService>();
+                    services.AddTransient<IQueueAdministration, QueueAdministration>();
+                    services.AddTransient<IAdministrationService, TopicAdministrationService>();
+                    services.AddTransient<ISubscriptionService, SubscriptionAdministrationService>();
                     break;
 
                 default:

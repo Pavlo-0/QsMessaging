@@ -8,7 +8,7 @@ namespace QsMessaging.RabbitMq
 {
     internal class RqSubscriber(
         ILogger<RqSubscriber> logger,
-        IConnectionService connectionService,
+        IRbConnectionService connectionService,
         IChannelService channelService,
         IExchangeService exchangeService,
         IQueueService queueService,

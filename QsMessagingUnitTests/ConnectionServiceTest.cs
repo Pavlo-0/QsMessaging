@@ -3,7 +3,7 @@ using Moq;
 using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq;
 using RabbitMQ.Client;
-using QsMessaging.Shared.Interface;
+using QsMessaging.RabbitMq.Services.Interfaces;
 
 namespace QsMessagingUnitTests
 {
@@ -14,7 +14,7 @@ namespace QsMessagingUnitTests
         //private Mock<QsMessagingConfiguration> _mockConfig;
         private Mock<IConnection> _mockConnection;
         private Mock<ILogger<RbConnectionService>> _mockLogger;
-        private IConnectionService _connectionService;
+        private IRbConnectionService _connectionService;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
         [TestInitialize]

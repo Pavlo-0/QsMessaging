@@ -11,7 +11,7 @@ using QsMessaging.Shared.Interface;
 using QsMessaging.Shared.Services.Interfaces;
 using System.Collections.Concurrent;
 using System.Text.Json;
-using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IConnectionService;
+using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAbsConnectionService;
 
 namespace QsMessaging.AzureServiceBus
 {
@@ -19,6 +19,8 @@ namespace QsMessaging.AzureServiceBus
         ILogger<AsbSubscriber> logger,
         AzureConnectionService connectionService,
         IAdministrationService administrationService,
+        IQueueAdministration queueAdministration,
+        ISubscriptionService subscriptionService,
         IHandlerService handlerService,
         IServiceProvider services,
         ISender responseSender) : ISubscriber, IAsyncDisposable
@@ -228,7 +230,7 @@ namespace QsMessaging.AzureServiceBus
             if (record.supportedInterfacesType == typeof(IQsEventHandler<>))
             {
                 var topicName = await administrationService.GetOrCreateTopicAsync(record.GenericType, cancellationToken);
-                var subscriptionName = await administrationService.GetOrCreateSubscriptionAsync(record, cancellationToken);
+                var subscriptionName = await subscriptionService.GetOrCreateSubscriptionAsync(record, cancellationToken);
                 return (
                     $"topic::{topicName}::{subscriptionName}",
                     topicName,
@@ -237,8 +239,8 @@ namespace QsMessaging.AzureServiceBus
                     $"{topicName}/{subscriptionName}");
             }
 
-            var queuePurpose = HardConfiguration.GetQueuePurpose(record.supportedInterfacesType);
-            var queueName = await administrationService.GetOrCreateQueueAsync(record.GenericType, queuePurpose, cancellationToken);
+            //var queuePurpose = HardConfiguration.GetQueuePurpose(record.supportedInterfacesType);
+            var queueName = await queueAdministration.GetOrCreateQueueAsync(record.GenericType, QueuePurpose.Permanent, cancellationToken);
             return ($"queue::{queueName}", queueName, null, false, queueName);
         }
 

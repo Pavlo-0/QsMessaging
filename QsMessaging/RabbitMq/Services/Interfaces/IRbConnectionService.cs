@@ -1,8 +1,8 @@
 ﻿using RabbitMQ.Client;
 
-namespace QsMessaging.Shared.Interface
+namespace QsMessaging.RabbitMq.Services.Interfaces
 {
-    internal interface IConnectionService
+    internal interface IRbConnectionService
     {
         IConnection? GetConnection();
 

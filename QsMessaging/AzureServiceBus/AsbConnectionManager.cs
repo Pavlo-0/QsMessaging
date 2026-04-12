@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Public;
 using QsMessaging.Shared.Interface;
-using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IConnectionService;
+using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAbsConnectionService;
 
 namespace QsMessaging.AzureServiceBus
 {
@@ -23,11 +23,12 @@ namespace QsMessaging.AzureServiceBus
                 await subscriber.CloseAsync(cancellationToken);
                 try
                 {
-                    await administrationService.DeleteOwnedEntitiesAsync(cancellationToken);
+                    //await administrationService.DeleteOwnedEntitiesAsync(cancellationToken);
                 }
                 finally
                 {
                     await connectionWorker.CloseAsync(cancellationToken);
+                    await connectionWorker.CloseAdministrationClientAsync(cancellationToken);
                 }
             }
             finally

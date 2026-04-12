@@ -9,5 +9,9 @@ namespace QsMessaging.Shared.Interface
         string GetExchangeNameFromType(Type TModel);
 
         string GetQueueNameFromType(Type TModel, QueuePurpose queueType);
+
+        string GetAsbQueueNameFromType(Type TModel);
+
+        string GetAsbTopicNameFromType(Type TModel);
     }
 }
