@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://pavlo-0.github.io/QsMessaging/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-</urlset>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://pavlo-0.github.io/QsMessaging/sitemap-pages.xml</loc>
+    <lastmod>2026-04-13</lastmod>
+  </sitemap>
+</sitemapindex>
