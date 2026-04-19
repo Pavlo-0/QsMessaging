@@ -14,7 +14,7 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
                 ConnectionString = "Endpoint=sb://contoso.servicebus.windows.net/;SharedAccessKeyName=name;SharedAccessKey=value;"
             };
 
-            var result = ConnectionStringHelper.GetAdministrationConnectionString(configuration);
+            var result = AsbConnectionStringHelper.GetAdministrationConnectionString(configuration);
 
             Assert.AreEqual(configuration.ConnectionString, result);
         }
@@ -27,7 +27,7 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
                 ConnectionString = "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
             };
 
-            var result = ConnectionStringHelper.GetClientConnectionString(configuration);
+            var result = AsbConnectionStringHelper.GetClientConnectionString(configuration);
 
             StringAssert.Contains(result, "Endpoint=sb://localhost:5672");
         }
@@ -41,7 +41,7 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
                 EmulatorAmqpPort = 5673
             };
 
-            var result = ConnectionStringHelper.GetClientConnectionString(configuration);
+            var result = AsbConnectionStringHelper.GetClientConnectionString(configuration);
 
             StringAssert.Contains(result, "Endpoint=sb://localhost:5673");
         }
@@ -54,7 +54,7 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
                 ConnectionString = "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
             };
 
-            var result = ConnectionStringHelper.GetAdministrationConnectionString(configuration);
+            var result = AsbConnectionStringHelper.GetAdministrationConnectionString(configuration);
 
             StringAssert.Contains(result, "Endpoint=sb://localhost:5300");
         }
@@ -67,7 +67,7 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
                 ConnectionString = "Endpoint=sb://localhost:5673;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
             };
 
-            var result = ConnectionStringHelper.GetAdministrationConnectionString(configuration);
+            var result = AsbConnectionStringHelper.GetAdministrationConnectionString(configuration);
 
             StringAssert.Contains(result, "Endpoint=sb://localhost:5300");
         }
@@ -81,7 +81,7 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
                 AdministrationConnectionString = "Endpoint=sb://localhost:7777;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
             };
 
-            var result = ConnectionStringHelper.GetAdministrationConnectionString(configuration);
+            var result = AsbConnectionStringHelper.GetAdministrationConnectionString(configuration);
 
             Assert.AreEqual(configuration.AdministrationConnectionString, result);
         }

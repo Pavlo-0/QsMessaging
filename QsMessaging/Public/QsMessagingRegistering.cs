@@ -28,7 +28,6 @@ namespace QsMessaging.Public
 
             services.AddTransient<IInstanceService, InstanceService>();
             services.AddTransient<IQsMessaging, QsMessagingGate>();
-            services.AddTransient<INameGenerator, NameGenerator>();
             var handlerGeneratorInstance = new HandlerService(services, Assembly.GetEntryAssembly()!);
             services.AddTransient<IHandlerService>(hg=>
             {
@@ -57,29 +56,36 @@ namespace QsMessaging.Public
             switch (configuration.Transport)
             {
                 case QsMessagingTransport.RabbitMq:
+
+                    services.AddSingleton<IRqConnectionService, RbConnectionService>();
                     services.AddTransient<ISubscriber, RqSubscriber>();
                     services.AddTransient<IQsMessagingConnectionManager, RqConnectionManager>();
-                    services.AddSingleton<IRbConnectionService, RbConnectionService>();
-
 
                     services.AddTransient<ISender, RqSender>();
+                    services.AddTransient<IRqNameGenerator, RqNameGenerator>();
 
 
-                    services.AddTransient<IExchangeService, ExchangeService>();
-                    services.AddTransient<IChannelService, ChannelService>();
-                    services.AddTransient<IQueueService, QueueService>();
-                    services.AddTransient<IConsumerService, ConsumerService>();
+                    services.AddTransient<IRqExchangeService, RqExchangeService>();
+                    services.AddTransient<IRqChannelService, RqChannelService>();
+                    services.AddTransient<IRqQueueService, RqQueueService>();
+                    services.AddTransient<IRqConsumerService, RqConsumerService>();
                     break;
 
                 case QsMessagingTransport.AzureServiceBus:
-                    services.AddSingleton<ISubscriber, AsbSubscriber>();
+                    services.AddSingleton<IAsbConnectionService, AsbConnectionService>();
+                    services.AddTransient<ISubscriber, AsbSubscriber>();
                     services.AddTransient<IQsMessagingConnectionManager, AsbConnectionManager>();
-                    services.AddSingleton<IAbsConnectionService, AsbConnectionService>();
-                    services.AddTransient<ISender, AsbSender>();
 
-                    services.AddTransient<IQueueAdministration, QueueAdministration>();
-                    services.AddTransient<IAdministrationService, TopicAdministrationService>();
-                    services.AddTransient<ISubscriptionService, SubscriptionAdministrationService>();
+
+                    services.AddTransient<ISender, AsbSender>();
+                    services.AddTransient<IAsbNameGeneratorService, AsbNameGenerator>();
+
+                    services.AddTransient<IAsbQueueService, AsbQueueService>();
+                    services.AddTransient<IAsbTopicService, AsbTopicService>();
+                    services.AddTransient<IAsbTopicSubscriptionService, AsbTopicSubscriptionService>();
+
+                    services.AddTransient<IAsbServiceBusProcessorService, AsbServiceBusProcessorService>();
+                    services.AddTransient<IAsbConsumerService, AsbConsumerService>();
                     break;
 
                 default:

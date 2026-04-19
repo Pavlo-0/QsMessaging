@@ -8,7 +8,7 @@ namespace QsMessaging.AzureServiceBus.Services
 {
     internal class AsbConnectionService(
         ILogger<AsbConnectionService> logger,
-        IQsMessagingConfiguration configuration) : IAbsConnectionService, IAsyncDisposable
+        IQsMessagingConfiguration configuration) : IAsbConnectionService, IAsyncDisposable
     {
         private static ServiceBusClient? connection;
         private static ServiceBusAdministrationClient? administrationClient;
@@ -21,7 +21,6 @@ namespace QsMessaging.AzureServiceBus.Services
 
         public async Task<ServiceBusClient> GetOrCreateConnectionAsync(CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
             await _semaphore.WaitAsync(cancellationToken);
             try
             {
@@ -44,7 +43,6 @@ namespace QsMessaging.AzureServiceBus.Services
         {
             ServiceBusClient? connectionToDispose = null;
 
-            cancellationToken.ThrowIfCancellationRequested();
             await _semaphore.WaitAsync(cancellationToken);
             try
             {
@@ -82,7 +80,7 @@ namespace QsMessaging.AzureServiceBus.Services
                 }
 
                 administrationClient = new ServiceBusAdministrationClient(
-                    ConnectionStringHelper.GetAdministrationConnectionString(configuration.AzureServiceBus));
+                    AsbConnectionStringHelper.GetAdministrationConnectionString(configuration.AzureServiceBus));
                 logger.LogInformation("Azure Service Bus administration client created for {Endpoint}", GetEndpoint(configuration.AzureServiceBus));
                 return administrationClient;
             }
@@ -133,15 +131,13 @@ namespace QsMessaging.AzureServiceBus.Services
 
         private ServiceBusClient CreateConnection(CancellationToken cancellationToken)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            string connectionString = ConnectionStringHelper.GetClientConnectionString(configuration.AzureServiceBus);
+            string connectionString = AsbConnectionStringHelper.GetClientConnectionString(configuration.AzureServiceBus);
             return new ServiceBusClient(connectionString);
         }
 
         private static string GetEndpoint(QsAzureServiceBusConfiguration configuration)
         {
-            return ConnectionStringHelper.GetClientConnectionString(configuration)
+            return AsbConnectionStringHelper.GetClientConnectionString(configuration)
                 .Split(';', StringSplitOptions.RemoveEmptyEntries)
                 .FirstOrDefault(part => part.StartsWith("Endpoint=", StringComparison.OrdinalIgnoreCase))
                 ?? "unknown";

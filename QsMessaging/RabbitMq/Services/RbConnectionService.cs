@@ -5,7 +5,7 @@ using RabbitMQ.Client;
 
 namespace QsMessaging.RabbitMq.Services
 {
-    internal class RbConnectionService(ILogger<RbConnectionService> logger, IQsMessagingConfiguration configuration) : IRbConnectionService
+    internal class RbConnectionService(ILogger<RbConnectionService> logger, IQsMessagingConfiguration configuration) : IRqConnectionService
     {
         private static IConnection? connection;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);

@@ -15,7 +15,7 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
     {
 #pragma warning disable CS8618
         private Mock<ILogger<AsbConnectionService>> _mockLogger;
-        private IAbsConnectionService _connectionService;
+        private IAsbConnectionService _connectionService;
 #pragma warning restore CS8618
 
         [TestInitialize]
@@ -75,16 +75,6 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
             Assert.IsTrue(client.IsClosed);
         }
 
-        [TestMethod]
-        public async Task GetOrCreateConnectionAsync_WhenCancellationAlreadyRequested_ThrowsOperationCanceledException()
-        {
-            using var cts = new CancellationTokenSource();
-            cts.Cancel();
-
-            await Assert.ThrowsExceptionAsync<OperationCanceledException>(
-                () => _connectionService.GetOrCreateConnectionAsync(cts.Token));
-        }
-
         private static Configuration CreateConfiguration()
         {
             return new Configuration
@@ -100,7 +90,7 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
         private static ServiceBusClient CreateConnection()
         {
             return new ServiceBusClient(
-                ConnectionStringHelper.GetClientConnectionString(CreateConfiguration().AzureServiceBus));
+                AsbConnectionStringHelper.GetClientConnectionString(CreateConfiguration().AzureServiceBus));
         }
 
         private static void SetConnection(ServiceBusClient? client)

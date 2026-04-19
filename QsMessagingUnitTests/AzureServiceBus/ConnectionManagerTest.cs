@@ -4,7 +4,7 @@ using Moq;
 using QsMessaging.AzureServiceBus;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Shared.Interface;
-using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAbsConnectionService;
+using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAsbConnectionService;
 
 namespace QsMessagingUnitTests.AzureServiceBus
 {
@@ -14,7 +14,7 @@ namespace QsMessagingUnitTests.AzureServiceBus
 #pragma warning disable CS8618
         private Mock<ILogger<AsbConnectionManager>> _mockLogger;
         private Mock<AzureConnectionService> _mockConnectionService;
-        private Mock<IAdministrationService> _mockAdministrationService;
+        private Mock<IAsbTopicSubscriptionService> _mockTopicSubscriptionService;
         private Mock<ISubscriber> _mockSubscriber;
         private AsbConnectionManager _connectionManager;
 #pragma warning restore CS8618
@@ -24,13 +24,13 @@ namespace QsMessagingUnitTests.AzureServiceBus
         {
             _mockLogger = new Mock<ILogger<AsbConnectionManager>>();
             _mockConnectionService = new Mock<AzureConnectionService>();
-            _mockAdministrationService = new Mock<IAdministrationService>();
+            _mockTopicSubscriptionService = new Mock<IAsbTopicSubscriptionService>();
             _mockSubscriber = new Mock<ISubscriber>();
 
             _connectionManager = new AsbConnectionManager(
                 _mockLogger.Object,
                 _mockConnectionService.Object,
-                _mockAdministrationService.Object,
+                _mockTopicSubscriptionService.Object,
                 _mockSubscriber.Object);
         }
 
@@ -46,9 +46,13 @@ namespace QsMessagingUnitTests.AzureServiceBus
             _mockConnectionService
                 .Setup(s => s.CloseAdministrationClientAsync(It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
+            _mockTopicSubscriptionService
+                .Setup(s => s.DeleteTemporarySubscriptionsAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
 
             await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _connectionManager.Close());
 
+            _mockTopicSubscriptionService.Verify(s => s.DeleteTemporarySubscriptionsAsync(It.IsAny<CancellationToken>()), Times.Once);
             _mockConnectionService.Verify(s => s.CloseAsync(It.IsAny<CancellationToken>()), Times.Once);
             _mockConnectionService.Verify(s => s.CloseAdministrationClientAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
@@ -71,6 +75,9 @@ namespace QsMessagingUnitTests.AzureServiceBus
             _mockConnectionService
                 .Setup(s => s.GetConnection())
                 .Returns((ServiceBusClient?)null);
+            _mockTopicSubscriptionService
+                .Setup(s => s.DeleteTemporarySubscriptionsAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
             _mockSubscriber
                 .Setup(s => s.SubscribeAsync(It.IsAny<CancellationToken>()))
                 .Returns(() =>
@@ -113,6 +120,9 @@ namespace QsMessagingUnitTests.AzureServiceBus
             _mockConnectionService
                 .Setup(s => s.CloseAdministrationClientAsync(It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
+            _mockTopicSubscriptionService
+                .Setup(s => s.DeleteTemporarySubscriptionsAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
             _mockSubscriber
                 .Setup(s => s.SubscribeAsync(It.IsAny<CancellationToken>()))
                 .Returns(() =>
@@ -137,7 +147,36 @@ namespace QsMessagingUnitTests.AzureServiceBus
             await subscribeStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
             _mockSubscriber.Verify(s => s.CloseAsync(It.IsAny<CancellationToken>()), Times.Once);
+            _mockTopicSubscriptionService.Verify(s => s.DeleteTemporarySubscriptionsAsync(It.IsAny<CancellationToken>()), Times.Once);
             _mockSubscriber.Verify(s => s.SubscribeAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task Close_WhenCalled_DeletesTemporarySubscriptionsBeforeClosingAdministrationClient()
+        {
+            var sequence = new MockSequence();
+
+            _mockSubscriber
+                .InSequence(sequence)
+                .Setup(s => s.CloseAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            _mockTopicSubscriptionService
+                .InSequence(sequence)
+                .Setup(s => s.DeleteTemporarySubscriptionsAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            _mockConnectionService
+                .InSequence(sequence)
+                .Setup(s => s.CloseAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            _mockConnectionService
+                .InSequence(sequence)
+                .Setup(s => s.CloseAdministrationClientAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            await _connectionManager.Close();
+
+            _mockTopicSubscriptionService.Verify(s => s.DeleteTemporarySubscriptionsAsync(It.IsAny<CancellationToken>()), Times.Once);
+            _mockConnectionService.Verify(s => s.CloseAdministrationClientAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

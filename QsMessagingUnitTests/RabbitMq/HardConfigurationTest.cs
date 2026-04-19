@@ -1,6 +1,6 @@
 using QsMessaging.Public.Handler;
-using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Models.Enums;
+using QsMessaging.Shared;
 using QsMessaging.Shared.Interface;
 
 namespace QsMessagingUnitTests.RabbitMq
@@ -30,7 +30,7 @@ namespace QsMessagingUnitTests.RabbitMq
         {
             var result = HardConfiguration.GetExchangePurpose(typeof(IQsEventHandler<>));
 
-            Assert.AreEqual(ExchangePurpose.Temporary, result);
+            Assert.AreEqual(RqExchangePurpose.Temporary, result);
         }
 
         [TestMethod]
@@ -38,7 +38,7 @@ namespace QsMessagingUnitTests.RabbitMq
         {
             var result = HardConfiguration.GetExchangePurpose(typeof(IQsMessageHandler<>));
 
-            Assert.AreEqual(ExchangePurpose.Permanent, result);
+            Assert.AreEqual(RqExchangePurpose.Permanent, result);
         }
 
         [TestMethod]
@@ -46,7 +46,7 @@ namespace QsMessagingUnitTests.RabbitMq
         {
             var result = HardConfiguration.GetQueuePurpose(typeof(IQsEventHandler<>));
 
-            Assert.AreEqual(QueuePurpose.ConsumerTemporary, result);
+            Assert.AreEqual(RqQueuePurpose.ConsumerTemporary, result);
         }
 
         [TestMethod]
@@ -54,7 +54,7 @@ namespace QsMessagingUnitTests.RabbitMq
         {
             var result = HardConfiguration.GetQueuePurpose(typeof(IQsMessageHandler<>));
 
-            Assert.AreEqual(QueuePurpose.Permanent, result);
+            Assert.AreEqual(RqQueuePurpose.Permanent, result);
         }
 
         [TestMethod]
@@ -62,7 +62,7 @@ namespace QsMessagingUnitTests.RabbitMq
         {
             var result = HardConfiguration.GetChannelPurpose(typeof(IQsEventHandler<>));
 
-            Assert.AreEqual(ChannelPurpose.QueueConsumerTemporary, result);
+            Assert.AreEqual(RqChannelPurpose.QueueConsumerTemporary, result);
         }
 
         [TestMethod]
@@ -70,7 +70,7 @@ namespace QsMessagingUnitTests.RabbitMq
         {
             var result = HardConfiguration.GetChannelPurpose(typeof(IQsMessageHandler<>));
 
-            Assert.AreEqual(ChannelPurpose.QueuePermanent, result);
+            Assert.AreEqual(RqChannelPurpose.QueuePermanent, result);
         }
 
         [TestMethod]
@@ -78,7 +78,7 @@ namespace QsMessagingUnitTests.RabbitMq
         {
             var result = HardConfiguration.GetConsumerPurpose(typeof(IQsEventHandler<>));
 
-            Assert.AreEqual(ConsumerPurpose.MessageEventConsumer, result);
+            Assert.AreEqual(RqConsumerPurpose.MessageEventConsumer, result);
         }
 
         [TestMethod]
@@ -86,7 +86,7 @@ namespace QsMessagingUnitTests.RabbitMq
         {
             var result = HardConfiguration.GetConsumerPurpose(typeof(IQsRequestResponseHandler<,>));
 
-            Assert.AreEqual(ConsumerPurpose.RRRequestConsumer, result);
+            Assert.AreEqual(RqConsumerPurpose.RRRequestConsumer, result);
         }
 
         [TestMethod]
@@ -94,7 +94,7 @@ namespace QsMessagingUnitTests.RabbitMq
         {
             var result = HardConfiguration.GetConsumerPurpose(typeof(IRRResponseHandler));
 
-            Assert.AreEqual(ConsumerPurpose.RRResponseConsumer, result);
+            Assert.AreEqual(RqConsumerPurpose.RRResponseConsumer, result);
         }
 
         [TestMethod]
@@ -102,10 +102,10 @@ namespace QsMessagingUnitTests.RabbitMq
         {
             var result = HardConfiguration.GetConfigurationByInterfaceTypes(typeof(IQsMessageHandler<>));
 
-            Assert.AreEqual(ExchangePurpose.Permanent, result.ExchangePurpose);
-            Assert.AreEqual(QueuePurpose.Permanent, result.QueuePurpose);
-            Assert.AreEqual(ChannelPurpose.QueuePermanent, result.ChannelPurpose);
-            Assert.AreEqual(ConsumerPurpose.MessageEventConsumer, result.ConsumerPurpose);
+            Assert.AreEqual(RqExchangePurpose.Permanent, result.ExchangePurpose);
+            Assert.AreEqual(RqQueuePurpose.Permanent, result.QueuePurpose);
+            Assert.AreEqual(RqChannelPurpose.QueuePermanent, result.ChannelPurpose);
+            Assert.AreEqual(RqConsumerPurpose.MessageEventConsumer, result.ConsumerPurpose);
         }
 
         [TestMethod]
@@ -113,10 +113,10 @@ namespace QsMessagingUnitTests.RabbitMq
         {
             var result = HardConfiguration.GetConfigurationByInterfaceTypes(typeof(IQsEventHandler<>));
 
-            Assert.AreEqual(ExchangePurpose.Temporary, result.ExchangePurpose);
-            Assert.AreEqual(QueuePurpose.ConsumerTemporary, result.QueuePurpose);
-            Assert.AreEqual(ChannelPurpose.QueueConsumerTemporary, result.ChannelPurpose);
-            Assert.AreEqual(ConsumerPurpose.MessageEventConsumer, result.ConsumerPurpose);
+            Assert.AreEqual(RqExchangePurpose.Temporary, result.ExchangePurpose);
+            Assert.AreEqual(RqQueuePurpose.ConsumerTemporary, result.QueuePurpose);
+            Assert.AreEqual(RqChannelPurpose.QueueConsumerTemporary, result.ChannelPurpose);
+            Assert.AreEqual(RqConsumerPurpose.MessageEventConsumer, result.ConsumerPurpose);
         }
     }
 }

@@ -2,20 +2,17 @@ using Microsoft.Extensions.Logging;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Public;
 using QsMessaging.Shared.Interface;
-using System.Runtime.ExceptionServices;
-using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAbsConnectionService;
 
 namespace QsMessaging.AzureServiceBus
 {
     internal class AsbConnectionManager(
         ILogger<AsbConnectionManager> logger,
-        AzureConnectionService connectionWorker,
-        IAdministrationService administrationService,
+        IAsbConnectionService connectionWorker,
+        IAsbTopicSubscriptionService topicSubscriptionService,
         ISubscriber subscriber) : IQsMessagingConnectionManager
     {
         private readonly SemaphoreSlim _lifecycleSemaphore = new(1, 1);
         private readonly object _deferredLifecycleSync = new();
-        private readonly IAdministrationService _administrationService = administrationService;
         private Task _deferredLifecycleTask = Task.CompletedTask;
 
         public async Task Close(CancellationToken cancellationToken = default)
@@ -98,34 +95,24 @@ namespace QsMessaging.AzureServiceBus
             try
             {
                 logger.LogInformation("Closing Azure Service Bus transport.");
-                Exception? closeFailure = null;
 
                 try
                 {
                     await subscriber.CloseAsync(cancellationToken);
-                    try
-                    {
-                        // await _administrationService.DeleteOwnedEntitiesAsync(cancellationToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        closeFailure = ex;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    closeFailure = ex;
                 }
                 finally
                 {
-                    await connectionWorker.CloseAsync(cancellationToken);
-                    await connectionWorker.CloseAdministrationClientAsync(cancellationToken);
+                    try
+                    {
+                        await topicSubscriptionService.DeleteTemporarySubscriptionsAsync(cancellationToken);
+                    }
+                    finally
+                    {
+                        await connectionWorker.CloseAsync(cancellationToken);
+                        await connectionWorker.CloseAdministrationClientAsync(cancellationToken);
+                    }
                 }
 
-                if (closeFailure is not null)
-                {
-                    ExceptionDispatchInfo.Capture(closeFailure).Throw();
-                }
             }
             finally
             {

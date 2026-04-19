@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QsMessaging.Public.Handler;
 using QsMessaging.RabbitMq.Models;
 using QsMessaging.Shared.Interface;
+using QsMessaging.Shared.Models;
 using QsMessaging.Shared.Services;
 using QsMessaging.Shared.Services.Interfaces;
 using System.Collections.Concurrent;
@@ -31,7 +32,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
             handlersField!.SetValue(null, new ConcurrentBag<HandlersStoreRecord>());
 
             var errorHandlersField = typeof(HandlerService).GetField("_consumerErrorHandler", BindingFlags.NonPublic | BindingFlags.Static);
-            errorHandlersField!.SetValue(null, new ConcurrentBag<ConsumerErrorHandlerStoreRecord>());
+            errorHandlersField!.SetValue(null, new ConcurrentBag<RqConsumerErrorHandlerStoreRecord>());
 
             // Use an assembly with no handlers to start clean
             _handlerService = new HandlerService(new ServiceCollection(), typeof(string).Assembly);

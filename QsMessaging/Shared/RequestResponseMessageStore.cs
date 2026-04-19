@@ -1,8 +1,8 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using QsMessaging.Public;
-using QsMessaging.RabbitMq.Models;
 using QsMessaging.Shared.Interface;
+using QsMessaging.Shared.Models;
 
 namespace QsMessaging.Shared
 {
