@@ -57,7 +57,7 @@ namespace QsMessaging.Public
             {
                 case QsMessagingTransport.RabbitMq:
 
-                    services.AddSingleton<IRbConnectionService, RbConnectionService>();
+                    services.AddSingleton<IRqConnectionService, RbConnectionService>();
                     services.AddTransient<ISubscriber, RqSubscriber>();
                     services.AddTransient<IQsMessagingConnectionManager, RqConnectionManager>();
 
@@ -65,10 +65,10 @@ namespace QsMessaging.Public
                     services.AddTransient<IRqNameGenerator, RqNameGenerator>();
 
 
-                    services.AddTransient<IExchangeService, ExchangeService>();
-                    services.AddTransient<IChannelService, ChannelService>();
-                    services.AddTransient<IQueueService, QueueService>();
-                    services.AddTransient<IConsumerService, ConsumerService>();
+                    services.AddTransient<IRqExchangeService, RqExchangeService>();
+                    services.AddTransient<IRqChannelService, RqChannelService>();
+                    services.AddTransient<IRqQueueService, RqQueueService>();
+                    services.AddTransient<IRqConsumerService, RqConsumerService>();
                     break;
 
                 case QsMessagingTransport.AzureServiceBus:

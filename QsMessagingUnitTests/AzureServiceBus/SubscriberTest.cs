@@ -4,7 +4,7 @@ using QsMessaging.AzureServiceBus;
 using QsMessaging.AzureServiceBus.Services;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Public.Handler;
-using QsMessaging.RabbitMq.Models;
+using QsMessaging.Shared.Models;
 using QsMessaging.Shared.Services.Interfaces;
 
 namespace QsMessagingUnitTests.AzureServiceBus

@@ -17,24 +17,24 @@ namespace QsMessagingUnitTests.RabbitMq.Services
     public class ExchangeServiceTest
     {
 #pragma warning disable CS8618
-        private Mock<ILogger<ExchangeService>> _mockLogger;
+        private Mock<ILogger<RqExchangeService>> _mockLogger;
         private Mock<IRqNameGenerator> _mockNameGenerator;
         private Mock<IChannel> _mockChannel;
-        private IExchangeService _exchangeService;
+        private IRqExchangeService _exchangeService;
 #pragma warning restore CS8618
 
         [TestInitialize]
         public void Setup()
         {
-            _mockLogger = new Mock<ILogger<ExchangeService>>();
+            _mockLogger = new Mock<ILogger<RqExchangeService>>();
             _mockNameGenerator = new Mock<IRqNameGenerator>();
             _mockChannel = new Mock<IChannel>();
 
-            _exchangeService = new ExchangeService(_mockLogger.Object, _mockNameGenerator.Object);
+            _exchangeService = new RqExchangeService(_mockLogger.Object, _mockNameGenerator.Object);
 
             // Reset static bag between tests
-            var field = typeof(ExchangeService).GetField("storeExchangeRecords", BindingFlags.NonPublic | BindingFlags.Static);
-            var bag = (ConcurrentBag<StoreExchangeRecord>)field!.GetValue(null)!;
+            var field = typeof(RqExchangeService).GetField("storeExchangeRecords", BindingFlags.NonPublic | BindingFlags.Static);
+            var bag = (ConcurrentBag<RqStoreExchangeRecord>)field!.GetValue(null)!;
             bag.Clear();
         }
 
@@ -47,7 +47,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(c => c.ExchangeDeclareAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
-            var result = await _exchangeService.GetOrCreateExchangeAsync(_mockChannel.Object, typeof(object), ExchangePurpose.Permanent);
+            var result = await _exchangeService.GetOrCreateExchangeAsync(_mockChannel.Object, typeof(object), RqExchangePurpose.Permanent);
 
             Assert.AreEqual(exchangeName, result);
         }
@@ -61,7 +61,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(c => c.ExchangeDeclareAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
-            await _exchangeService.GetOrCreateExchangeAsync(_mockChannel.Object, typeof(object), ExchangePurpose.Permanent);
+            await _exchangeService.GetOrCreateExchangeAsync(_mockChannel.Object, typeof(object), RqExchangePurpose.Permanent);
 
             _mockChannel.Verify(c => c.ExchangeDeclareAsync(
                 exchangeName,
@@ -83,7 +83,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(c => c.ExchangeDeclareAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
-            await _exchangeService.GetOrCreateExchangeAsync(_mockChannel.Object, typeof(object), ExchangePurpose.Temporary);
+            await _exchangeService.GetOrCreateExchangeAsync(_mockChannel.Object, typeof(object), RqExchangePurpose.Temporary);
 
             _mockChannel.Verify(c => c.ExchangeDeclareAsync(
                 exchangeName,
@@ -107,7 +107,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(c => c.ExchangeDeclareAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new OperationInterruptedException(shutdownArgs));
 
-            var result = await _exchangeService.GetOrCreateExchangeAsync(_mockChannel.Object, typeof(object), ExchangePurpose.Permanent);
+            var result = await _exchangeService.GetOrCreateExchangeAsync(_mockChannel.Object, typeof(object), RqExchangePurpose.Permanent);
 
             Assert.AreEqual(exchangeName, result);
         }

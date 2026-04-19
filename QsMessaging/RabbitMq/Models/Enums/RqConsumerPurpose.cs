@@ -1,6 +1,6 @@
 ﻿namespace QsMessaging.RabbitMq.Models.Enums
 {
-    internal enum ConsumerPurpose
+    internal enum RqConsumerPurpose
     {
         MessageEventConsumer,
         RRRequestConsumer,

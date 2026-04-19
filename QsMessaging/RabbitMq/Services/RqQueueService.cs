@@ -9,18 +9,20 @@ using System.Collections.Concurrent;
 
 namespace QsMessaging.RabbitMq.Services
 {
-    internal class QueueService(ILogger<QueueService> logger, IRqNameGenerator nameGenerator) : IQueueService
+    internal class RqQueueService(
+        ILogger<RqQueueService> logger,
+        IRqNameGenerator nameGenerator) : IRqQueueService
     {
-        private readonly static ConcurrentBag<StoreQueueRecord> storeQueueRecords = new ConcurrentBag<StoreQueueRecord>();
+        private readonly static ConcurrentBag<RqStoreQueueRecord> storeQueueRecords = new ConcurrentBag<RqStoreQueueRecord>();
 
-        public async Task<string> GetOrCreateQueuesAsync(IChannel channel, Type TModel, string exchangeName, QueuePurpose queueType)
+        public async Task<string> GetOrCreateQueuesAsync(IChannel channel, Type TModel, string exchangeName, RqQueuePurpose queueType)
         {
             logger.LogDebug("Attempting to declare queue");
 
             var queueName = nameGenerator.GetQueueNameFromType(TModel, queueType);
-            var isAutoDelete = queueType == QueuePurpose.ConsumerTemporary ||
-                queueType == QueuePurpose.InstanceTemporary ||
-                queueType == QueuePurpose.SingleTemporary;
+            var isAutoDelete = queueType == RqQueuePurpose.ConsumerTemporary ||
+                queueType == RqQueuePurpose.InstanceTemporary ||
+                queueType == RqQueuePurpose.SingleTemporary;
 
             logger.LogDebug("{Name}:{IsAutoDelete}", queueName, isAutoDelete);
 
@@ -34,12 +36,12 @@ namespace QsMessaging.RabbitMq.Services
 
             switch (queueType)
             {
-                case QueuePurpose.Permanent:
+                case RqQueuePurpose.Permanent:
                     arguments.Add("x-queue-mode", "lazy");
                     break;
-                case QueuePurpose.ConsumerTemporary:
-                case QueuePurpose.InstanceTemporary:
-                case QueuePurpose.SingleTemporary:
+                case RqQueuePurpose.ConsumerTemporary:
+                case RqQueuePurpose.InstanceTemporary:
+                case RqQueuePurpose.SingleTemporary:
                     arguments.Add("x-expires", 0);
                     arguments.Add("x-queue-mode", "default");
                     break;
@@ -56,7 +58,7 @@ namespace QsMessaging.RabbitMq.Services
             {
                 logger.LogTrace("This Queue already exist. For permanent queue (and instance and single), we can ignore this exception");
                 //This Queue already exist. For permanent queue (and instance and single), we can ignore this exception
-                if (queueType == QueuePurpose.ConsumerTemporary)
+                if (queueType == RqQueuePurpose.ConsumerTemporary)
                 {
                     logger.LogError(oie, "Failed to declare the temporary queue. Which should be singel");
                     throw;
@@ -69,7 +71,7 @@ namespace QsMessaging.RabbitMq.Services
                 q.ExchangeName == exchangeName &&
                 q.QueueName == queueName).Any())
             {
-                storeQueueRecords.Add(new StoreQueueRecord(channel, TModel, exchangeName, queueName));
+                storeQueueRecords.Add(new RqStoreQueueRecord(channel, TModel, exchangeName, queueName));
             }
 
             return queueName;

@@ -1,9 +1,9 @@
-﻿using QsMessaging.RabbitMq.Models;
+﻿using QsMessaging.Shared.Models;
 using RabbitMQ.Client;
 
 namespace QsMessaging.RabbitMq.Services.Interfaces
 {
-    internal interface IConsumerService
+    internal interface IRqConsumerService
     {
         Task<string> GetOrCreateConsumerAsync(
             IChannel channel, 

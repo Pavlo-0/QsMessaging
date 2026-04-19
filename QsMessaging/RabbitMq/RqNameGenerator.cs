@@ -22,7 +22,7 @@ namespace QsMessaging.RabbitMq
             return GenerateName(TModel, "ex");
         }
 
-        public string GetQueueNameFromType(Type TModel, QueuePurpose queueType)
+        public string GetQueueNameFromType(Type TModel, RqQueuePurpose queueType)
         {
             if (TModel is null)
             {
@@ -33,13 +33,13 @@ namespace QsMessaging.RabbitMq
 
             switch (queueType)
             {
-                case QueuePurpose.Permanent:
+                case RqQueuePurpose.Permanent:
                     return GenerateName(TModel, "permanent");
-                case QueuePurpose.ConsumerTemporary:
+                case RqQueuePurpose.ConsumerTemporary:
                     return GenerateName(TModel, Guid.NewGuid().ToString("N"));
-                case QueuePurpose.InstanceTemporary:
+                case RqQueuePurpose.InstanceTemporary:
                     return GenerateName(TModel, "livetime:" + instanceService.GetInstanceUID().ToString("N"));
-                case QueuePurpose.SingleTemporary:
+                case RqQueuePurpose.SingleTemporary:
                     return GenerateName(TModel, "livetime");
                 default:
                     throw new ArgumentOutOfRangeException("Unknown QueueType");

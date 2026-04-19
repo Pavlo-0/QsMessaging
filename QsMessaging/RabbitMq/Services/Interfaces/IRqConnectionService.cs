@@ -2,7 +2,7 @@
 
 namespace QsMessaging.RabbitMq.Services.Interfaces
 {
-    internal interface IRbConnectionService
+    internal interface IRqConnectionService
     {
         IConnection? GetConnection();
 

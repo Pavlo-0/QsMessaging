@@ -6,7 +6,7 @@ using QsMessaging.Public;
 using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Interfaces;
 using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAsbConnectionService;
-using RabbitConnectionService = QsMessaging.RabbitMq.Services.Interfaces.IRbConnectionService;
+using RabbitConnectionService = QsMessaging.RabbitMq.Services.Interfaces.IRqConnectionService;
 
 namespace QsMessagingUnitTests.Public
 {

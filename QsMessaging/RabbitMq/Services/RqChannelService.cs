@@ -6,13 +6,15 @@ using System.Collections.Concurrent;
 
 namespace QsMessaging.RabbitMq.Services
 {
-    internal class ChannelService(ILogger<ChannelService> logger, IRbConnectionService connectionService): IChannelService
+    internal class RqChannelService(
+        ILogger<RqChannelService> logger,
+        IRqConnectionService connectionService) : IRqChannelService
     {
-        private static ConcurrentDictionary<ChannelPurpose, (IConnection connection, IChannel channel)> _channels
-            = new ConcurrentDictionary<ChannelPurpose, (IConnection connection, IChannel channel)>();
+        private static ConcurrentDictionary<RqChannelPurpose, (IConnection connection, IChannel channel)> _channels
+            = new ConcurrentDictionary<RqChannelPurpose, (IConnection connection, IChannel channel)>();
 
 
-        public async Task<IChannel> GetOrCreateChannelAsync(IConnection connection, ChannelPurpose purpose, CancellationToken cancellationToken = default)
+        public async Task<IChannel> GetOrCreateChannelAsync(IConnection connection, RqChannelPurpose purpose, CancellationToken cancellationToken = default)
         {
             if (_channels.TryGetValue(purpose, out var connectionAndChannel) &&
                 connectionAndChannel.connection != null && connectionAndChannel.connection.IsOpen &&

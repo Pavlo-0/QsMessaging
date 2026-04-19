@@ -5,6 +5,7 @@ using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Models;
 using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared.Models;
 using RabbitMQ.Client;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -15,11 +16,11 @@ namespace QsMessagingUnitTests.RabbitMq.Services
     public class ConsumerServiceTest
     {
 #pragma warning disable CS8618
-        private Mock<ILogger<ConsumerService>> _mockLogger;
+        private Mock<ILogger<RqConsumerService>> _mockLogger;
         private Mock<ISender> _mockSender;
         private Mock<IServiceProvider> _mockServiceProvider;
         private Mock<IChannel> _mockChannel;
-        private IConsumerService _consumerService;
+        private IRqConsumerService _consumerService;
 #pragma warning restore CS8618
 
         private class TestModel { }
@@ -27,16 +28,16 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         [TestInitialize]
         public void Setup()
         {
-            _mockLogger = new Mock<ILogger<ConsumerService>>();
+            _mockLogger = new Mock<ILogger<RqConsumerService>>();
             _mockSender = new Mock<ISender>();
             _mockServiceProvider = new Mock<IServiceProvider>();
             _mockChannel = new Mock<IChannel>();
 
-            _consumerService = new ConsumerService(_mockLogger.Object, _mockSender.Object, _mockServiceProvider.Object);
+            _consumerService = new RqConsumerService(_mockLogger.Object, _mockSender.Object, _mockServiceProvider.Object);
 
             // Reset static bag between tests
-            var field = typeof(ConsumerService).GetField("storeConsumerRecords", BindingFlags.NonPublic | BindingFlags.Static);
-            var bag = (ConcurrentBag<StoreConsumerRecord>)field!.GetValue(null)!;
+            var field = typeof(RqConsumerService).GetField("storeConsumerRecords", BindingFlags.NonPublic | BindingFlags.Static);
+            var bag = (ConcurrentBag<RqStoreConsumerRecord>)field!.GetValue(null)!;
             bag.Clear();
         }
 
@@ -75,9 +76,9 @@ namespace QsMessagingUnitTests.RabbitMq.Services
             const string existingTag = "existing-tag";
             const string queueName = "test-queue";
 
-            var field = typeof(ConsumerService).GetField("storeConsumerRecords", BindingFlags.NonPublic | BindingFlags.Static);
-            var bag = (ConcurrentBag<StoreConsumerRecord>)field!.GetValue(null)!;
-            bag.Add(new StoreConsumerRecord(_mockChannel.Object, queueName, existingTag));
+            var field = typeof(RqConsumerService).GetField("storeConsumerRecords", BindingFlags.NonPublic | BindingFlags.Static);
+            var bag = (ConcurrentBag<RqStoreConsumerRecord>)field!.GetValue(null)!;
+            bag.Add(new RqStoreConsumerRecord(_mockChannel.Object, queueName, existingTag));
 
             var record = new HandlersStoreRecord(
                 typeof(IQsMessageHandler<>),
@@ -112,9 +113,9 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         {
             const string consumerTag = "tag1";
 
-            var field = typeof(ConsumerService).GetField("storeConsumerRecords", BindingFlags.NonPublic | BindingFlags.Static);
-            var bag = (ConcurrentBag<StoreConsumerRecord>)field!.GetValue(null)!;
-            bag.Add(new StoreConsumerRecord(_mockChannel.Object, "queue1", consumerTag));
+            var field = typeof(RqConsumerService).GetField("storeConsumerRecords", BindingFlags.NonPublic | BindingFlags.Static);
+            var bag = (ConcurrentBag<RqStoreConsumerRecord>)field!.GetValue(null)!;
+            bag.Add(new RqStoreConsumerRecord(_mockChannel.Object, "queue1", consumerTag));
 
             var result = _consumerService.GetConsumersByChannel(_mockChannel.Object).ToList();
 
@@ -127,9 +128,9 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         {
             var otherChannel = new Mock<IChannel>();
 
-            var field = typeof(ConsumerService).GetField("storeConsumerRecords", BindingFlags.NonPublic | BindingFlags.Static);
-            var bag = (ConcurrentBag<StoreConsumerRecord>)field!.GetValue(null)!;
-            bag.Add(new StoreConsumerRecord(otherChannel.Object, "queue1", "tag1"));
+            var field = typeof(RqConsumerService).GetField("storeConsumerRecords", BindingFlags.NonPublic | BindingFlags.Static);
+            var bag = (ConcurrentBag<RqStoreConsumerRecord>)field!.GetValue(null)!;
+            bag.Add(new RqStoreConsumerRecord(otherChannel.Object, "queue1", "tag1"));
 
             var result = _consumerService.GetConsumersByChannel(_mockChannel.Object);
 

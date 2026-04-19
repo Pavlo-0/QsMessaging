@@ -9,16 +9,18 @@ using System.Collections.Concurrent;
 
 namespace QsMessaging.RabbitMq.Services
 {
-    internal class ExchangeService(ILogger<ExchangeService> logger, IRqNameGenerator exchangeNameGenerator) : IExchangeService
+    internal class RqExchangeService(
+        ILogger<RqExchangeService> logger,
+        IRqNameGenerator exchangeNameGenerator) : IRqExchangeService
     {
-        private readonly static ConcurrentBag<StoreExchangeRecord> storeExchangeRecords = new ConcurrentBag<StoreExchangeRecord>();
+        private readonly static ConcurrentBag<RqStoreExchangeRecord> storeExchangeRecords = new ConcurrentBag<RqStoreExchangeRecord>();
 
-        public async Task<string> GetOrCreateExchangeAsync(IChannel channel, Type TModel, ExchangePurpose purpose)
+        public async Task<string> GetOrCreateExchangeAsync(IChannel channel, Type TModel, RqExchangePurpose purpose)
         {
             logger.LogDebug("Attempting to declare exchange");
 
             var name = exchangeNameGenerator.GetExchangeNameFromType(TModel);
-            var isAutoDelete = purpose == ExchangePurpose.Permanent ? false : true;
+            var isAutoDelete = purpose == RqExchangePurpose.Permanent ? false : true;
 
             logger.LogDebug("{Name}:{IsAutoDelete}", name, isAutoDelete);
 
@@ -37,7 +39,7 @@ namespace QsMessaging.RabbitMq.Services
                 logger.LogError("Failed to declare the exchange. This exchange may already exist but with a different configuration. Please manually remove the exchange using RabbitMQ Management. The application will continue running, but proper message delivery cannot be guaranteed during service interruptions.");
             }
 
-            storeExchangeRecords.Add(new StoreExchangeRecord(channel, TModel, name));
+            storeExchangeRecords.Add(new RqStoreExchangeRecord(channel, TModel, name));
 
             return name;
         }

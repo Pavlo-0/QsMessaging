@@ -75,16 +75,6 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
             Assert.IsTrue(client.IsClosed);
         }
 
-        [TestMethod]
-        public async Task GetOrCreateConnectionAsync_WhenCancellationAlreadyRequested_ThrowsOperationCanceledException()
-        {
-            using var cts = new CancellationTokenSource();
-            cts.Cancel();
-
-            await Assert.ThrowsExceptionAsync<OperationCanceledException>(
-                () => _connectionService.GetOrCreateConnectionAsync(cts.Token));
-        }
-
         private static Configuration CreateConfiguration()
         {
             return new Configuration

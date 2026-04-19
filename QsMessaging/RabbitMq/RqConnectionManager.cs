@@ -8,7 +8,7 @@ namespace QsMessaging.RabbitMq
 {
     internal class RqConnectionManager(
         ILogger<RqConnectionManager> logger,
-        IRbConnectionService connectionWorker, 
+        IRqConnectionService connectionWorker, 
         ISubscriber subscriber) : IQsMessagingConnectionManager
     {
         public async Task Close(CancellationToken cancellationToken = default)

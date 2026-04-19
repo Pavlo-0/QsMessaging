@@ -4,9 +4,9 @@ using Microsoft.Extensions.Logging;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Public.Handler;
 using QsMessaging.RabbitMq.Interfaces;
-using QsMessaging.RabbitMq.Models;
 using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.Shared;
+using QsMessaging.Shared.Models;
 using System.Text.Json;
 
 namespace QsMessaging.AzureServiceBus.Services
@@ -34,11 +34,11 @@ namespace QsMessaging.AzureServiceBus.Services
 
                 switch (HardConfiguration.GetConsumerPurpose(record.supportedInterfacesType))
                 {
-                    case ConsumerPurpose.MessageEventConsumer:
+                    case RqConsumerPurpose.MessageEventConsumer:
                         await InvokeAsync(consumeMethod.Invoke(handlerInstance, new[] { modelInstance }));
                         break;
 
-                    case ConsumerPurpose.RRRequestConsumer:
+                    case RqConsumerPurpose.RRRequestConsumer:
                         var resultTask = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
                         if (resultTask is not Task task)
                         {
@@ -55,7 +55,7 @@ namespace QsMessaging.AzureServiceBus.Services
                             args.CancellationToken);
                         break;
 
-                    case ConsumerPurpose.RRResponseConsumer:
+                    case RqConsumerPurpose.RRResponseConsumer:
                         await InvokeAsync(consumeMethod.Invoke(handlerInstance, new object?[] { modelInstance, args.Message.CorrelationId ?? string.Empty }));
                         break;
 

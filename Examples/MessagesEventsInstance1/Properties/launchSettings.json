@@ -2,7 +2,7 @@
   "profiles": {
     "MessagesEventsInstance1": {
       "commandName": "Project",
-      "commandLineArgs": "QsMessaging:Transport=AzureServiceBus",
+      "commandLineArgs": "QsMessaging:Transport=RabbitMq",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
       },

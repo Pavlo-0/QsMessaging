@@ -1,6 +1,6 @@
 ﻿namespace QsMessaging.RabbitMq.Models.Enums
 {
-    internal enum QueuePurpose
+    internal enum RqQueuePurpose
     {
         /// <summary>
         /// Single queue. Permanent.

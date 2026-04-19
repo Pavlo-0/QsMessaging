@@ -10,7 +10,7 @@
     "ListAllProjects": false,
 
   "MultiProjectConfigurations": {
-    "MessagesEvent": {
+    "MessagesEvent.AzureServiceBus": {
       "Projects": {
         "MessagesEventsInstance1": {
           "CommandLineArguments": "QsMessaging:Transport=AzureServiceBus"
@@ -20,10 +20,34 @@
         }
       }
     },
-    "RequestResponse": {
+    "MessagesEvent.RabbitMq": {
       "Projects": {
-        "RequestResponse.RequestInstance": {},
-        "RequestResponse.ResponseInstance": {}
+        "MessagesEventsInstance1": {
+          "CommandLineArguments": "QsMessaging:Transport=RabbitMq"
+        },
+        "MessagesEventsInstance2": {
+          "CommandLineArguments": "QsMessaging:Transport=RabbitMq"
+        }
+      }
+    },
+    "RequestResponse.RabbitMq": {
+      "Projects": {
+        "RequestResponse.RequestInstance": {
+          "CommandLineArguments": "QsMessaging:Transport=RabbitMq"
+        },
+        "RequestResponse.ResponseInstance": {
+          "CommandLineArguments": "QsMessaging:Transport=RabbitMq"
+        }
+      }
+    },
+    "RequestResponse.AzureServiceBus": {
+      "Projects": {
+        "RequestResponse.RequestInstance": {
+          "CommandLineArguments": "QsMessaging:Transport=AzureServiceBus"
+        },
+        "RequestResponse.ResponseInstance": {
+          "CommandLineArguments": "QsMessaging:Transport=AzureServiceBus"
+        }
       }
     },
     "IntegrationTest.RabbitMq": {

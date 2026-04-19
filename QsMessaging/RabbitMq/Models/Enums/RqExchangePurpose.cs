@@ -1,6 +1,6 @@
 ﻿namespace QsMessaging.RabbitMq.Models.Enums
 {
-    internal enum ExchangePurpose
+    internal enum RqExchangePurpose
     {
         Permanent,
         Temporary

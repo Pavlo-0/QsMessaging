@@ -4,9 +4,9 @@ using Microsoft.Extensions.Logging;
 using QsMessaging.Shared.Interface;
 using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Services.Interfaces;
-using QsMessaging.RabbitMq.Models;
 using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.Shared.Services.Interfaces;
+using QsMessaging.Shared.Models;
 
 namespace QsMessaging.Tests
 {
@@ -15,9 +15,9 @@ namespace QsMessaging.Tests
     {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private Mock<ILogger<RqSender>> _mockLogger;
-        private Mock<IRbConnectionService> _mockConnectionService;
-        private Mock<IChannelService> _mockChannelService;
-        private Mock<IExchangeService> _mockExchangeService;
+        private Mock<IRqConnectionService> _mockConnectionService;
+        private Mock<IRqChannelService> _mockChannelService;
+        private Mock<IRqExchangeService> _mockExchangeService;
         private Mock<IHandlerService> _mockHandlerService;
         private Mock<ISubscriber> _mockSubscriber;
         private Mock<IRequestResponseMessageStore> _mockMessageStore;
@@ -28,9 +28,9 @@ namespace QsMessaging.Tests
         public void Setup()
         {
             _mockLogger = new Mock<ILogger<RqSender>>();
-            _mockConnectionService = new Mock<IRbConnectionService>();
-            _mockChannelService = new Mock<IChannelService>();
-            _mockExchangeService = new Mock<IExchangeService>();
+            _mockConnectionService = new Mock<IRqConnectionService>();
+            _mockChannelService = new Mock<IRqChannelService>();
+            _mockExchangeService = new Mock<IRqExchangeService>();
             _mockHandlerService = new Mock<IHandlerService>();
             _mockSubscriber = new Mock<ISubscriber>();
             _mockMessageStore = new Mock<IRequestResponseMessageStore>();
@@ -58,18 +58,18 @@ namespace QsMessaging.Tests
             _mockConnectionService.Setup(x => x.GetOrCreateConnectionAsync(CancellationToken.None))
                 .ReturnsAsync(connection.Object);
 
-            _mockChannelService.Setup(x => x.GetOrCreateChannelAsync(connection.Object, ChannelPurpose.MessagePublish, CancellationToken.None))
+            _mockChannelService.Setup(x => x.GetOrCreateChannelAsync(connection.Object, RqChannelPurpose.MessagePublish, CancellationToken.None))
                 .ReturnsAsync(channel.Object);
 
-            _mockExchangeService.Setup(x => x.GetOrCreateExchangeAsync(channel.Object, modelType, ExchangePurpose.Permanent))
+            _mockExchangeService.Setup(x => x.GetOrCreateExchangeAsync(channel.Object, modelType, RqExchangePurpose.Permanent))
                 .ReturnsAsync(exchangeName);
 
             // Act
             await _sender.SendMessageAsync(model);
 
             // Assert
-            _mockExchangeService.Verify(x => x.GetOrCreateExchangeAsync(channel.Object, modelType, ExchangePurpose.Permanent), Times.Once);
-            _mockChannelService.Verify(GetType => GetType.GetOrCreateChannelAsync(connection.Object, ChannelPurpose.MessagePublish, CancellationToken.None), Times.Once);
+            _mockExchangeService.Verify(x => x.GetOrCreateExchangeAsync(channel.Object, modelType, RqExchangePurpose.Permanent), Times.Once);
+            _mockChannelService.Verify(GetType => GetType.GetOrCreateChannelAsync(connection.Object, RqChannelPurpose.MessagePublish, CancellationToken.None), Times.Once);
             _mockConnectionService.Verify(x => x.GetOrCreateConnectionAsync(CancellationToken.None), Times.Once);
 
             channel.Verify(x => x.BasicPublishAsync(
@@ -104,16 +104,16 @@ namespace QsMessaging.Tests
             var exchangeName = "TestExchange";
 
             _mockConnectionService.Setup(x => x.GetOrCreateConnectionAsync(CancellationToken.None)).ReturnsAsync(connection.Object);
-            _mockChannelService.Setup(x => x.GetOrCreateChannelAsync(connection.Object, ChannelPurpose.MessagePublish, CancellationToken.None)).ReturnsAsync(channel.Object);
-            _mockExchangeService.Setup(x => x.GetOrCreateExchangeAsync(channel.Object, modelType, ExchangePurpose.Temporary))
+            _mockChannelService.Setup(x => x.GetOrCreateChannelAsync(connection.Object, RqChannelPurpose.MessagePublish, CancellationToken.None)).ReturnsAsync(channel.Object);
+            _mockExchangeService.Setup(x => x.GetOrCreateExchangeAsync(channel.Object, modelType, RqExchangePurpose.Temporary))
                 .ReturnsAsync(exchangeName);
 
             // Act
             await _sender.SendMessageCorrelationAsync(model, correlationId);
 
             // Assert
-            _mockExchangeService.Verify(x => x.GetOrCreateExchangeAsync(channel.Object, modelType, ExchangePurpose.Temporary), Times.Once);
-            _mockChannelService.Verify(x => x.GetOrCreateChannelAsync(connection.Object, ChannelPurpose.MessagePublish, CancellationToken.None), Times.Once);
+            _mockExchangeService.Verify(x => x.GetOrCreateExchangeAsync(channel.Object, modelType, RqExchangePurpose.Temporary), Times.Once);
+            _mockChannelService.Verify(x => x.GetOrCreateChannelAsync(connection.Object, RqChannelPurpose.MessagePublish, CancellationToken.None), Times.Once);
             _mockConnectionService.Verify(x => x.GetOrCreateConnectionAsync(CancellationToken.None), Times.Once);
             channel.Verify(x => x.BasicPublishAsync(
                 exchangeName,
@@ -167,10 +167,10 @@ namespace QsMessaging.Tests
             _mockConnectionService.Setup(x => x.GetOrCreateConnectionAsync(CancellationToken.None))
                 .ReturnsAsync(connection.Object);
 
-            _mockChannelService.Setup(x => x.GetOrCreateChannelAsync(connection.Object, ChannelPurpose.MessagePublish, CancellationToken.None))
+            _mockChannelService.Setup(x => x.GetOrCreateChannelAsync(connection.Object, RqChannelPurpose.MessagePublish, CancellationToken.None))
                 .ReturnsAsync(channel.Object);
 
-            _mockExchangeService.Setup(x => x.GetOrCreateExchangeAsync(channel.Object, requestModel.GetType(), ExchangePurpose.Temporary))
+            _mockExchangeService.Setup(x => x.GetOrCreateExchangeAsync(channel.Object, requestModel.GetType(), RqExchangePurpose.Temporary))
                 .ReturnsAsync(exchangeName);
 
 
@@ -178,8 +178,8 @@ namespace QsMessaging.Tests
             var response = await _sender.SendRequest<RequestModel, ResponseModel>(requestModel);
 
             // Assert
-            _mockExchangeService.Verify(x => x.GetOrCreateExchangeAsync(channel.Object, requestModel.GetType(), ExchangePurpose.Temporary), Times.Once);
-            _mockChannelService.Verify(x => x.GetOrCreateChannelAsync(connection.Object, ChannelPurpose.MessagePublish, CancellationToken.None), Times.Once);
+            _mockExchangeService.Verify(x => x.GetOrCreateExchangeAsync(channel.Object, requestModel.GetType(), RqExchangePurpose.Temporary), Times.Once);
+            _mockChannelService.Verify(x => x.GetOrCreateChannelAsync(connection.Object, RqChannelPurpose.MessagePublish, CancellationToken.None), Times.Once);
             _mockConnectionService.Verify(x => x.GetOrCreateConnectionAsync(CancellationToken.None), Times.Once);
             _mockSubscriber.Verify(x => x.SubscribeHandlerAsync(It.IsAny<HandlersStoreRecord>(), It.IsAny<CancellationToken>()), Times.Once);
             _mockHandlerService.Verify(x => x.AddRRResponseHandler<ResponseModel>(), Times.Once);
@@ -212,10 +212,10 @@ namespace QsMessaging.Tests
             _mockConnectionService.Setup(x => x.GetOrCreateConnectionAsync(CancellationToken.None))
                 .ReturnsAsync(connection.Object);
 
-            _mockChannelService.Setup(x => x.GetOrCreateChannelAsync(connection.Object, ChannelPurpose.EventPublish, CancellationToken.None))
+            _mockChannelService.Setup(x => x.GetOrCreateChannelAsync(connection.Object, RqChannelPurpose.EventPublish, CancellationToken.None))
                 .ReturnsAsync(channel.Object);
 
-            _mockExchangeService.Setup(x => x.GetOrCreateExchangeAsync(channel.Object, eventModelType, ExchangePurpose.Temporary))
+            _mockExchangeService.Setup(x => x.GetOrCreateExchangeAsync(channel.Object, eventModelType, RqExchangePurpose.Temporary))
                 .ReturnsAsync(exchangeName);
 
             // Act
@@ -224,8 +224,8 @@ namespace QsMessaging.Tests
 
             // Assert
 
-            _mockExchangeService.Verify(x => x.GetOrCreateExchangeAsync(channel.Object, eventModelType, ExchangePurpose.Temporary), Times.Once);
-            _mockChannelService.Verify(x => x.GetOrCreateChannelAsync(connection.Object, ChannelPurpose.EventPublish, CancellationToken.None), Times.Once);
+            _mockExchangeService.Verify(x => x.GetOrCreateExchangeAsync(channel.Object, eventModelType, RqExchangePurpose.Temporary), Times.Once);
+            _mockChannelService.Verify(x => x.GetOrCreateChannelAsync(connection.Object, RqChannelPurpose.EventPublish, CancellationToken.None), Times.Once);
             _mockConnectionService.Verify(x => x.GetOrCreateConnectionAsync(CancellationToken.None), Times.Once);
 
             channel.Verify(x => x.BasicPublishAsync(

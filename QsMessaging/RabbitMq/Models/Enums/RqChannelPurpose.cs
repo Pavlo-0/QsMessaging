@@ -1,6 +1,6 @@
 ﻿namespace QsMessaging.RabbitMq.Models.Enums
 {
-    public enum ChannelPurpose
+    public enum RqChannelPurpose
     {
         Common,
         MessagePublish,

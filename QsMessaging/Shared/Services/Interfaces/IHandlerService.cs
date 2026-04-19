@@ -1,4 +1,5 @@
 ﻿using QsMessaging.RabbitMq.Models;
+using QsMessaging.Shared.Models;
 
 namespace QsMessaging.Shared.Services.Interfaces
 {
@@ -7,7 +8,7 @@ namespace QsMessaging.Shared.Services.Interfaces
         IEnumerable<HandlersStoreRecord> GetHandlers(Type supportedInterfacesType);
         IEnumerable<HandlersStoreRecord> GetHandlers();
 
-        IEnumerable<ConsumerErrorHandlerStoreRecord> GetConsumerErrorHandlers();
+        IEnumerable<RqConsumerErrorHandlerStoreRecord> GetConsumerErrorHandlers();
 
         HandlersStoreRecord AddRRResponseHandler<TContract>();
     }

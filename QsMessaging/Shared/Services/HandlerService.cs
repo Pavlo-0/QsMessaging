@@ -2,6 +2,7 @@
 using QsMessaging.Public.Handler;
 using QsMessaging.RabbitMq.Models;
 using QsMessaging.Shared.Interface;
+using QsMessaging.Shared.Models;
 using QsMessaging.Shared.Services.Interfaces;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -11,7 +12,7 @@ namespace QsMessaging.Shared.Services
     internal class HandlerService : IHandlerService
     {
         private static ConcurrentBag<HandlersStoreRecord> _handlers = new ConcurrentBag<HandlersStoreRecord>();
-        private static ConcurrentBag<ConsumerErrorHandlerStoreRecord> _consumerErrorHandler = new ConcurrentBag<ConsumerErrorHandlerStoreRecord>();
+        private static ConcurrentBag<RqConsumerErrorHandlerStoreRecord> _consumerErrorHandler = new ConcurrentBag<RqConsumerErrorHandlerStoreRecord>();
 
         private IServiceCollection _services;
 
@@ -52,7 +53,7 @@ namespace QsMessaging.Shared.Services
             return _handlers;
         }
 
-        public IEnumerable<ConsumerErrorHandlerStoreRecord> GetConsumerErrorHandlers()
+        public IEnumerable<RqConsumerErrorHandlerStoreRecord> GetConsumerErrorHandlers()
         {
             return _consumerErrorHandler;
         }
@@ -79,7 +80,7 @@ namespace QsMessaging.Shared.Services
                            .Where(type => typeof(TInterface).IsAssignableFrom(type)  // Check if type implements the interface
                                         && type.IsClass                     // Ensure it's a class
                                         && !type.IsAbstract)               // Ensure it's not abstract
-                           .Select(type => new ConsumerErrorHandlerStoreRecord(type));
+                           .Select(type => new RqConsumerErrorHandlerStoreRecord(type));
 
             foreach (var record in records)
             {

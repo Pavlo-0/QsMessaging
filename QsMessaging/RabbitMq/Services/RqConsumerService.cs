@@ -6,6 +6,7 @@ using QsMessaging.RabbitMq.Models;
 using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using QsMessaging.Shared;
+using QsMessaging.Shared.Models;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Collections.Concurrent;
@@ -13,9 +14,12 @@ using System.Text;
 
 namespace QsMessaging.RabbitMq.Services
 {
-    internal class ConsumerService(ILogger<ConsumerService> logger, ISender sender, IServiceProvider services) : IConsumerService
+    internal class RqConsumerService(
+        ILogger<RqConsumerService> logger,
+        ISender sender,
+        IServiceProvider services) : IRqConsumerService
     {
-        private readonly static ConcurrentBag<StoreConsumerRecord> storeConsumerRecords = new ConcurrentBag<StoreConsumerRecord>();
+        private readonly static ConcurrentBag<RqStoreConsumerRecord> storeConsumerRecords = new ConcurrentBag<RqStoreConsumerRecord>();
 
         public async Task<string> GetOrCreateConsumerAsync(
             IChannel channel,
@@ -53,12 +57,12 @@ namespace QsMessaging.RabbitMq.Services
                     {
                         switch (HardConfiguration.GetConsumerPurpose(record.supportedInterfacesType))
                         {
-                            case ConsumerPurpose.MessageEventConsumer:
+                            case RqConsumerPurpose.MessageEventConsumer:
                                 logger.LogTrace("MessageEventConsumer");
                                 var resultAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
                                 break;
 
-                            case ConsumerPurpose.RRRequestConsumer:
+                            case RqConsumerPurpose.RRRequestConsumer:
                                 logger.LogTrace("RRRequestConsumer");
                                 var resultModelAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
 
@@ -77,7 +81,7 @@ namespace QsMessaging.RabbitMq.Services
                                 }
                                 break;
 
-                            case ConsumerPurpose.RRResponseConsumer:
+                            case RqConsumerPurpose.RRResponseConsumer:
                                 logger.LogTrace("RRResponseConsumer");
                                 var resulttAsync = consumeMethod.Invoke(handlerInstance, new[] { modelInstance, correlationId });
                                 break;
@@ -120,7 +124,7 @@ namespace QsMessaging.RabbitMq.Services
 
             logger.LogTrace("Register basic consumer.");
             var consumerTag = await channel.BasicConsumeAsync(queueName, autoAck: true, consumer: consumer);
-            storeConsumerRecords.Add(new StoreConsumerRecord(channel, queueName, consumerTag));
+            storeConsumerRecords.Add(new RqStoreConsumerRecord(channel, queueName, consumerTag));
             return consumerTag;
         }
 

@@ -17,24 +17,24 @@ namespace QsMessagingUnitTests.RabbitMq.Services
     public class QueueServiceTest
     {
 #pragma warning disable CS8618
-        private Mock<ILogger<QueueService>> _mockLogger;
+        private Mock<ILogger<RqQueueService>> _mockLogger;
         private Mock<IRqNameGenerator> _mockNameGenerator;
         private Mock<IChannel> _mockChannel;
-        private IQueueService _queueService;
+        private IRqQueueService _queueService;
 #pragma warning restore CS8618
 
         [TestInitialize]
         public void Setup()
         {
-            _mockLogger = new Mock<ILogger<QueueService>>();
+            _mockLogger = new Mock<ILogger<RqQueueService>>();
             _mockNameGenerator = new Mock<IRqNameGenerator>();
             _mockChannel = new Mock<IChannel>();
 
-            _queueService = new QueueService(_mockLogger.Object, _mockNameGenerator.Object);
+            _queueService = new RqQueueService(_mockLogger.Object, _mockNameGenerator.Object);
 
             // Reset static bag between tests
-            var field = typeof(QueueService).GetField("storeQueueRecords", BindingFlags.NonPublic | BindingFlags.Static);
-            var bag = (ConcurrentBag<StoreQueueRecord>)field!.GetValue(null)!;
+            var field = typeof(RqQueueService).GetField("storeQueueRecords", BindingFlags.NonPublic | BindingFlags.Static);
+            var bag = (ConcurrentBag<RqStoreQueueRecord>)field!.GetValue(null)!;
             bag.Clear();
         }
 
@@ -42,7 +42,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         public async Task GetOrCreateQueuesAsync_ReturnsQueueNameFromNameGenerator()
         {
             const string queueName = "test-queue";
-            _mockNameGenerator.Setup(n => n.GetQueueNameFromType(It.IsAny<Type>(), It.IsAny<QueuePurpose>())).Returns(queueName);
+            _mockNameGenerator.Setup(n => n.GetQueueNameFromType(It.IsAny<Type>(), It.IsAny<RqQueuePurpose>())).Returns(queueName);
             _mockChannel
                 .Setup(c => c.QueueDeclareAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new QueueDeclareOk(queueName, 0, 0));
@@ -50,7 +50,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(c => c.QueueBindAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
-            var result = await _queueService.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(object), "exchange", QueuePurpose.Permanent);
+            var result = await _queueService.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(object), "exchange", RqQueuePurpose.Permanent);
 
             Assert.AreEqual(queueName, result);
         }
@@ -59,7 +59,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         public async Task GetOrCreateQueuesAsync_WhenPermanentPurpose_DeclaresNonAutoDeleteQueue()
         {
             const string queueName = "test-queue";
-            _mockNameGenerator.Setup(n => n.GetQueueNameFromType(It.IsAny<Type>(), It.IsAny<QueuePurpose>())).Returns(queueName);
+            _mockNameGenerator.Setup(n => n.GetQueueNameFromType(It.IsAny<Type>(), It.IsAny<RqQueuePurpose>())).Returns(queueName);
             _mockChannel
                 .Setup(c => c.QueueDeclareAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new QueueDeclareOk(queueName, 0, 0));
@@ -67,7 +67,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(c => c.QueueBindAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
-            await _queueService.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(object), "exchange", QueuePurpose.Permanent);
+            await _queueService.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(object), "exchange", RqQueuePurpose.Permanent);
 
             _mockChannel.Verify(c => c.QueueDeclareAsync(
                 queueName,
@@ -84,7 +84,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         public async Task GetOrCreateQueuesAsync_WhenConsumerTemporaryPurpose_DeclaresAutoDeleteQueue()
         {
             const string queueName = "test-queue";
-            _mockNameGenerator.Setup(n => n.GetQueueNameFromType(It.IsAny<Type>(), It.IsAny<QueuePurpose>())).Returns(queueName);
+            _mockNameGenerator.Setup(n => n.GetQueueNameFromType(It.IsAny<Type>(), It.IsAny<RqQueuePurpose>())).Returns(queueName);
             _mockChannel
                 .Setup(c => c.QueueDeclareAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new QueueDeclareOk(queueName, 0, 0));
@@ -92,7 +92,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(c => c.QueueBindAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
-            await _queueService.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(object), "exchange", QueuePurpose.ConsumerTemporary);
+            await _queueService.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(object), "exchange", RqQueuePurpose.ConsumerTemporary);
 
             _mockChannel.Verify(c => c.QueueDeclareAsync(
                 queueName,
@@ -109,7 +109,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         public async Task GetOrCreateQueuesAsync_WhenInstanceTemporaryPurpose_DeclaresAutoDeleteQueue()
         {
             const string queueName = "test-queue";
-            _mockNameGenerator.Setup(n => n.GetQueueNameFromType(It.IsAny<Type>(), It.IsAny<QueuePurpose>())).Returns(queueName);
+            _mockNameGenerator.Setup(n => n.GetQueueNameFromType(It.IsAny<Type>(), It.IsAny<RqQueuePurpose>())).Returns(queueName);
             _mockChannel
                 .Setup(c => c.QueueDeclareAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new QueueDeclareOk(queueName, 0, 0));
@@ -117,7 +117,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(c => c.QueueBindAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
-            await _queueService.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(object), "exchange", QueuePurpose.InstanceTemporary);
+            await _queueService.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(object), "exchange", RqQueuePurpose.InstanceTemporary);
 
             _mockChannel.Verify(c => c.QueueDeclareAsync(
                 queueName,
@@ -134,7 +134,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         public async Task GetOrCreateQueuesAsync_WhenPermanentAndQueueBindThrows_DoesNotRethrow()
         {
             const string queueName = "test-queue";
-            _mockNameGenerator.Setup(n => n.GetQueueNameFromType(It.IsAny<Type>(), It.IsAny<QueuePurpose>())).Returns(queueName);
+            _mockNameGenerator.Setup(n => n.GetQueueNameFromType(It.IsAny<Type>(), It.IsAny<RqQueuePurpose>())).Returns(queueName);
             _mockChannel
                 .Setup(c => c.QueueDeclareAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new QueueDeclareOk(queueName, 0, 0));
@@ -144,7 +144,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(c => c.QueueBindAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new OperationInterruptedException(shutdownArgs));
 
-            var result = await _queueService.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(object), "exchange", QueuePurpose.Permanent);
+            var result = await _queueService.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(object), "exchange", RqQueuePurpose.Permanent);
 
             Assert.AreEqual(queueName, result);
         }
@@ -153,7 +153,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         public async Task GetOrCreateQueuesAsync_WhenConsumerTemporaryAndQueueBindThrows_Rethrows()
         {
             const string queueName = "test-queue";
-            _mockNameGenerator.Setup(n => n.GetQueueNameFromType(It.IsAny<Type>(), It.IsAny<QueuePurpose>())).Returns(queueName);
+            _mockNameGenerator.Setup(n => n.GetQueueNameFromType(It.IsAny<Type>(), It.IsAny<RqQueuePurpose>())).Returns(queueName);
             _mockChannel
                 .Setup(c => c.QueueDeclareAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<IDictionary<string, object>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new QueueDeclareOk(queueName, 0, 0));
@@ -164,7 +164,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .ThrowsAsync(new OperationInterruptedException(shutdownArgs));
 
             await Assert.ThrowsExceptionAsync<OperationInterruptedException>(
-                () => _queueService.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(object), "exchange", QueuePurpose.ConsumerTemporary));
+                () => _queueService.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(object), "exchange", RqQueuePurpose.ConsumerTemporary));
         }
     }
 }

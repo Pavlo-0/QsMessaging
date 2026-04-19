@@ -1,5 +1,5 @@
 ﻿using Azure.Messaging.ServiceBus;
-using QsMessaging.RabbitMq.Models;
+using QsMessaging.Shared.Models;
 
 namespace QsMessaging.AzureServiceBus.Services.Interfaces
 {

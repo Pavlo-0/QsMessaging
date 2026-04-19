@@ -14,7 +14,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
 #pragma warning disable CS8618
         private Mock<ILogger<RbConnectionService>> _mockLogger;
         private Mock<IConnection> _mockConnection;
-        private IRbConnectionService _connectionService;
+        private IRqConnectionService _connectionService;
 #pragma warning restore CS8618
 
         [TestInitialize]

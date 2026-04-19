@@ -1,20 +1,20 @@
 ﻿using Microsoft.Extensions.Logging;
 using QsMessaging.Shared.Interface;
 using QsMessaging.RabbitMq.Services.Interfaces;
-using QsMessaging.RabbitMq.Models;
 using QsMessaging.Shared.Services.Interfaces;
 using QsMessaging.Shared;
+using QsMessaging.Shared.Models;
 
 namespace QsMessaging.RabbitMq
 {
     internal class RqSubscriber(
         ILogger<RqSubscriber> logger,
-        IRbConnectionService connectionService,
-        IChannelService channelService,
-        IExchangeService exchangeService,
-        IQueueService queueService,
+        IRqConnectionService connectionService,
+        IRqChannelService channelService,
+        IRqExchangeService exchangeService,
+        IRqQueueService queueService,
         IHandlerService handlerService,
-        IConsumerService consumerService) : ISubscriber
+        IRqConsumerService consumerService) : ISubscriber
     {
 
         public async Task SubscribeAsync(CancellationToken cancellationToken = default)

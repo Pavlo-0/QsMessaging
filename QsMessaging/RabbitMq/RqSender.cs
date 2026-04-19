@@ -13,9 +13,9 @@ namespace QsMessaging.RabbitMq
 {
     internal class RqSender(
         ILogger<RqSender> logger,
-        IRbConnectionService connectionService,
-        IChannelService channelService,
-        IExchangeService queuesService,
+        IRqConnectionService connectionService,
+        IRqChannelService channelService,
+        IRqExchangeService queuesService,
 
         IHandlerService handlerService,
         Lazy<ISubscriber> subscriber,
@@ -104,11 +104,11 @@ namespace QsMessaging.RabbitMq
 
             var connection = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
             var channel = await channelService.GetOrCreateChannelAsync(connection,
-                messageType == MessageTypeEnum.Message ? ChannelPurpose.MessagePublish : ChannelPurpose.EventPublish,
+                messageType == MessageTypeEnum.Message ? RqChannelPurpose.MessagePublish : RqChannelPurpose.EventPublish,
                 cancellationToken);
 
             string exchangeName = await queuesService.GetOrCreateExchangeAsync(channel, type,
-                messageType == MessageTypeEnum.Message && !isLiveTime ? ExchangePurpose.Permanent : ExchangePurpose.Temporary);
+                messageType == MessageTypeEnum.Message && !isLiveTime ? RqExchangePurpose.Permanent : RqExchangePurpose.Temporary);
 
             var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(model));
 

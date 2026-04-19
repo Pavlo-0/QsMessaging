@@ -1,4 +1,4 @@
-﻿using QsMessaging.RabbitMq.Models;
+﻿using QsMessaging.Shared.Models;
 
 namespace QsMessaging.Shared.Interface
 {

@@ -3,8 +3,8 @@ using Azure.Messaging.ServiceBus.Administration;
 using Microsoft.Extensions.Logging;
 using QsMessaging.AzureServiceBus.Models.Enums;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
-using QsMessaging.RabbitMq.Models;
 using QsMessaging.Shared;
+using QsMessaging.Shared.Models;
 using QsMessaging.Shared.Services.Interfaces;
 
 namespace QsMessaging.AzureServiceBus.Services
