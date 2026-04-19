@@ -16,6 +16,8 @@ namespace QsMessaging.Shared
             public ConsumerPurpose ConsumerPurpose { get; set; }
             public AsbReciverPurpose ReciverPurpose { get; set; }
 
+            public AbsSubscriptionPurpose SubscriptionPurpose { get; set; }
+
             public string Name
             {
                 get
@@ -38,7 +40,8 @@ namespace QsMessaging.Shared
                         QueuePurpose = QueuePurpose.ConsumerTemporary,
                         ChannelPurpose = ChannelPurpose.QueueConsumerTemporary,
                         ConsumerPurpose = ConsumerPurpose.MessageEventConsumer,
-                        ReciverPurpose = AsbReciverPurpose.TopicSubscription
+                        ReciverPurpose = AsbReciverPurpose.TopicSubscription,
+                        SubscriptionPurpose = AbsSubscriptionPurpose.Temporary
                     },
                     new SupportedInterfacesStruct
                     {
@@ -47,7 +50,8 @@ namespace QsMessaging.Shared
                         QueuePurpose = QueuePurpose.Permanent,
                         ChannelPurpose = ChannelPurpose.QueuePermanent,
                         ConsumerPurpose = ConsumerPurpose.MessageEventConsumer,
-                        ReciverPurpose = AsbReciverPurpose.Queue
+                        ReciverPurpose = AsbReciverPurpose.TopicSubscription,
+                        SubscriptionPurpose = AbsSubscriptionPurpose.Permanent
 
                     },
                     new SupportedInterfacesStruct
@@ -57,7 +61,7 @@ namespace QsMessaging.Shared
                         QueuePurpose = QueuePurpose.InstanceTemporary,
                         ChannelPurpose = ChannelPurpose.QueueInstanceTemporary,
                         ConsumerPurpose = ConsumerPurpose.RRResponseConsumer,
-                        ReciverPurpose = AsbReciverPurpose.Queue
+                        ReciverPurpose = AsbReciverPurpose.QueueForResponse,
                     },
                     new SupportedInterfacesStruct
                                         {
@@ -66,7 +70,7 @@ namespace QsMessaging.Shared
                         QueuePurpose = QueuePurpose.SingleTemporary,
                         ChannelPurpose = ChannelPurpose.QueueSingleTemporary,
                         ConsumerPurpose = ConsumerPurpose.RRRequestConsumer,
-                        ReciverPurpose = AsbReciverPurpose.Queue
+                        ReciverPurpose = AsbReciverPurpose.QueueForRequest
                     },
                 };
             }
@@ -108,6 +112,11 @@ namespace QsMessaging.Shared
         public static AsbReciverPurpose GetReciverPurpose(Type interfaceType)
         {
             return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).ReciverPurpose;
+        }
+
+        public static AbsSubscriptionPurpose GetSubscriptionPurpose(Type interfaceType)
+        {
+            return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).SubscriptionPurpose;
         }
     }
 }

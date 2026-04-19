@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared.Services.Interfaces;
 
 namespace QsMessaging.RabbitMq.Services
 {

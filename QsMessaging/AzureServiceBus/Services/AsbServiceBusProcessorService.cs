@@ -27,10 +27,15 @@ namespace QsMessaging.AzureServiceBus.Services
 
             switch (reciverPurpose)
             {
-                case AsbReciverPurpose.Queue:
-                    var queueName = await queueService.GetOrCreateQueueAsync(record.GenericType, cancellationToken);
+                case AsbReciverPurpose.QueueForRequest:
+                    var queueName = await queueService.GetOrCreateQueueAsync(record.GenericType, AsbQueuePurpose.Request, cancellationToken);
 
                     processor = client.CreateProcessor(queueName, CreateProcessorOptions());
+                    break;
+                case AsbReciverPurpose.QueueForResponse:
+                    var responseQueueName = await queueService.GetOrCreateQueueAsync(record.GenericType, AsbQueuePurpose.Response, cancellationToken);
+
+                    processor = client.CreateProcessor(responseQueueName, CreateProcessorOptions());
                     break;
                 case AsbReciverPurpose.TopicSubscription:
 

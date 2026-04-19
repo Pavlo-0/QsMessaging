@@ -21,7 +21,6 @@ namespace QsMessaging.AzureServiceBus.Services
 
         public async Task<ServiceBusClient> GetOrCreateConnectionAsync(CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
             await _semaphore.WaitAsync(cancellationToken);
             try
             {
@@ -44,7 +43,6 @@ namespace QsMessaging.AzureServiceBus.Services
         {
             ServiceBusClient? connectionToDispose = null;
 
-            cancellationToken.ThrowIfCancellationRequested();
             await _semaphore.WaitAsync(cancellationToken);
             try
             {
@@ -133,8 +131,6 @@ namespace QsMessaging.AzureServiceBus.Services
 
         private ServiceBusClient CreateConnection(CancellationToken cancellationToken)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
             string connectionString = AsbConnectionStringHelper.GetClientConnectionString(configuration.AzureServiceBus);
             return new ServiceBusClient(connectionString);
         }

@@ -85,7 +85,7 @@ namespace QsMessaging.Public
                     services.AddTransient<IAsbTopicSubscriptionService, AsbTopicSubscriptionService>();
 
                     services.AddTransient<IAsbServiceBusProcessorService, AsbServiceBusProcessorService>();
-                    services.AddTransient<IAsbHandlersService, AsbHandlersService>();
+                    services.AddTransient<IAsbConsumerService, AsbConsumerService>();
                     break;
 
                 default:

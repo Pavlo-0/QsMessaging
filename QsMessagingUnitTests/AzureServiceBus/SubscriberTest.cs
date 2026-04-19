@@ -16,7 +16,7 @@ namespace QsMessagingUnitTests.AzureServiceBus
         private Mock<ILogger<AsbSubscriber>> _mockLogger;
         private Mock<IAsbServiceBusProcessorService> _mockProcessorService;
         private Mock<IHandlerService> _mockHandlerService;
-        private Mock<IAsbHandlersService> _mockHandlersService;
+        private Mock<IAsbConsumerService> _mockHandlersService;
         private AsbSubscriber _subscriber;
 #pragma warning restore CS8618
 
@@ -28,7 +28,7 @@ namespace QsMessagingUnitTests.AzureServiceBus
             _mockLogger = new Mock<ILogger<AsbSubscriber>>();
             _mockProcessorService = new Mock<IAsbServiceBusProcessorService>();
             _mockHandlerService = new Mock<IHandlerService>();
-            _mockHandlersService = new Mock<IAsbHandlersService>();
+            _mockHandlersService = new Mock<IAsbConsumerService>();
 
             _subscriber = new AsbSubscriber(
                 _mockLogger.Object,

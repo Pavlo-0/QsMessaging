@@ -1,8 +1,10 @@
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Logging;
+using QsMessaging.AzureServiceBus.Models.Enums;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.Shared.Interface;
+using QsMessaging.Shared.Models.Enums;
 using QsMessaging.Shared.Services.Interfaces;
 using System.Collections.Concurrent;
 using System.Text.Json;
@@ -22,15 +24,15 @@ namespace QsMessaging.AzureServiceBus
 
         public async Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
         {
-            var queueName = await queueService.GetOrCreateQueueAsync(typeof(TMessage));
-            await SendToEntityAsync(queueName, CreateMessage(model, typeof(TMessage)));
+            var queueName = await topicService.GetOrCreateTopicAsync(typeof(TMessage));
+            await SendToEntityAsync(queueName, CreateMessage(model, typeof(TMessage), MessageTypeEnum.Event));
             logger.LogInformation("Message has been published to Azure Service Bus queue {QueueName}", queueName);
         }
 
         public async Task SendEventAsync<TEvent>(TEvent model) where TEvent : class
         {
             var topicName = await topicService.GetOrCreateTopicAsync(typeof(TEvent));
-            await SendToEntityAsync(topicName, CreateMessage(model, typeof(TEvent)));
+            await SendToEntityAsync(topicName, CreateMessage(model, typeof(TEvent), MessageTypeEnum.Event));
             logger.LogInformation("Event has been published to Azure Service Bus topic {TopicName}", topicName);
         }
 
@@ -46,10 +48,10 @@ namespace QsMessaging.AzureServiceBus
             await subscriber.Value.SubscribeHandlerAsync(responseHandlerRecord, cancellationToken);
 
             //TODO: reconsidering  queue purpose type
-            var requestQueueName = await queueService.GetOrCreateQueueAsync(typeof(TRequest));
-            var responseQueueName = await queueService.GetOrCreateQueueAsync(typeof(TResponse));
+            var requestQueueName = await queueService.GetOrCreateQueueAsync(typeof(TRequest), AsbQueuePurpose.Request, cancellationToken);
+            var responseQueueName = await queueService.GetOrCreateQueueAsync(typeof(TResponse), AsbQueuePurpose.Response);
 
-            var requestMessage = CreateMessage(model, typeof(TRequest), correlationId, responseQueueName);
+            var requestMessage = CreateMessage(model, typeof(TRequest), MessageTypeEnum.Message, correlationId, responseQueueName);
             await SendToEntityAsync(requestQueueName, requestMessage, cancellationToken);
 
             await waitForResponse;
@@ -73,7 +75,7 @@ namespace QsMessaging.AzureServiceBus
 
             try
             {
-                await SendToEntityAsync(replyTo, CreateMessage(model, model.GetType(), correlationId), cancellationToken);
+                await SendToEntityAsync(replyTo, CreateMessage(model, model.GetType(), MessageTypeEnum.Message, correlationId) , cancellationToken);
             }
             catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
             {
@@ -85,21 +87,20 @@ namespace QsMessaging.AzureServiceBus
             }
         }
 
-        private async Task SendToEntityAsync(string entityName, ServiceBusMessage message, CancellationToken cancellationToken = default)
+        private async Task SendToEntityAsync(string queueOrTopicName, ServiceBusMessage message, CancellationToken cancellationToken = default)
         {
             var client = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
-            message.TimeToLive = TimeSpan.FromMinutes(10);
-
-            var sender = senders.GetOrAdd(entityName, client.CreateSender);
+            var sender = senders.GetOrAdd(queueOrTopicName, client.CreateSender);
             await sender.SendMessageAsync(message, cancellationToken);
         }
 
-        private static ServiceBusMessage CreateMessage(object model, Type contractType, string? correlationId = null, string? replyTo = null)
+        private static ServiceBusMessage CreateMessage(object model, Type contractType, MessageTypeEnum messageType, string? correlationId = null, string? replyTo = null)
         {
             var message = new ServiceBusMessage(BinaryData.FromString(JsonSerializer.Serialize(model)))
             {
                 ContentType = "application/json",
-                Subject = contractType.FullName,
+                Subject = contractType.FullName, //TODO: Can be type of message for queue topic event or message and etc
+                TimeToLive = messageType == MessageTypeEnum.Message ? TimeSpan.FromDays(14) : TimeSpan.FromSeconds(60),
                 CorrelationId = correlationId,
                 ReplyTo = replyTo
             };

@@ -7,6 +7,7 @@ using QsMessaging.RabbitMq.Services.Interfaces;
 using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.Shared.Services.Interfaces;
+using QsMessaging.Shared.Models.Enums;
 
 namespace QsMessaging.RabbitMq
 {
@@ -122,10 +123,5 @@ namespace QsMessaging.RabbitMq
             logger.LogDebug("{type}", type.FullName);
         }
 
-        private enum MessageTypeEnum
-        {
-            Message,
-            Event
-        }
     }
 }

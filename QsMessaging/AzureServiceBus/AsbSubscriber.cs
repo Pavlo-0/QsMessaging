@@ -11,7 +11,7 @@ namespace QsMessaging.AzureServiceBus
         ILogger<AsbSubscriber> logger,
         IAsbServiceBusProcessorService serviceBusProcessorService,
         IHandlerService handlerService,
-        IAsbHandlersService handlersService) : ISubscriber
+        IAsbConsumerService handlersService) : ISubscriber
     {
 
         public async Task SubscribeAsync(CancellationToken cancellationToken = default)

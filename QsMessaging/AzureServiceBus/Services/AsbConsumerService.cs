@@ -11,10 +11,10 @@ using System.Text.Json;
 
 namespace QsMessaging.AzureServiceBus.Services
 {
-    internal class AsbHandlersService(
+    internal class AsbConsumerService(
         ILogger<AsbSubscriber> logger,
         IServiceProvider services,
-        ISender responseSender) : IAsbHandlersService
+        ISender responseSender) : IAsbConsumerService
     {
 
         public async Task HandleMessageAsync(ProcessMessageEventArgs args, HandlersStoreRecord record, string entityDisplayName)
