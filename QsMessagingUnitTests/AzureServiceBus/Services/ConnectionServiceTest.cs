@@ -100,7 +100,7 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
         private static ServiceBusClient CreateConnection()
         {
             return new ServiceBusClient(
-                ConnectionStringHelper.GetClientConnectionString(CreateConfiguration().AzureServiceBus));
+                AsbConnectionStringHelper.GetClientConnectionString(CreateConfiguration().AzureServiceBus));
         }
 
         private static void SetConnection(ServiceBusClient? client)

@@ -3,7 +3,7 @@ using QsMessaging.RabbitMq.Models;
 
 namespace QsMessaging.AzureServiceBus.Services
 {
-    internal interface IServiceBusProcessorService
+    internal interface IAsbServiceBusProcessorService
     {
         Task<ServiceBusProcessor> GetOrCreate(HandlersStoreRecord record, CancellationToken cancellationToken);
         Task StopAndDisposeProcessorAsync();

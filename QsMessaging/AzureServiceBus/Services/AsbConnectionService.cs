@@ -82,7 +82,7 @@ namespace QsMessaging.AzureServiceBus.Services
                 }
 
                 administrationClient = new ServiceBusAdministrationClient(
-                    ConnectionStringHelper.GetAdministrationConnectionString(configuration.AzureServiceBus));
+                    AsbConnectionStringHelper.GetAdministrationConnectionString(configuration.AzureServiceBus));
                 logger.LogInformation("Azure Service Bus administration client created for {Endpoint}", GetEndpoint(configuration.AzureServiceBus));
                 return administrationClient;
             }
@@ -135,13 +135,13 @@ namespace QsMessaging.AzureServiceBus.Services
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            string connectionString = ConnectionStringHelper.GetClientConnectionString(configuration.AzureServiceBus);
+            string connectionString = AsbConnectionStringHelper.GetClientConnectionString(configuration.AzureServiceBus);
             return new ServiceBusClient(connectionString);
         }
 
         private static string GetEndpoint(QsAzureServiceBusConfiguration configuration)
         {
-            return ConnectionStringHelper.GetClientConnectionString(configuration)
+            return AsbConnectionStringHelper.GetClientConnectionString(configuration)
                 .Split(';', StringSplitOptions.RemoveEmptyEntries)
                 .FirstOrDefault(part => part.StartsWith("Endpoint=", StringComparison.OrdinalIgnoreCase))
                 ?? "unknown";

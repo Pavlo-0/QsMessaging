@@ -9,7 +9,7 @@ namespace QsMessaging.AzureServiceBus
 {
     internal class AsbSubscriber(
         ILogger<AsbSubscriber> logger,
-        IServiceBusProcessorService serviceBusProcessorService,
+        IAsbServiceBusProcessorService serviceBusProcessorService,
         IHandlerService handlerService,
         IAsbHandlersService handlersService) : ISubscriber
     {

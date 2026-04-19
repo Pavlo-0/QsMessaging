@@ -33,13 +33,5 @@ namespace QsMessaging.AzureServiceBus.Services
             var suffix = HashString(rawName, 45);
             return $"Qs_s{suffix}";
         }
-
-        /*
-        public string BuildSubscriptionName(QsMessaging.RabbitMq.Models.HandlersStoreRecord record, Guid instanceUid)
-        {
-            var rawName = $"{record.GenericType.FullName}:{record.HandlerType.FullName}:{instanceUid:N}";
-            var suffix = HashString(rawName, 160);
-            return $"Qs:sub:{suffix}";
-        }*/
     }
 }

@@ -2,7 +2,7 @@ using System.Text;
 
 namespace QsMessaging.AzureServiceBus.Services
 {
-    internal static class ConnectionStringHelper
+    internal static class AsbConnectionStringHelper
     {
         public static string GetClientConnectionString(QsAzureServiceBusConfiguration configuration)
         {

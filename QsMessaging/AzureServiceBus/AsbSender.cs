@@ -1,10 +1,10 @@
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Logging;
-using QsMessaging.AzureServiceBus.Services;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.Shared.Interface;
 using QsMessaging.Shared.Services.Interfaces;
+using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace QsMessaging.AzureServiceBus
@@ -18,7 +18,7 @@ namespace QsMessaging.AzureServiceBus
         Lazy<ISubscriber> subscriber,
         IRequestResponseMessageStore requestResponseMessageStore) : ISender
     {
-        public IAsbTopicService TopicService { get; } = topicService;
+        private readonly ConcurrentDictionary<string, ServiceBusSender> senders = new();
 
         public async Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
         {
@@ -88,11 +88,10 @@ namespace QsMessaging.AzureServiceBus
         private async Task SendToEntityAsync(string entityName, ServiceBusMessage message, CancellationToken cancellationToken = default)
         {
             var client = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
-            //TODO: create sender every time. Better re use them for every queue or topic but can be limited
             message.TimeToLive = TimeSpan.FromMinutes(10);
-            await using var sender = client.CreateSender(entityName);
+
+            var sender = senders.GetOrAdd(entityName, client.CreateSender);
             await sender.SendMessageAsync(message, cancellationToken);
-            await sender.CloseAsync();
         }
 
         private static ServiceBusMessage CreateMessage(object model, Type contractType, string? correlationId = null, string? replyTo = null)

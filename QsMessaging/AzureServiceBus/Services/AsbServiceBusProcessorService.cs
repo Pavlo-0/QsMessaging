@@ -8,12 +8,12 @@ using System.Collections.Concurrent;
 
 namespace QsMessaging.AzureServiceBus.Services
 {
-    internal class ServiceBusProcessorService(
-        ILogger<ServiceBusProcessorService> logger,
+    internal class AsbServiceBusProcessorService(
+        ILogger<AsbServiceBusProcessorService> logger,
         IAsbConnectionService connectionService,
         IAsbTopicService topicService,
         IAsbQueueService queueService,
-        IAsbTopicSubscriptionService topicSubscriptionService) : IServiceBusProcessorService
+        IAsbTopicSubscriptionService topicSubscriptionService) : IAsbServiceBusProcessorService
     {
         private readonly static ConcurrentBag<ServiceBusProcessor> _processors = new();
 
