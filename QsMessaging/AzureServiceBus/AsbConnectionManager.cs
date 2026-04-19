@@ -3,19 +3,19 @@ using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Public;
 using QsMessaging.Shared.Interface;
 using System.Runtime.ExceptionServices;
-using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAbsConnectionService;
+using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAsbConnectionService;
 
 namespace QsMessaging.AzureServiceBus
 {
     internal class AsbConnectionManager(
         ILogger<AsbConnectionManager> logger,
         AzureConnectionService connectionWorker,
-        IAdministrationService administrationService,
+        IAsbTopicService administrationService,
         ISubscriber subscriber) : IQsMessagingConnectionManager
     {
         private readonly SemaphoreSlim _lifecycleSemaphore = new(1, 1);
         private readonly object _deferredLifecycleSync = new();
-        private readonly IAdministrationService _administrationService = administrationService;
+        private readonly IAsbTopicService _administrationService = administrationService;
         private Task _deferredLifecycleTask = Task.CompletedTask;
 
         public async Task Close(CancellationToken cancellationToken = default)

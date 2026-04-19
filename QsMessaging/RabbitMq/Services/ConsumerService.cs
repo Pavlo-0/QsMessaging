@@ -1,11 +1,11 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QsMessaging.Public.Handler;
-using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Models;
 using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Collections.Concurrent;

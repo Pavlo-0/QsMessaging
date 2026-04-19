@@ -2,7 +2,7 @@ using QsMessaging.RabbitMq.Models;
 
 namespace QsMessaging.AzureServiceBus.Services.Interfaces
 {
-    internal interface ISubscriptionService
+    internal interface IAsbTopicSubscriptionService
     {
         Task<string> GetOrCreateSubscriptionAsync(HandlersStoreRecord record, CancellationToken cancellationToken = default);
     }

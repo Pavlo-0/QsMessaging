@@ -1,8 +1,9 @@
-﻿using QsMessaging.Public.Handler;
+﻿using QsMessaging.AzureServiceBus.Models.Enums;
+using QsMessaging.Public.Handler;
 using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.Shared.Interface;
 
-namespace QsMessaging.RabbitMq
+namespace QsMessaging.Shared
 {
     internal static class HardConfiguration
     {
@@ -13,6 +14,7 @@ namespace QsMessaging.RabbitMq
             public QueuePurpose QueuePurpose { get; init; }
             public ChannelPurpose ChannelPurpose { get; init; }
             public ConsumerPurpose ConsumerPurpose { get; set; }
+            public AsbReciverPurpose ReciverPurpose { get; set; }
 
             public string Name
             {
@@ -35,7 +37,8 @@ namespace QsMessaging.RabbitMq
                         ExchangePurpose = ExchangePurpose.Temporary,
                         QueuePurpose = QueuePurpose.ConsumerTemporary,
                         ChannelPurpose = ChannelPurpose.QueueConsumerTemporary,
-                        ConsumerPurpose = ConsumerPurpose.MessageEventConsumer
+                        ConsumerPurpose = ConsumerPurpose.MessageEventConsumer,
+                        ReciverPurpose = AsbReciverPurpose.TopicSubscription
                     },
                     new SupportedInterfacesStruct
                     {
@@ -43,7 +46,8 @@ namespace QsMessaging.RabbitMq
                         ExchangePurpose = ExchangePurpose.Permanent,
                         QueuePurpose = QueuePurpose.Permanent,
                         ChannelPurpose = ChannelPurpose.QueuePermanent,
-                        ConsumerPurpose = ConsumerPurpose.MessageEventConsumer
+                        ConsumerPurpose = ConsumerPurpose.MessageEventConsumer,
+                        ReciverPurpose = AsbReciverPurpose.Queue
 
                     },
                     new SupportedInterfacesStruct
@@ -52,7 +56,8 @@ namespace QsMessaging.RabbitMq
                         ExchangePurpose = ExchangePurpose.Temporary,
                         QueuePurpose = QueuePurpose.InstanceTemporary,
                         ChannelPurpose = ChannelPurpose.QueueInstanceTemporary,
-                        ConsumerPurpose = ConsumerPurpose.RRResponseConsumer
+                        ConsumerPurpose = ConsumerPurpose.RRResponseConsumer,
+                        ReciverPurpose = AsbReciverPurpose.Queue
                     },
                     new SupportedInterfacesStruct
                                         {
@@ -60,7 +65,8 @@ namespace QsMessaging.RabbitMq
                         ExchangePurpose = ExchangePurpose.Temporary,
                         QueuePurpose = QueuePurpose.SingleTemporary,
                         ChannelPurpose = ChannelPurpose.QueueSingleTemporary,
-                        ConsumerPurpose = ConsumerPurpose.RRRequestConsumer
+                        ConsumerPurpose = ConsumerPurpose.RRRequestConsumer,
+                        ReciverPurpose = AsbReciverPurpose.Queue
                     },
                 };
             }
@@ -97,6 +103,11 @@ namespace QsMessaging.RabbitMq
         public static ConsumerPurpose GetConsumerPurpose(Type interfaceType)
         {
             return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).ConsumerPurpose;
+        }
+
+        public static AsbReciverPurpose GetReciverPurpose(Type interfaceType)
+        {
+            return SupportedInterfaces.First(x => x.TypeInterface == interfaceType).ReciverPurpose;
         }
     }
 }

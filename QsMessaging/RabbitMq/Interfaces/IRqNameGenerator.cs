@@ -2,7 +2,7 @@
 
 namespace QsMessaging.Shared.Interface
 {
-    internal interface INameGenerator
+    internal interface IRqNameGenerator
     {
         string GetExchangeNameFromType<TModel>();
 
@@ -10,8 +10,5 @@ namespace QsMessaging.Shared.Interface
 
         string GetQueueNameFromType(Type TModel, QueuePurpose queueType);
 
-        string GetAsbQueueNameFromType(Type TModel);
-
-        string GetAsbTopicNameFromType(Type TModel);
     }
 }

@@ -18,7 +18,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
     {
 #pragma warning disable CS8618
         private Mock<ILogger<ExchangeService>> _mockLogger;
-        private Mock<INameGenerator> _mockNameGenerator;
+        private Mock<IRqNameGenerator> _mockNameGenerator;
         private Mock<IChannel> _mockChannel;
         private IExchangeService _exchangeService;
 #pragma warning restore CS8618
@@ -27,7 +27,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         public void Setup()
         {
             _mockLogger = new Mock<ILogger<ExchangeService>>();
-            _mockNameGenerator = new Mock<INameGenerator>();
+            _mockNameGenerator = new Mock<IRqNameGenerator>();
             _mockChannel = new Mock<IChannel>();
 
             _exchangeService = new ExchangeService(_mockLogger.Object, _mockNameGenerator.Object);

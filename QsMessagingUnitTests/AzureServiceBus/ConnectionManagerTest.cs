@@ -4,7 +4,7 @@ using Moq;
 using QsMessaging.AzureServiceBus;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Shared.Interface;
-using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAbsConnectionService;
+using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAsbConnectionService;
 
 namespace QsMessagingUnitTests.AzureServiceBus
 {
@@ -14,7 +14,7 @@ namespace QsMessagingUnitTests.AzureServiceBus
 #pragma warning disable CS8618
         private Mock<ILogger<AsbConnectionManager>> _mockLogger;
         private Mock<AzureConnectionService> _mockConnectionService;
-        private Mock<IAdministrationService> _mockAdministrationService;
+        private Mock<IAsbTopicService> _mockAdministrationService;
         private Mock<ISubscriber> _mockSubscriber;
         private AsbConnectionManager _connectionManager;
 #pragma warning restore CS8618
@@ -24,7 +24,7 @@ namespace QsMessagingUnitTests.AzureServiceBus
         {
             _mockLogger = new Mock<ILogger<AsbConnectionManager>>();
             _mockConnectionService = new Mock<AzureConnectionService>();
-            _mockAdministrationService = new Mock<IAdministrationService>();
+            _mockAdministrationService = new Mock<IAsbTopicService>();
             _mockSubscriber = new Mock<ISubscriber>();
 
             _connectionManager = new AsbConnectionManager(

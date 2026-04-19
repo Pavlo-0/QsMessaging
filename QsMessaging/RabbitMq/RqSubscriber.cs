@@ -3,6 +3,7 @@ using QsMessaging.Shared.Interface;
 using QsMessaging.RabbitMq.Services.Interfaces;
 using QsMessaging.RabbitMq.Models;
 using QsMessaging.Shared.Services.Interfaces;
+using QsMessaging.Shared;
 
 namespace QsMessaging.RabbitMq
 {

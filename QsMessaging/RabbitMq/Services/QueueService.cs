@@ -9,7 +9,7 @@ using System.Collections.Concurrent;
 
 namespace QsMessaging.RabbitMq.Services
 {
-    internal class QueueService(ILogger<QueueService> logger, INameGenerator nameGenerator) : IQueueService
+    internal class QueueService(ILogger<QueueService> logger, IRqNameGenerator nameGenerator) : IQueueService
     {
         private readonly static ConcurrentBag<StoreQueueRecord> storeQueueRecords = new ConcurrentBag<StoreQueueRecord>();
 

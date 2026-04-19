@@ -1,12 +1,11 @@
 ﻿using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared;
 using QsMessaging.Shared.Interface;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace QsMessaging.RabbitMq
 {
-    internal class NameGenerator(IInstanceService instanceService) : INameGenerator
+    internal class RqNameGenerator(IInstanceService instanceService): NameGeneratorBase , IRqNameGenerator
     {
         public string GetExchangeNameFromType<TModel>()
         {
@@ -47,57 +46,10 @@ namespace QsMessaging.RabbitMq
             }
         }
 
-        public string GetAsbQueueNameFromType(Type TModel)
-        {
-            if (TModel is null)
-            {
-                throw new ArgumentNullException();
-            }
-
-            var fullName = TModel.FullName ?? "unknowType";
-            return "Qs-Queue-" + (fullName.Length > 200 ? HashString(fullName) : fullName);
-        }
-
-        public string GetAsbTopicNameFromType(Type TModel)
-        {
-            if (TModel is null)
-            {
-                throw new ArgumentNullException();
-            }
-
-            var fullName = TModel.FullName ?? "unknowType";
-            return "Qs-Topic-" + (fullName.Length > 200 ? HashString(fullName) : fullName);
-        }
-
-
         private string GenerateName(Type type, string endName = "")
         {
             var fullName = type.FullName ?? "unknowType";
             return "Qs:" + (fullName.Length > 200 ? HashString(fullName) : fullName) + ":" + endName;
         }
-
-        public static string HashString(string input, int maxLength = 200)
-        {
-            if (string.IsNullOrEmpty(input))
-            {
-                throw new ArgumentException("Input string cannot be null or empty.");
-            }
-
-            if (maxLength <= 0)
-            {
-                throw new ArgumentException("Maximum length must be greater than 0.");
-            }
-
-            using (var sha256 = SHA256.Create())
-            {
-                byte[] inputBytes = Encoding.UTF8.GetBytes(input);
-                byte[] hashBytes = sha256.ComputeHash(inputBytes);
-
-                var hashString = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-
-                return hashString.Length > maxLength ? hashString.Substring(0, maxLength) : hashString;
-            }
-        }
-
     }
 }

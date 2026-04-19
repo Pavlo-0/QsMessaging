@@ -3,7 +3,7 @@ using Azure.Messaging.ServiceBus.Administration;
 
 namespace QsMessaging.AzureServiceBus.Services.Interfaces
 {
-    internal interface IAbsConnectionService
+    internal interface IAsbConnectionService
     {
         ServiceBusClient? GetConnection();
 

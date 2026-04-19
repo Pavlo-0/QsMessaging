@@ -8,7 +8,7 @@ namespace QsMessaging.AzureServiceBus.Services
 {
     internal class AsbConnectionService(
         ILogger<AsbConnectionService> logger,
-        IQsMessagingConfiguration configuration) : IAbsConnectionService, IAsyncDisposable
+        IQsMessagingConfiguration configuration) : IAsbConnectionService, IAsyncDisposable
     {
         private static ServiceBusClient? connection;
         private static ServiceBusAdministrationClient? administrationClient;

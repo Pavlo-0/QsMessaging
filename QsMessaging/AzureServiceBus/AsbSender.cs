@@ -3,33 +3,33 @@ using Microsoft.Extensions.Logging;
 using QsMessaging.AzureServiceBus.Services;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.RabbitMq.Interfaces;
-using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.Shared.Interface;
 using QsMessaging.Shared.Services.Interfaces;
 using System.Text.Json;
-using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAbsConnectionService;
 
 namespace QsMessaging.AzureServiceBus
 {
     internal class AsbSender(
         ILogger<AsbSender> logger,
-        AzureConnectionService connectionService,
-        IAdministrationService administrationService,
-        IQueueAdministration queueAdministration,
+        IAsbConnectionService connectionService,
+        IAsbTopicService topicService,
+        IAsbQueueService queueService,
         IHandlerService handlerService,
         Lazy<ISubscriber> subscriber,
         IRequestResponseMessageStore requestResponseMessageStore) : ISender
     {
+        public IAsbTopicService TopicService { get; } = topicService;
+
         public async Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
         {
-            var queueName = await queueAdministration.GetOrCreateQueueAsync(typeof(TMessage), QueuePurpose.Permanent);
+            var queueName = await queueService.GetOrCreateQueueAsync(typeof(TMessage));
             await SendToEntityAsync(queueName, CreateMessage(model, typeof(TMessage)));
             logger.LogInformation("Message has been published to Azure Service Bus queue {QueueName}", queueName);
         }
 
         public async Task SendEventAsync<TEvent>(TEvent model) where TEvent : class
         {
-            var topicName = await administrationService.GetOrCreateTopicAsync(typeof(TEvent));
+            var topicName = await topicService.GetOrCreateTopicAsync(typeof(TEvent));
             await SendToEntityAsync(topicName, CreateMessage(model, typeof(TEvent)));
             logger.LogInformation("Event has been published to Azure Service Bus topic {TopicName}", topicName);
         }
@@ -46,8 +46,8 @@ namespace QsMessaging.AzureServiceBus
             await subscriber.Value.SubscribeHandlerAsync(responseHandlerRecord, cancellationToken);
 
             //TODO: reconsidering  queue purpose type
-            var requestQueueName = await queueAdministration.GetOrCreateQueueAsync(typeof(TRequest), QueuePurpose.Permanent);
-            var responseQueueName = await queueAdministration.GetOrCreateQueueAsync(typeof(TResponse), QueuePurpose.Permanent);
+            var requestQueueName = await queueService.GetOrCreateQueueAsync(typeof(TRequest));
+            var responseQueueName = await queueService.GetOrCreateQueueAsync(typeof(TResponse));
 
             var requestMessage = CreateMessage(model, typeof(TRequest), correlationId, responseQueueName);
             await SendToEntityAsync(requestQueueName, requestMessage, cancellationToken);
@@ -88,10 +88,9 @@ namespace QsMessaging.AzureServiceBus
         private async Task SendToEntityAsync(string entityName, ServiceBusMessage message, CancellationToken cancellationToken = default)
         {
             var client = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
-            var normalizedEntityName = ServiceBusEntityNameFormatter.FormatEntityPath(entityName);
             //TODO: create sender every time. Better re use them for every queue or topic but can be limited
             message.TimeToLive = TimeSpan.FromMinutes(10);
-            await using var sender = client.CreateSender(normalizedEntityName);
+            await using var sender = client.CreateSender(entityName);
             await sender.SendMessageAsync(message, cancellationToken);
             await sender.CloseAsync();
         }

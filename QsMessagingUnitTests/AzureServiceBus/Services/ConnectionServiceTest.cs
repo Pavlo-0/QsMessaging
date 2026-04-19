@@ -15,7 +15,7 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
     {
 #pragma warning disable CS8618
         private Mock<ILogger<AsbConnectionService>> _mockLogger;
-        private IAbsConnectionService _connectionService;
+        private IAsbConnectionService _connectionService;
 #pragma warning restore CS8618
 
         [TestInitialize]

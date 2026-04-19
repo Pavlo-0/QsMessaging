@@ -4,6 +4,7 @@ using QsMessaging.RabbitMq.Services;
 using QsMessaging.RabbitMq;
 using RabbitMQ.Client;
 using QsMessaging.RabbitMq.Services.Interfaces;
+using System.Reflection;
 
 namespace QsMessagingUnitTests
 {
@@ -20,12 +21,19 @@ namespace QsMessagingUnitTests
         [TestInitialize]
         public void Setup()
         {
+            ResetConnection();
             _mockConnection = new Mock<IConnection>();
             _mockLogger = new Mock<ILogger<RbConnectionService>>();
             var config = new Configuration();
 
             _connectionService = new RbConnectionService(_mockLogger.Object, config);
             _mockConnection.Setup(c => c.IsOpen).Returns(true);
+        }
+
+        [TestCleanup]
+        public void Cleanup()
+        {
+            ResetConnection();
         }
 
         [TestMethod]
@@ -46,13 +54,22 @@ namespace QsMessagingUnitTests
         [TestMethod]
         public async Task GetOrCreateConnectionAsync_ReturnsExistingConnection_WhenConnectionIsAlreadyOpen()
         {
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-            _connectionService.GetType().GetField("connection", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).SetValue(null, _mockConnection.Object);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
+            GetConnectionField().SetValue(null, _mockConnection.Object);
 
             var result = await _connectionService.GetOrCreateConnectionAsync(CancellationToken.None);
             Assert.IsNotNull(result);
             Assert.IsTrue(result.IsOpen);
+        }
+
+        private static void ResetConnection()
+        {
+            GetConnectionField().SetValue(null, null);
+        }
+
+        private static FieldInfo GetConnectionField()
+        {
+            return typeof(RbConnectionService).GetField("connection", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("Unable to find RabbitMQ connection field.");
         }
     }
 }

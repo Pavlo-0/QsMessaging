@@ -9,7 +9,7 @@ using System.Collections.Concurrent;
 
 namespace QsMessaging.RabbitMq.Services
 {
-    internal class ExchangeService(ILogger<ExchangeService> logger, INameGenerator exchangeNameGenerator) : IExchangeService
+    internal class ExchangeService(ILogger<ExchangeService> logger, IRqNameGenerator exchangeNameGenerator) : IExchangeService
     {
         private readonly static ConcurrentBag<StoreExchangeRecord> storeExchangeRecords = new ConcurrentBag<StoreExchangeRecord>();
 

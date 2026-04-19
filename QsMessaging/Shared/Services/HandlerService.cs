@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using QsMessaging.Public.Handler;
-using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Models;
 using QsMessaging.Shared.Interface;
 using QsMessaging.Shared.Services.Interfaces;
