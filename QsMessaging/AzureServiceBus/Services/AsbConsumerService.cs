@@ -29,7 +29,8 @@ namespace QsMessaging.AzureServiceBus.Services
 
                 var consumeMethod = record.HandlerType.GetMethod(nameof(IQsMessageHandler<object>.Consumer))
                     ?? throw new NullReferenceException("Can't find Consumer method for handler.");
-                var handlerInstance = services.GetService(record.ConcreteHandlerInterfaceType)
+                using var scope = services.CreateScope();
+                var handlerInstance = scope.ServiceProvider.GetService(record.ConcreteHandlerInterfaceType)
                     ?? throw new InvalidOperationException($"Handler instance for {record.ConcreteHandlerInterfaceType} is null.");
 
                 switch (HardConfiguration.GetConsumerPurpose(record.supportedInterfacesType))

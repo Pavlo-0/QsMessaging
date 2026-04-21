@@ -48,8 +48,9 @@ namespace QsMessaging.RabbitMq.Services
                     var modelInstance = System.Text.Json.JsonSerializer.Deserialize(message, record.GenericType);
 
                     //TODO: replace on proper interface. Not just IQsMessageHandler. Add IQsEventHandler options. In case of diffirent names
-                    var consumeMethod = record.HandlerType.GetMethod(nameof(IQsMessageHandler<object>.Consumer)) ?? throw new NullReferenceException("Ca'nt find methof for consume model");
-                    var handlerInstance = services.GetService(record.ConcreteHandlerInterfaceType) ?? throw new Exception($"Handler instance for {record.ConcreteHandlerInterfaceType} is null.");
+                    var consumeMethod = record.HandlerType.GetMethod(nameof(IQsMessageHandler<object>.Consumer)) ?? throw new NullReferenceException("Ca'nt find method for consume model");
+                    using var scope = services.CreateScope();
+                    var handlerInstance = scope.ServiceProvider.GetService(record.ConcreteHandlerInterfaceType) ?? throw new Exception($"Handler instance for {record.ConcreteHandlerInterfaceType} is null.");
 
                     logger.LogDebug("{CorrelationId}:{Type}", correlationId, record.GenericType.FullName);
 
