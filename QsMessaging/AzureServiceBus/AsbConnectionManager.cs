@@ -19,7 +19,7 @@ namespace QsMessaging.AzureServiceBus
         {
             if (AsbMessageHandlerExecutionContext.IsInsideHandler)
             {
-                logger.LogInformation("Deferring Azure Service Bus close requested from inside a message handler.");
+                logger.LogWarning("Deferring Azure Service Bus close requested from inside a message handler.");
                 await DeferCloseFromHandlerAsync();
                 return;
             }
@@ -126,6 +126,7 @@ namespace QsMessaging.AzureServiceBus
             try
             {
                 logger.LogInformation("Opening Azure Service Bus transport.");
+                await connectionWorker.GetOrCreateConnectionAsync();
                 await subscriber.SubscribeAsync(cancellationToken);
             }
             finally

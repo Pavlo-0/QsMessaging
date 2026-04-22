@@ -3,11 +3,12 @@ using TestContract.RequestResponse;
 
 namespace AssertInstance01.RequestResponse
 {
-    public class RRRequest(IQsMessaging qsMessaging): IScenario
+    internal class RRRequest(IQsMessaging qsMessaging, IScenarioExecutionGate scenarioExecutionGate): IScenario
     {
         public async Task Run()
         {
             await Task.Delay(1000);
+            await scenarioExecutionGate.WaitUntilReadyAsync();
 
             var answer = await qsMessaging.RequestResponse<RRRequestAddContract, RRResponseAddContract>(new RRRequestAddContract() {
                 Number1 = 1,

@@ -12,39 +12,46 @@ namespace AssertInstance01
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             Console.Clear();
-            while (!stoppingToken.IsCancellationRequested)
+            try
             {
-                var result = CollectionTestResults.GetAllTests();
-
-                //Console.Clear();
-                Console.SetCursorPosition(0, 0);
-                Console.WriteLine("Test Results:");
-                Console.WriteLine("-------------");
-                foreach (var test in result)
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    var testResult = "Progess...   ";
-                    if (test.Value == true)
+                    var result = CollectionTestResults.GetAllTests();
+
+                    //Console.Clear();
+                    Console.SetCursorPosition(0, 0);
+                    Console.WriteLine("Test Results:");
+                    Console.WriteLine("-------------");
+                    foreach (var test in result)
                     {
-                        testResult = "Passed     ";
-                    } else if (test.Value == false)
-                    {
-                        testResult = "Failed     ";
+                        var testResult = "Progress...   ";
+                        if (test.Value == true)
+                        {
+                            testResult = "Passed     ";
+                        }
+                        else if (test.Value == false)
+                        {
+                            testResult = "Failed     ";
+                        }
+
+                        Console.WriteLine("{0,-30}{1}", test.Key, testResult);
                     }
+                    Console.WriteLine("-------------");
+                    await Task.Delay(100, stoppingToken);
 
-                    Console.WriteLine("{0,-30}{1}", test.Key, testResult);
+                    if (result.All(x => x.Value == true))
+                    {
+                        Console.WriteLine("All tests passed.");
+                        break;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Some test is fail.");
+                    }
                 }
-                Console.WriteLine("-------------");
-                await Task.Delay(100, stoppingToken);
-
-                if (result.All(x => x.Value == true))
-                {
-                    Console.WriteLine("All tests passed.");
-                    break;
-                }
-                else
-                {
-                    Console.WriteLine("Some test is fail.");
-                }
+            }
+            catch (Exception ex) { 
+                Console.WriteLine($"An error occurred: {ex.Message}");
             }
 
             Console.ReadLine();

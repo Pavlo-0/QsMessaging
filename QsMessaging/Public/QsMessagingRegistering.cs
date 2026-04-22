@@ -53,6 +53,8 @@ namespace QsMessaging.Public
 
         private static void RegisterTransportServices(IServiceCollection services, IQsMessagingConfiguration configuration)
         {
+            services.AddTransient<IConsumerService, ConsumerService>();   
+
             switch (configuration.Transport)
             {
                 case QsMessagingTransport.RabbitMq:

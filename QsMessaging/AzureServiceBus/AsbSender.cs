@@ -43,9 +43,11 @@ namespace QsMessaging.AzureServiceBus
             var correlationId = Guid.NewGuid().ToString("N");
             var waitForResponse = requestResponseMessageStore.AddRequestMessageAsync(correlationId, model, cancellationToken);
 
-            //TODO: Should we remove at the end handler from here or check if exists or not to avoid duplicate. What if parallel requests
-            var responseHandlerRecord = handlerService.AddRRResponseHandler<TResponse>();
-            await subscriber.Value.SubscribeHandlerAsync(responseHandlerRecord, cancellationToken);
+            var (responseHandlerRecord, isNew) = handlerService.AddRRResponseHandler<TResponse>();
+            if (isNew)
+            {
+                await subscriber.Value.SubscribeHandlerAsync(responseHandlerRecord, cancellationToken);
+            }
 
             //TODO: reconsidering  queue purpose type
             var requestQueueName = await queueService.GetOrCreateQueueAsync(typeof(TRequest), AsbQueuePurpose.Request, cancellationToken);
@@ -61,10 +63,10 @@ namespace QsMessaging.AzureServiceBus
             return response;
         }
 
-        public async Task SendMessageCorrelationAsync(
+        public async Task SendMessageCorrelatedAsync(
             object model,
             string correlationId,
-            string? replyTo = null,
+            string replyTo,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(replyTo))
@@ -81,7 +83,7 @@ namespace QsMessaging.AzureServiceBus
             {
                 //TODO: Make exception. Maybe should be called error handler.
                 logger.LogInformation(
-                    "Azure Service Bus reply destination {ReplyTo} no longer exists. The response with correlation {CorrelationId} was ignored.",
+                    "Azure Service Bus reply destination {ReplyToQueue} no longer exists. The response with correlation {CorrelationId} was ignored.",
                     replyTo,
                     correlationId);
             }

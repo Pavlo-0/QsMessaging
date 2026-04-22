@@ -1,0 +1,10 @@
+Using launch settings from IntegrationTest\AssertInstance01\Properties\launchSettings.json...
+Building...
+fail: Microsoft.Extensions.Hosting.Internal.Host[11]
+      Hosting failed to start
+      System.IO.IOException: The handle is invalid.
+         at System.ConsolePal.GetBufferInfo(Boolean throwOnNoConsole, Boolean& succeeded)
+         at System.ConsolePal.Clear()
+         at AssertInstance01.Worker.ExecuteAsync(CancellationToken stoppingToken) in D:\Projects\QsMessaging\IntegrationTest\AssertInstance01\Worker.cs:line 14
+         at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+         at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)

@@ -5,7 +5,8 @@ namespace QsMessaging.RabbitMq.Services.Interfaces
 {
     internal interface IRqChannelService
     {
-        IEnumerable<IChannel> GetByConnection(IConnection connection);
-        Task<IChannel> GetOrCreateChannelAsync(IConnection connection, RqChannelPurpose purpose, CancellationToken cancellationToken = default);
+        Task CloseByConnectionAsync(IConnection connection);
+
+        Task<IChannel> GetOrCreateChannelAsync(RqChannelPurpose purpose, CancellationToken cancellationToken = default);
     }
 }

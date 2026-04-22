@@ -7,76 +7,34 @@ using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.Shared;
 using QsMessaging.Shared.Models;
+using QsMessaging.Shared.Services.Interfaces;
 using System.Text.Json;
 
 namespace QsMessaging.AzureServiceBus.Services
 {
     internal class AsbConsumerService(
         ILogger<AsbSubscriber> logger,
-        IServiceProvider services,
+        IServiceScopeFactory scopeFactory,
+        IConsumerService consumerService,
         ISender responseSender) : IAsbConsumerService
     {
 
-        public async Task HandleMessageAsync(ProcessMessageEventArgs args, HandlersStoreRecord record, string entityDisplayName)
+        public async Task HandleMessageAsync(ProcessMessageEventArgs args, HandlersStoreRecord record, string entityDisplayName, CancellationToken cancellationToken)
         {
-            object? modelInstance = null;
-            var bodyBytes = args.Message.Body.ToMemory().ToArray();
-            using var _ = AsbMessageHandlerExecutionContext.Enter();
 
             try
             {
-                modelInstance = JsonSerializer.Deserialize(args.Message.Body.ToString(), record.GenericType);
-
-                var consumeMethod = record.HandlerType.GetMethod(nameof(IQsMessageHandler<object>.Consumer))
-                    ?? throw new NullReferenceException("Can't find Consumer method for handler.");
-                using var scope = services.CreateScope();
-                var handlerInstance = scope.ServiceProvider.GetService(record.ConcreteHandlerInterfaceType)
-                    ?? throw new InvalidOperationException($"Handler instance for {record.ConcreteHandlerInterfaceType} is null.");
-
-                switch (HardConfiguration.GetConsumerPurpose(record.supportedInterfacesType))
-                {
-                    case RqConsumerPurpose.MessageEventConsumer:
-                        await InvokeAsync(consumeMethod.Invoke(handlerInstance, new[] { modelInstance }));
-                        break;
-
-                    case RqConsumerPurpose.RRRequestConsumer:
-                        var resultTask = consumeMethod.Invoke(handlerInstance, new[] { modelInstance });
-                        if (resultTask is not Task task)
-                        {
-                            throw new NullReferenceException("RequestResponseHandler have to return Task<T>.");
-                        }
-
-                        await task;
-                        var responseModel = task.GetType().GetProperty("Result")?.GetValue(task)
-                            ?? throw new NullReferenceException("RequestResponseHandler have to return result.");
-                        await responseSender.SendMessageCorrelationAsync(
-                            responseModel,
-                            args.Message.CorrelationId ?? string.Empty,
-                            args.Message.ReplyTo ?? string.Empty,
-                            args.CancellationToken);
-                        break;
-
-                    case RqConsumerPurpose.RRResponseConsumer:
-                        await InvokeAsync(consumeMethod.Invoke(handlerInstance, new object?[] { modelInstance, args.Message.CorrelationId ?? string.Empty }));
-                        break;
-
-                    default:
-                        throw new NotSupportedException("No Azure Service Bus consumer found for the specified handler.");
-                }
+                await consumerService.UniversalConsumer(
+                    data: args.Message.Body.ToMemory().ToArray(),
+                    record: record,
+                    correlationId: args.Message.CorrelationId,
+                    replyTo: args.Message.ReplyTo,
+                    name: entityDisplayName,
+                    cancellationToken: cancellationToken);
             }
             catch (Exception ex)
             {
-                await ErrorAsync(
-                    ex,
-                    new ErrorConsumerDetail(
-                        modelInstance,
-                        bodyBytes,
-                        entityDisplayName,
-                        record.supportedInterfacesType.FullName,
-                        record.ConcreteHandlerInterfaceType.FullName,
-                        record.HandlerType.FullName,
-                        record.GenericType.FullName,
-                        ErrorConsumerType.RecevingProblem));
+                logger.LogError(ex, "An error occurred while processing the message in HandleMessageAsync.");
             }
             finally
             {
@@ -84,30 +42,34 @@ namespace QsMessaging.AzureServiceBus.Services
             }
         }
 
-        public Task HandleProcessingErrorAsync(ProcessErrorEventArgs args, string entityDisplayName)
+        public async Task HandleProcessingErrorAsync(ProcessErrorEventArgs args, string entityDisplayName)
         {
-            if (args.Exception is ObjectDisposedException)
-            {
-                logger.LogDebug(
-                    "Azure Service Bus processor is stopping for {EntityDisplayName}. Identifier: {Identifier}.",
-                    entityDisplayName,
-                    args.Identifier);
-                return Task.CompletedTask;
-            }
-
             logger.LogError(
                 args.Exception,
                 "Azure Service Bus processor error on {EntityDisplayName}. Identifier: {Identifier}.",
                 entityDisplayName,
                 args.Identifier);
-            return Task.CompletedTask;
+
+            await ErrorAsync(
+                             args.Exception,
+                             new ErrorConsumerDetail(
+                                 args.FullyQualifiedNamespace,
+                                 null,
+                                 entityDisplayName,
+                                 args.EntityPath,
+                                 args.Identifier,
+                                 null,
+                                 null,
+                                 ErrorConsumerType.RecevingProblem));
+
         }
 
         private async Task ErrorAsync(Exception ex, ErrorConsumerDetail model)
         {
             try
             {
-                foreach (var errorHandler in services.GetServices<IQsMessagingConsumerErrorHandler>())
+                await using var scope = scopeFactory.CreateAsyncScope();
+                foreach (var errorHandler in scope.ServiceProvider.GetServices<IQsMessagingConsumerErrorHandler>())
                 {
                     await errorHandler.HandleErrorAsync(ex, model);
                 }

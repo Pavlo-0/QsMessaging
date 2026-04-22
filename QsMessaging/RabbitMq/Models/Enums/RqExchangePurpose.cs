@@ -3,6 +3,7 @@
     internal enum RqExchangePurpose
     {
         Permanent,
+        TemporaryForResponse,
         Temporary
     }
 }

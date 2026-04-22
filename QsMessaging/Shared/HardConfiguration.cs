@@ -57,7 +57,7 @@ namespace QsMessaging.Shared
                     new SupportedInterfacesStruct
                     {
                         TypeInterface = typeof(IRRResponseHandler),
-                        ExchangePurpose = RqExchangePurpose.Temporary,
+                        ExchangePurpose = RqExchangePurpose.TemporaryForResponse,
                         QueuePurpose = RqQueuePurpose.InstanceTemporary,
                         ChannelPurpose = RqChannelPurpose.QueueInstanceTemporary,
                         ConsumerPurpose = RqConsumerPurpose.RRResponseConsumer,

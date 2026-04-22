@@ -2,12 +2,10 @@
 using QsMessaging.Public;
 using TestContract.RequestResponse;
 
-namespace ArrangeInstance01.RequestResponse
+namespace AssertInstance01.RequestResponse
 {
-    internal class RR2InstanceRequestScenario(IQsMessaging messaging) : IScenario
+    internal class RR2InstanceRequestScenario(IQsMessaging messaging, IScenarioExecutionGate scenarioExecutionGate) : IScenario
     {
-        public bool IsRepeatable => throw new NotImplementedException();
-
         public async Task Run()
         {
             await Task.Delay(1500);
@@ -18,6 +16,7 @@ namespace ArrangeInstance01.RequestResponse
 
             for (int i = 0; i < Ids.Length; i++)
             {
+                await scenarioExecutionGate.WaitUntilReadyAsync();
                 var result = await messaging.RequestResponse<RRRequest2InstanceRequestContract, RRresponse2InstanceRequestContract>(new RRRequest2InstanceRequestContract(Ids[i], "Some message"));
                 if (result.Id != IdsResult[i])
                 {

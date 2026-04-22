@@ -17,7 +17,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         private Mock<IRqConnectionService> _mockConnectionService;
         private Mock<IConnection> _mockConnection;
         private Mock<IChannel> _mockChannel;
-        private IRqChannelService _channelService;
+        private RqChannelService _channelService;
 #pragma warning restore CS8618
 
         [TestInitialize]
@@ -27,14 +27,10 @@ namespace QsMessagingUnitTests.RabbitMq.Services
             _mockConnectionService = new Mock<IRqConnectionService>();
             _mockConnection = new Mock<IConnection>();
             _mockChannel = new Mock<IChannel>();
+            _mockConnection.SetupGet(c => c.IsOpen).Returns(true);
+            _mockChannel.SetupGet(c => c.IsOpen).Returns(true);
 
             _channelService = new RqChannelService(_mockLogger.Object, _mockConnectionService.Object);
-
-            // Reset static dictionary between tests to ensure isolation
-            var field = typeof(RqChannelService).GetField("_channels", BindingFlags.NonPublic | BindingFlags.Static);
-            field!.SetValue(null, new ConcurrentDictionary<RqChannelPurpose, (IConnection, IChannel)>());
-
-            
         }
 
         [TestMethod]
@@ -47,7 +43,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(c => c.CreateChannelAsync(It.IsAny<CreateChannelOptions?>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(_mockChannel.Object);
 
-            var result = await _channelService.GetOrCreateChannelAsync(_mockConnection.Object, RqChannelPurpose.Common);
+            var result = await _channelService.GetOrCreateChannelAsync(RqChannelPurpose.Common);
 
             Assert.IsNotNull(result);
             Assert.AreEqual(_mockChannel.Object, result);
@@ -62,11 +58,9 @@ namespace QsMessagingUnitTests.RabbitMq.Services
             var existingConnection = new Mock<IConnection>();
             existingConnection.Setup(c => c.IsOpen).Returns(true);
 
-            var field = typeof(RqChannelService).GetField("_channels", BindingFlags.NonPublic | BindingFlags.Static);
-            var dict = (ConcurrentDictionary<RqChannelPurpose, (IConnection, IChannel)>)field!.GetValue(null)!;
-            dict[RqChannelPurpose.Common] = (existingConnection.Object, existingChannel.Object);
+            GetChannels()[RqChannelPurpose.Common] = (existingConnection.Object, existingChannel.Object);
 
-            var result = await _channelService.GetOrCreateChannelAsync(_mockConnection.Object, RqChannelPurpose.Common);
+            var result = await _channelService.GetOrCreateChannelAsync(RqChannelPurpose.Common);
 
             Assert.AreEqual(existingChannel.Object, result);
             _mockConnectionService.Verify(s => s.GetOrCreateConnectionAsync(It.IsAny<CancellationToken>()), Times.Never);
@@ -77,12 +71,11 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         {
             var closedChannel = new Mock<IChannel>();
             closedChannel.Setup(c => c.IsOpen).Returns(false);
+            closedChannel.As<IAsyncDisposable>().Setup(c => c.DisposeAsync()).Returns(ValueTask.CompletedTask);
             var openConnection = new Mock<IConnection>();
             openConnection.Setup(c => c.IsOpen).Returns(true);
 
-            var field = typeof(RqChannelService).GetField("_channels", BindingFlags.NonPublic | BindingFlags.Static);
-            var dict = (ConcurrentDictionary<RqChannelPurpose, (IConnection, IChannel)>)field!.GetValue(null)!;
-            dict[RqChannelPurpose.Common] = (openConnection.Object, closedChannel.Object);
+            GetChannels()[RqChannelPurpose.Common] = (openConnection.Object, closedChannel.Object);
 
             _mockConnectionService
                 .Setup(s => s.GetOrCreateConnectionAsync(It.IsAny<CancellationToken>()))
@@ -91,10 +84,11 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(c => c.CreateChannelAsync(It.IsAny<CreateChannelOptions?>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(_mockChannel.Object);
 
-            var result = await _channelService.GetOrCreateChannelAsync(_mockConnection.Object, RqChannelPurpose.Common);
+            var result = await _channelService.GetOrCreateChannelAsync(RqChannelPurpose.Common);
 
             Assert.AreEqual(_mockChannel.Object, result);
             _mockConnectionService.Verify(s => s.GetOrCreateConnectionAsync(It.IsAny<CancellationToken>()), Times.Once);
+            closedChannel.As<IAsyncDisposable>().Verify(c => c.DisposeAsync(), Times.Once);
         }
 
         [TestMethod]
@@ -102,12 +96,11 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         {
             var openChannel = new Mock<IChannel>();
             openChannel.Setup(c => c.IsOpen).Returns(true);
+            openChannel.As<IAsyncDisposable>().Setup(c => c.DisposeAsync()).Returns(ValueTask.CompletedTask);
             var closedConnection = new Mock<IConnection>();
             closedConnection.Setup(c => c.IsOpen).Returns(false);
 
-            var field = typeof(RqChannelService).GetField("_channels", BindingFlags.NonPublic | BindingFlags.Static);
-            var dict = (ConcurrentDictionary<RqChannelPurpose, (IConnection, IChannel)>)field!.GetValue(null)!;
-            dict[RqChannelPurpose.Common] = (closedConnection.Object, openChannel.Object);
+            GetChannels()[RqChannelPurpose.Common] = (closedConnection.Object, openChannel.Object);
 
             _mockConnectionService
                 .Setup(s => s.GetOrCreateConnectionAsync(It.IsAny<CancellationToken>()))
@@ -116,10 +109,11 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(c => c.CreateChannelAsync(It.IsAny<CreateChannelOptions?>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(_mockChannel.Object);
 
-            var result = await _channelService.GetOrCreateChannelAsync(_mockConnection.Object, RqChannelPurpose.Common);
+            var result = await _channelService.GetOrCreateChannelAsync(RqChannelPurpose.Common);
 
             Assert.AreEqual(_mockChannel.Object, result);
             _mockConnectionService.Verify(s => s.GetOrCreateConnectionAsync(It.IsAny<CancellationToken>()), Times.Once);
+            openChannel.As<IAsyncDisposable>().Verify(c => c.DisposeAsync(), Times.Once);
         }
 
         [TestMethod]
@@ -133,7 +127,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .ReturnsAsync((IChannel)null!);
 
             await Assert.ThrowsExceptionAsync<InvalidOperationException>(
-                () => _channelService.GetOrCreateChannelAsync(_mockConnection.Object, RqChannelPurpose.Common));
+                () => _channelService.GetOrCreateChannelAsync(RqChannelPurpose.Common));
         }
 
         [TestMethod]
@@ -150,45 +144,57 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .ReturnsAsync(_mockChannel.Object)
                 .ReturnsAsync(secondChannel.Object);
 
-            var channel1 = await _channelService.GetOrCreateChannelAsync(_mockConnection.Object, RqChannelPurpose.MessagePublish);
-            var channel2 = await _channelService.GetOrCreateChannelAsync(_mockConnection.Object, RqChannelPurpose.EventPublish);
+            var channel1 = await _channelService.GetOrCreateChannelAsync(RqChannelPurpose.MessagePublish);
+            var channel2 = await _channelService.GetOrCreateChannelAsync(RqChannelPurpose.EventPublish);
 
             Assert.AreNotEqual(channel1, channel2);
         }
 
         [TestMethod]
-        public void GetByConnection_WhenNoChannelsExist_ReturnsEmpty()
-        {
-            var result = _channelService.GetByConnection(_mockConnection.Object);
-
-            Assert.IsFalse(result.Any());
-        }
-
-        [TestMethod]
-        public void GetByConnection_WhenChannelsExistForConnection_ReturnsMatchingChannels()
-        {
-            var field = typeof(RqChannelService).GetField("_channels", BindingFlags.NonPublic | BindingFlags.Static);
-            var dict = (ConcurrentDictionary<RqChannelPurpose, (IConnection, IChannel)>)field!.GetValue(null)!;
-            dict[RqChannelPurpose.Common] = (_mockConnection.Object, _mockChannel.Object);
-
-            var result = _channelService.GetByConnection(_mockConnection.Object).ToList();
-
-            Assert.AreEqual(1, result.Count);
-            Assert.AreEqual(_mockChannel.Object, result[0]);
-        }
-
-        [TestMethod]
-        public void GetByConnection_WhenChannelsExistForDifferentConnection_ReturnsEmpty()
+        public async Task CloseByConnectionAsync_WhenNoChannelsMatch_LeavesOtherChannelsUntouched()
         {
             var otherConnection = new Mock<IConnection>();
+            var otherChannel = new Mock<IChannel>();
+            otherChannel.Setup(c => c.IsOpen).Returns(true);
 
-            var field = typeof(RqChannelService).GetField("_channels", BindingFlags.NonPublic | BindingFlags.Static);
-            var dict = (ConcurrentDictionary<RqChannelPurpose, (IConnection, IChannel)>)field!.GetValue(null)!;
-            dict[RqChannelPurpose.Common] = (otherConnection.Object, _mockChannel.Object);
+            var channels = GetChannels();
+            channels[RqChannelPurpose.Common] = (otherConnection.Object, otherChannel.Object);
 
-            var result = _channelService.GetByConnection(_mockConnection.Object);
+            await _channelService.CloseByConnectionAsync(_mockConnection.Object);
 
-            Assert.IsFalse(result.Any());
+            Assert.AreEqual(1, channels.Count);
+            Assert.AreSame(otherChannel.Object, channels[RqChannelPurpose.Common].channel);
+        }
+
+        [TestMethod]
+        public async Task CloseByConnectionAsync_RemovesAndDisposesMatchingChannels()
+        {
+            _mockChannel.Setup(c => c.IsOpen).Returns(false);
+            _mockChannel
+                .As<IAsyncDisposable>()
+                .Setup(c => c.DisposeAsync())
+                .Returns(ValueTask.CompletedTask);
+
+            var otherConnection = new Mock<IConnection>();
+            var otherChannel = new Mock<IChannel>();
+            otherChannel.Setup(c => c.IsOpen).Returns(true);
+
+            var channels = GetChannels();
+            channels[RqChannelPurpose.Common] = (_mockConnection.Object, _mockChannel.Object);
+            channels[RqChannelPurpose.EventPublish] = (otherConnection.Object, otherChannel.Object);
+
+            await _channelService.CloseByConnectionAsync(_mockConnection.Object);
+
+            Assert.IsFalse(channels.ContainsKey(RqChannelPurpose.Common));
+            Assert.IsTrue(channels.ContainsKey(RqChannelPurpose.EventPublish));
+            Assert.AreSame(otherChannel.Object, channels[RqChannelPurpose.EventPublish].channel);
+            _mockChannel.As<IAsyncDisposable>().Verify(c => c.DisposeAsync(), Times.Once);
+        }
+
+        private ConcurrentDictionary<RqChannelPurpose, (IConnection connection, IChannel channel)> GetChannels()
+        {
+            var field = typeof(RqChannelService).GetField("_channels", BindingFlags.NonPublic | BindingFlags.Instance);
+            return (ConcurrentDictionary<RqChannelPurpose, (IConnection connection, IChannel channel)>)field!.GetValue(_channelService)!;
         }
     }
 }

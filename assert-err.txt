@@ -1,0 +1,13 @@
+Unhandled exception. System.IO.IOException: The handle is invalid.
+   at System.ConsolePal.GetBufferInfo(Boolean throwOnNoConsole, Boolean& succeeded)
+   at System.ConsolePal.Clear()
+   at AssertInstance01.Worker.ExecuteAsync(CancellationToken stoppingToken) in D:\Projects\QsMessaging\IntegrationTest\AssertInstance01\Worker.cs:line 14
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>g__LogAndRethrow|15_3(<>c__DisplayClass15_0&)
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.Run(IHost host)
+   at AssertInstance01.Program.Main(String[] args) in D:\Projects\QsMessaging\IntegrationTest\AssertInstance01\Program.cs:line 37
+   at AssertInstance01.Program.<Main>(String[] args)

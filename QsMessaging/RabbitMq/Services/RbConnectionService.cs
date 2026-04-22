@@ -15,8 +15,50 @@ namespace QsMessaging.RabbitMq.Services
             return connection;
         }
 
+        public async Task CloseAsync(CancellationToken cancellationToken = default)
+        {
+            IConnection? connectionToClose;
+
+            await _semaphore.WaitAsync(cancellationToken);
+            try
+            {
+                connectionToClose = connection;
+                connection = null;
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+
+            if (connectionToClose is null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (connectionToClose.IsOpen)
+                {
+                    await connectionToClose.CloseAsync(cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to close RabbitMQ connection cleanly.");
+            }
+            finally
+            {
+                await connectionToClose.DisposeAsync();
+            }
+        }
+
         public async Task<IConnection> GetOrCreateConnectionAsync(CancellationToken cancellationToken)
         {
+            if (connection != null && connection.IsOpen)
+            {
+                return connection;
+            }
+
             await _semaphore.WaitAsync();
             try
             {
