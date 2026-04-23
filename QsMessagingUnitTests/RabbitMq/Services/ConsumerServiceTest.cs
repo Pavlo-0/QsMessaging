@@ -188,7 +188,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         }
 
         [TestMethod]
-        public async Task GetOrCreateConsumerAsync_WhenMessageProcessingThrows_NacksAndRequeues()
+        public async Task GetOrCreateConsumerAsync_WhenMessageProcessingThrows_AcksAndDoesNotNack()
         {
             const string consumerTag = "test-consumer-tag";
             const string queueName = "test-queue";
@@ -223,7 +223,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                     CancellationToken.None))
                 .ThrowsAsync(new InvalidOperationException("boom"));
             _mockChannel
-                .Setup(c => c.BasicNackAsync(1UL, false, true, It.IsAny<CancellationToken>()))
+                .Setup(c => c.BasicAckAsync(1UL, false, It.IsAny<CancellationToken>()))
                 .Returns(ValueTask.CompletedTask);
 
             await _consumerService.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, record);
@@ -234,8 +234,8 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 registeredConsumer!,
                 Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new TestModel())));
 
-            _mockChannel.Verify(c => c.BasicAckAsync(It.IsAny<ulong>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
-            _mockChannel.Verify(c => c.BasicNackAsync(1UL, false, true, It.IsAny<CancellationToken>()), Times.Once);
+            _mockChannel.Verify(c => c.BasicAckAsync(1UL, false, It.IsAny<CancellationToken>()), Times.Once);
+            _mockChannel.Verify(c => c.BasicNackAsync(It.IsAny<ulong>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [TestMethod]

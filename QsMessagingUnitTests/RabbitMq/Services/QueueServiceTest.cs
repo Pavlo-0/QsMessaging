@@ -81,7 +81,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         }
 
         [TestMethod]
-        public async Task GetOrCreateQueuesAsync_WhenConsumerTemporaryPurpose_DeclaresAutoDeleteQueue()
+        public async Task GetOrCreateQueuesAsync_WhenConsumerTemporaryPurpose_DeclaresExclusiveAutoDeleteQueue()
         {
             const string queueName = "test-queue";
             _mockNameGenerator.Setup(n => n.GetQueueNameFromType(It.IsAny<Type>(), It.IsAny<RqQueuePurpose>())).Returns(queueName);
@@ -96,8 +96,8 @@ namespace QsMessagingUnitTests.RabbitMq.Services
 
             _mockChannel.Verify(c => c.QueueDeclareAsync(
                 queueName,
-                true,   // durable
-                false,  // exclusive
+                false,  // durable
+                true,   // exclusive
                 true,   // autoDelete = true for ConsumerTemporary
                 It.IsAny<IDictionary<string, object?>?>(),
                 It.IsAny<bool>(),
