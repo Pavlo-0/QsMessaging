@@ -2,7 +2,7 @@
   "profiles": {
     "RequestResponseInstance02": {
       "commandName": "Project",
-      "commandLineArgs": "QsMessaging:Transport=RabbitMq",
+      "commandLineArgs": "QsMessaging:Transport=AzureServiceBus",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
       },

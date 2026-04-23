@@ -19,6 +19,12 @@ internal static class IntegrationTestQsMessagingRegistration
             options.RabbitMQ.UserName = settings.RabbitMQ.UserName;
             options.RabbitMQ.Password = settings.RabbitMQ.Password;
             options.RabbitMQ.Port = settings.RabbitMQ.Port;
+            options.RabbitMQ.VirtualHost = settings.RabbitMQ.VirtualHost;
+            options.RabbitMQ.ManagementScheme = settings.RabbitMQ.ManagementScheme;
+            options.RabbitMQ.ManagementPort = settings.RabbitMQ.ManagementPort;
+            options.RabbitMQ.ManagementApiBaseAddress = settings.RabbitMQ.ManagementApiBaseAddress;
+            options.RabbitMQ.ManagementUserName = settings.RabbitMQ.ManagementUserName;
+            options.RabbitMQ.ManagementPassword = settings.RabbitMQ.ManagementPassword;
 
             options.AzureServiceBus.ConnectionString = settings.AzureServiceBus.ConnectionString;
             options.AzureServiceBus.AdministrationConnectionString = settings.AzureServiceBus.AdministrationConnectionString;
@@ -48,6 +54,18 @@ internal sealed class IntegrationTestRabbitMqSettings
     public string Password { get; set; } = "guest";
 
     public int Port { get; set; } = 5672;
+
+    public string VirtualHost { get; set; } = "/";
+
+    public string ManagementScheme { get; set; } = "http";
+
+    public int ManagementPort { get; set; } = 15672;
+
+    public string? ManagementApiBaseAddress { get; set; }
+
+    public string? ManagementUserName { get; set; }
+
+    public string? ManagementPassword { get; set; }
 }
 
 internal sealed class IntegrationTestAzureServiceBusSettings

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-CleanupAssertInstance01-587ca9be-28db-4a9f-a339-9d85de20d9a1</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\QsMessaging\QsMessaging.csproj" />
+    <ProjectReference Include="..\TestContract\TestContract.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Common\IntegrationTestQsMessagingRegistration.cs" Link="Common\IntegrationTestQsMessagingRegistration.cs" />
+    <Compile Include="..\Common\TransportCleanupScenarioCatalog.cs" Link="Common\TransportCleanupScenarioCatalog.cs" />
+    <Compile Include="..\Common\TransportCleanupAdministration.cs" Link="Common\TransportCleanupAdministration.cs" />
+    <Compile Include="..\Common\TransportCleanupCheckpointStore.cs" Link="Common\TransportCleanupCheckpointStore.cs" />
+  </ItemGroup>
+</Project>

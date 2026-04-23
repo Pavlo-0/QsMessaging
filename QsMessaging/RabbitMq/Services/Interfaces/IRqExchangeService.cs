@@ -5,6 +5,6 @@ namespace QsMessaging.RabbitMq.Services.Interfaces
 {
     internal interface IRqExchangeService
     {
-        Task<string> GetOrCreateExchangeAsync(IChannel channel, Type TModel, RqExchangePurpose purpose);
+        Task<string> GetOrCreateExchangeAsync(IChannel channel, Type TModel, RqExchangePurpose purpose, CancellationToken cancellationToken);
     }
 }

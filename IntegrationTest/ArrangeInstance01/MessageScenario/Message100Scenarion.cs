@@ -9,15 +9,18 @@ namespace ArrangeInstance01.MessageScenario
 
         public async Task Run()
         {
-            foreach (var i in Enumerable.Range(0, 100))
-            {
-                var message = new Message100Contract
+            var tasks = Enumerable.Range(0, 100)
+                .Select(i =>
                 {
-                    MyMessageCount = i
-                };
+                    var message = new Message100Contract
+                    {
+                        MyMessageCount = i
+                    };
 
-                await messaging.SendMessageAsync(message);
-            }
+                    return messaging.SendMessageAsync(message);
+                });
+
+            await Task.WhenAll(tasks);
         }
-    }
+}
 }

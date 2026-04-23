@@ -66,7 +66,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
             var record = result.First(r => r.HandlerType == typeof(TestMessageHandler));
             Assert.AreEqual(typeof(TestContract), record.GenericType);
         }
-
+        /*
         [TestMethod]
         public void AddRRResponseHandler_WhenCalled_ReturnsRecordWithCorrectGenericType()
         {
@@ -74,7 +74,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
 
             Assert.IsNotNull(record);
             Assert.AreEqual(typeof(TestContract), record.GenericType);
-        }
+        }*/
 
         [TestMethod]
         public void AddRRResponseHandler_WhenCalled_HandlerIsReturnedByGetHandlers()

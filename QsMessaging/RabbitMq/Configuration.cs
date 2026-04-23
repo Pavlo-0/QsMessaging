@@ -51,5 +51,11 @@ namespace QsMessaging.RabbitMq
         public string UserName { get; set; } = "guest";
         public string Password { get; set; } = "guest";
         public int Port { get; set; } = 5672;
+        public string VirtualHost { get; set; } = "/";
+        public string ManagementScheme { get; set; } = "http";
+        public int ManagementPort { get; set; } = 15672;
+        public string? ManagementApiBaseAddress { get; set; }
+        public string? ManagementUserName { get; set; }
+        public string? ManagementPassword { get; set; }
     }
 }

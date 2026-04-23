@@ -10,6 +10,6 @@ namespace QsMessaging.Shared.Services.Interfaces
 
         IEnumerable<RqConsumerErrorHandlerStoreRecord> GetConsumerErrorHandlers();
 
-        HandlersStoreRecord AddRRResponseHandler<TContract>();
+        (HandlersStoreRecord record, bool isNew) AddRRResponseHandler<TContract>();
     }
 }

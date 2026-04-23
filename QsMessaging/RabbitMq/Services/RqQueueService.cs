@@ -13,68 +13,101 @@ namespace QsMessaging.RabbitMq.Services
         ILogger<RqQueueService> logger,
         IRqNameGenerator nameGenerator) : IRqQueueService
     {
-        private readonly static ConcurrentBag<RqStoreQueueRecord> storeQueueRecords = new ConcurrentBag<RqStoreQueueRecord>();
+        private static readonly ConcurrentBag<RqStoreQueueRecord> storeQueueRecords = new();
+        private static readonly ConcurrentDictionary<Type, SemaphoreSlim> _locks = new();
 
-        public async Task<string> GetOrCreateQueuesAsync(IChannel channel, Type TModel, string exchangeName, RqQueuePurpose queueType)
+        public async Task<string> GetOrCreateQueuesAsync(
+            IChannel channel,
+            Type TModel,
+            string exchangeName,
+            RqQueuePurpose queueType,
+            CancellationToken cancellationToken = default)
         {
-            logger.LogDebug("Attempting to declare queue");
-
-            var queueName = nameGenerator.GetQueueNameFromType(TModel, queueType);
-            var isAutoDelete = queueType == RqQueuePurpose.ConsumerTemporary ||
-                queueType == RqQueuePurpose.InstanceTemporary ||
-                queueType == RqQueuePurpose.SingleTemporary;
-
-            logger.LogDebug("{Name}:{IsAutoDelete}", queueName, isAutoDelete);
-
-            await channel.QueueDeclareAsync(
-                queueName,
-                durable: true,
-                exclusive: false,
-                autoDelete: isAutoDelete);
-
-            var arguments = new Dictionary<string, object?>();
-
-            switch (queueType)
-            {
-                case RqQueuePurpose.Permanent:
-                    arguments.Add("x-queue-mode", "lazy");
-                    break;
-                case RqQueuePurpose.ConsumerTemporary:
-                case RqQueuePurpose.InstanceTemporary:
-                case RqQueuePurpose.SingleTemporary:
-                    arguments.Add("x-expires", 0);
-                    arguments.Add("x-queue-mode", "default");
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException("Unknown QueueType");
-            }
+            var semaphore = _locks.GetOrAdd(TModel, _ => new SemaphoreSlim(1, 1));
+            await semaphore.WaitAsync(cancellationToken);
 
             try
             {
-                logger.LogDebug("Attempting to bind queue");
-                await channel.QueueBindAsync(queueName, exchangeName, string.Empty, arguments);
-            }
-            catch (OperationInterruptedException oie)
-            {
-                logger.LogTrace("This Queue already exist. For permanent queue (and instance and single), we can ignore this exception");
-                //This Queue already exist. For permanent queue (and instance and single), we can ignore this exception
-                if (queueType == RqQueuePurpose.ConsumerTemporary)
+                logger.LogDebug("Attempting to declare queue");
+
+                var queueName = nameGenerator.GetQueueNameFromType(TModel, queueType);
+                var arguments = new Dictionary<string, object?>();
+                var exclusive = false;
+                var durable = true;
+                var autoDelete = false;
+
+                switch (queueType)
                 {
-                    logger.LogError(oie, "Failed to declare the temporary queue. Which should be singel");
-                    throw;
+                    case RqQueuePurpose.Permanent:
+                        //arguments.Add("x-queue-mode", "lazy");
+                        break;
+
+                    case RqQueuePurpose.ConsumerTemporary:
+                        exclusive = true;
+                        durable = false;
+                        autoDelete = true;
+                        //arguments.Add("x-expires", 1);
+                        break;
+                    case RqQueuePurpose.InstanceTemporary:
+                    case RqQueuePurpose.SingleTemporary:
+                        autoDelete = true;
+                        //arguments.Add("x-expires", 0);
+                        //arguments.Add("x-queue-mode", "default");
+                        break;
+
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(queueType), queueType, "Unknown QueueType");
                 }
-            }
 
-            if (!storeQueueRecords.Where(q =>
-                q.Channel == channel &&
-                q.TModel == TModel &&
-                q.ExchangeName == exchangeName &&
-                q.QueueName == queueName).Any())
+
+                try
+                {
+                    await channel.QueueDeclareAsync(
+                        queue: queueName,
+                        durable: durable,
+                        exclusive: exclusive,
+                        autoDelete: autoDelete,
+                        arguments: arguments,
+                        cancellationToken: cancellationToken);
+
+                    logger.LogDebug("Attempting to bind queue");
+
+                    await channel.QueueBindAsync(
+                        queue: queueName,
+                        exchange: exchangeName,
+                        routingKey: string.Empty,
+                        arguments: null,
+                        cancellationToken: cancellationToken);
+                }
+                catch (OperationInterruptedException oie)
+                {
+                    logger.LogError(oie, $"Failed to declare the {queueName} queue. Try to delete manually.");
+                    throw oie;
+                    /*
+                    logger.LogTrace("This queue already exists. For permanent, instance and single queues, this exception can be ignored.");
+
+                    if (queueType == RqQueuePurpose.ConsumerTemporary)
+                    {
+                        logger.LogError(oie, "Failed to declare the temporary queue, which should be single.");
+                        throw;
+                    }*/
+                }
+
+                if (!storeQueueRecords.Any(q =>
+                    q.Channel == channel &&
+                    q.TModel == TModel &&
+                    q.ExchangeName == exchangeName &&
+                    q.QueueName == queueName))
+                {
+                    storeQueueRecords.Add(new RqStoreQueueRecord(channel, TModel, exchangeName, queueName));
+                }
+
+                return queueName;
+            }
+            finally
             {
-                storeQueueRecords.Add(new RqStoreQueueRecord(channel, TModel, exchangeName, queueName));
+                semaphore.Release();
             }
-
-            return queueName;
         }
     }
 }

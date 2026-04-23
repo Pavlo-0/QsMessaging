@@ -3,7 +3,7 @@ using TestContract.RequestResponse;
 
 namespace AssertInstance01.RequestResponse
 {
-    public class RRRequest10(IQsMessaging qsMessaging): IScenario
+    internal class RRRequest10(IQsMessaging qsMessaging, IScenarioExecutionGate scenarioExecutionGate): IScenario
     {
         public async Task Run()
         {
@@ -11,6 +11,7 @@ namespace AssertInstance01.RequestResponse
             var isFailed = false;
             for (int i = 0; i < 10; i++)
             {
+                await scenarioExecutionGate.WaitUntilReadyAsync();
                 var answer = await qsMessaging.RequestResponse<RRRequestAddContract, RRResponseAddContract>(new RRRequestAddContract()
                 {
                     Number1 = 10 + i,

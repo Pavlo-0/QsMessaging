@@ -46,6 +46,20 @@ namespace QsMessagingUnitTests
         }
 
         [TestMethod]
+        public void GetExchangeNameFromType_ForTemporaryResponse_UsesInstanceScopedExchangeName()
+        {
+            var instanceUid = Guid.Parse("11111111-2222-3333-4444-555555555555");
+            _instanceServiceMock.Setup(x => x.GetInstanceUID()).Returns(instanceUid);
+
+            var nameGenerator = new RqNameGenerator(_instanceServiceMock.Object);
+            var result = nameGenerator.GetExchangeNameFromType(typeof(TestClass), RqExchangePurpose.TemporaryForResponse);
+
+            Assert.AreEqual(
+                "Qs:QsMessagingUnitTests.NameGeneratorTest+TestClass:ex:livetime:11111111222233334444555555555555",
+                result);
+        }
+
+        [TestMethod]
         public void GetQueueNameFromType1_ReturnsCorrectQueueName_WhenTypeAndQueueTypeIsProvided()
         {
             var nameGenerator = new RqNameGenerator(_instanceServiceMock.Object);

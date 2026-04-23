@@ -5,7 +5,9 @@ using TestContract.MessageContract;
 
 namespace AssertInstance01.MessageAssert
 {
-    internal class Message50PausedHandler(IQsMessagingConnectionManager connectionManager) : IQsMessageHandler<Message50PausedContract>
+    internal class Message50PausedHandler(
+        IQsMessagingConnectionManager connectionManager,
+        IScenarioExecutionGate scenarioExecutionGate) : IQsMessageHandler<Message50PausedContract>
     {
         private readonly static ConcurrentBag<Message50PausedContract> _contracts = new ConcurrentBag<Message50PausedContract>();
 
@@ -15,6 +17,7 @@ namespace AssertInstance01.MessageAssert
 
             if (contractModel.MyMessageCount == 30)
             {
+                await using var _ = scenarioExecutionGate.BeginBlock();
                 await connectionManager.Close();
                 await Task.Delay(1000);
                 await connectionManager.Open();

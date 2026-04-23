@@ -51,8 +51,40 @@ namespace QsMessaging.Public
             return host;
         }
 
+        /// <summary>
+        /// Stops the current transport connection and removes messaging entities created by the configured QsMessaging transport.
+        /// Intended for debug or local reset scenarios before opening the transport again.
+        /// </summary>
+        public static async Task<IHost> CleanUpTransportation(this IHost host, CancellationToken cancellationToken = default)
+        {
+            var manager = host.Services.GetRequiredService<IQsMessagingConnectionManager>();
+            await manager.Close(cancellationToken);
+
+            var cleaner = host.Services.GetRequiredService<IQsMessagingTransportCleaner>();
+            await cleaner.CleanUp(cancellationToken);
+
+            return host;
+        }
+
+        /// <summary>
+        /// Stops the current transport connection and removes all messaging entities visible to the configured transport scope.
+        /// Intended for debug or local reset scenarios.
+        /// </summary>
+        public static async Task<IHost> FullCleanUpTransportation(this IHost host, CancellationToken cancellationToken = default)
+        {
+            var manager = host.Services.GetRequiredService<IQsMessagingConnectionManager>();
+            await manager.Close(cancellationToken);
+
+            var cleaner = host.Services.GetRequiredService<IQsMessagingTransportFullCleaner>();
+            await cleaner.FullCleanUp(cancellationToken);
+
+            return host;
+        }
+
         private static void RegisterTransportServices(IServiceCollection services, IQsMessagingConfiguration configuration)
         {
+            services.AddTransient<IConsumerService, ConsumerService>();   
+
             switch (configuration.Transport)
             {
                 case QsMessagingTransport.RabbitMq:
@@ -60,9 +92,12 @@ namespace QsMessaging.Public
                     services.AddSingleton<IRqConnectionService, RbConnectionService>();
                     services.AddTransient<ISubscriber, RqSubscriber>();
                     services.AddTransient<IQsMessagingConnectionManager, RqConnectionManager>();
+                    services.AddTransient<IQsMessagingTransportCleaner, RqTransportCleaner>();
+                    services.AddTransient<IQsMessagingTransportFullCleaner, RqTransportFullCleaner>();
 
                     services.AddTransient<ISender, RqSender>();
                     services.AddTransient<IRqNameGenerator, RqNameGenerator>();
+                    services.AddTransient<IRqManagementService, RqManagementService>();
 
 
                     services.AddTransient<IRqExchangeService, RqExchangeService>();
@@ -75,6 +110,8 @@ namespace QsMessaging.Public
                     services.AddSingleton<IAsbConnectionService, AsbConnectionService>();
                     services.AddTransient<ISubscriber, AsbSubscriber>();
                     services.AddTransient<IQsMessagingConnectionManager, AsbConnectionManager>();
+                    services.AddTransient<IQsMessagingTransportCleaner, AsbTransportCleaner>();
+                    services.AddTransient<IQsMessagingTransportFullCleaner, AsbTransportFullCleaner>();
 
 
                     services.AddTransient<ISender, AsbSender>();

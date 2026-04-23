@@ -8,10 +8,10 @@
 
         Task<TResponse> SendRequest<TRequest, TResponse>(TRequest model, CancellationToken cancellationToken) where TRequest : class where TResponse : class;
 
-        internal Task SendMessageCorrelationAsync(
+        internal Task SendMessageCorrelatedAsync(
             object model,
             string correlationId,
-            string? replyTo = null,
+            string replyTo,
             CancellationToken cancellationToken = default);
     }
 }

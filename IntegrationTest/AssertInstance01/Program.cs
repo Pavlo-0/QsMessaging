@@ -11,6 +11,7 @@ namespace AssertInstance01
             var builder = Host.CreateApplicationBuilder(args);
             builder.Services.AddHostedService<Worker>();
             builder.Services.AddHostedService<RunTestWorker>();
+            builder.Services.AddSingleton<IScenarioExecutionGate, ScenarioExecutionGate>();
 
             builder.Services.AddConfiguredQsMessaging(builder.Configuration);
 

@@ -71,5 +71,23 @@ namespace QsMessagingUnitTests.RabbitMq.Services
             await Assert.ThrowsExceptionAsync<OperationCanceledException>(
                 () => _connectionService.GetOrCreateConnectionAsync(cts.Token));
         }
+
+        [TestMethod]
+        public async Task CloseAsync_WhenConnectionExists_ClearsStoredConnection()
+        {
+            _mockConnection.Setup(c => c.IsOpen).Returns(false);
+            _mockConnection
+                .As<IAsyncDisposable>()
+                .Setup(c => c.DisposeAsync())
+                .Returns(ValueTask.CompletedTask);
+
+            var field = typeof(RbConnectionService).GetField("connection", BindingFlags.NonPublic | BindingFlags.Static);
+            field!.SetValue(null, _mockConnection.Object);
+
+            await _connectionService.CloseAsync();
+
+            Assert.IsNull(_connectionService.GetConnection());
+            _mockConnection.As<IAsyncDisposable>().Verify(c => c.DisposeAsync(), Times.Once);
+        }
     }
 }

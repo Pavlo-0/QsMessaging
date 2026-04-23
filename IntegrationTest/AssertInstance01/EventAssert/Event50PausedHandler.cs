@@ -5,7 +5,9 @@ using TestContract.MessageContract;
 
 namespace AssertInstance01.MessageAssert
 {
-    internal class Event50PausedHandler(IQsMessagingConnectionManager connectionManager) : IQsEventHandler<Event50PausedContract>
+    internal class Event50PausedHandler(
+        IQsMessagingConnectionManager connectionManager,
+        IScenarioExecutionGate scenarioExecutionGate) : IQsEventHandler<Event50PausedContract>
     {
         private readonly static ConcurrentBag<Event50PausedContract> _contracts = new ConcurrentBag<Event50PausedContract>();
 
@@ -15,14 +17,38 @@ namespace AssertInstance01.MessageAssert
 
             if (contractModel.MyEventCount == 10)
             {
-                await connectionManager.Close();
-                await Task.Delay(1000);
-                await connectionManager.Open();
+                var scenarioExecutionBlock = scenarioExecutionGate.BeginBlock();
+
+                try
+                {
+                    await connectionManager.Close();
+                }
+                catch
+                {
+                    await scenarioExecutionBlock.DisposeAsync();
+                    throw;
+                }
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(1));
+                        await connectionManager.Open();
+                    }
+                    catch (Exception)
+                    {
+                    }
+                    finally
+                    {
+                        await scenarioExecutionBlock.DisposeAsync();
+                    }
+                });
             }
 
             if (contractModel.MyEventCount > 45)
             {
-                if (_contracts.Count < 45)
+                if (_contracts.Count <= 45)
                 {
                     CollectionTestResults.PassTest(TestScenariousEnum.Event50Paused);
                 }

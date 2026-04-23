@@ -14,6 +14,9 @@ namespace QsMessaging.Shared.Services
         private static ConcurrentBag<HandlersStoreRecord> _handlers = new ConcurrentBag<HandlersStoreRecord>();
         private static ConcurrentBag<RqConsumerErrorHandlerStoreRecord> _consumerErrorHandler = new ConcurrentBag<RqConsumerErrorHandlerStoreRecord>();
 
+        private readonly object _lock = new();
+
+
         private IServiceCollection _services;
 
         public HandlerService(IServiceCollection services, Assembly assembly)
@@ -30,7 +33,7 @@ namespace QsMessaging.Shared.Services
             FindImplementations<IQsMessagingConsumerErrorHandler>(assembly);
         }
 
-        public HandlersStoreRecord AddRRResponseHandler<TContract>()
+        public (HandlersStoreRecord record, bool isNew) AddRRResponseHandler<TContract>()
         {
             var record = new HandlersStoreRecord(
                 typeof(IRRResponseHandler),
@@ -38,9 +41,16 @@ namespace QsMessaging.Shared.Services
                 typeof(RRResponseHandler),
                 typeof(TContract));
 
-            _handlers.Add(record);
+            lock (_lock)
+            {
+                if (!_handlers.Contains(record))
+                {
+                    _handlers.Add(record);
+                    return (record, true);
+                }
+            }
 
-            return record;
+            return (record, false);
         }
 
         public IEnumerable<HandlersStoreRecord> GetHandlers(Type supportedInterfacesType)

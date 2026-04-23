@@ -9,17 +9,28 @@ namespace QsMessaging.RabbitMq
     {
         public string GetExchangeNameFromType<TModel>()
         {
-            return GenerateName(typeof(TModel), "ex");
+            return GetExchangeNameFromType(typeof(TModel));
         }
 
         public string GetExchangeNameFromType(Type TModel)
+        {
+            return GetExchangeNameFromType(TModel, RqExchangePurpose.Permanent);
+        }
+
+        public string GetExchangeNameFromType(Type TModel, RqExchangePurpose purpose)
         {
             if (TModel is null)
             {
                 throw new ArgumentNullException();
             }
 
-            return GenerateName(TModel, "ex");
+            return purpose switch
+            {
+                RqExchangePurpose.Permanent => GenerateName(TModel, "ex"),
+                RqExchangePurpose.Temporary => GenerateName(TModel, "ex"),
+                RqExchangePurpose.TemporaryForResponse => GenerateName(TModel, "ex:livetime:" + instanceService.GetInstanceUID().ToString("N")),
+                _ => throw new ArgumentOutOfRangeException(nameof(purpose)),
+            };
         }
 
         public string GetQueueNameFromType(Type TModel, RqQueuePurpose queueType)

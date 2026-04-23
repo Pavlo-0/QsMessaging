@@ -21,7 +21,15 @@ namespace ArrangeInstance01
             foreach (var scenario in _scenarios)
             {
                 Console.Write($"Test {scenario.GetType().Name} ...");
-                await scenario.Run();
+                try
+                {
+                    await scenario.Run();
+                }
+                catch(Exception ex)
+                {
+                    _logger.LogError(ex, "Error occurred while running scenario {ScenarioName}", scenario.GetType().Name);
+                }
+                
                 Console.WriteLine($" executed");
             }
             
@@ -33,7 +41,15 @@ namespace ArrangeInstance01
                 foreach (var scenario in _scenarios.Where(s=>s.IsRepeatable))
                 {
                     Console.Write($"Test {scenario.GetType().Name} ...");
-                    await scenario.Run();
+                    try
+                    {
+                        await scenario.Run();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error occurred while running scenario {ScenarioName}", scenario.GetType().Name);
+                    }
+                    
                     Console.WriteLine($" executed");
                 }
                 Console.WriteLine($"----------------------");
