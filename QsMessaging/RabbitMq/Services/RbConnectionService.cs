@@ -124,6 +124,7 @@ namespace QsMessaging.RabbitMq.Services
                 UserName = configuration.RabbitMQ.UserName,
                 Password = configuration.RabbitMQ.Password,
                 Port = configuration.RabbitMQ.Port,
+                VirtualHost = configuration.RabbitMQ.VirtualHost,
                 AutomaticRecoveryEnabled = true,
                 NetworkRecoveryInterval = TimeSpan.FromSeconds(5)
             };

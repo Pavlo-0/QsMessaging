@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "RequestResponseInstance02": {
+    "CleanupArrangeInstance01": {
       "commandName": "Project",
       "commandLineArgs": "QsMessaging:Transport=AzureServiceBus",
       "environmentVariables": {

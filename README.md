@@ -52,6 +52,32 @@ builder.Services.AddQsMessaging(options =>
 });
 ```
 
+### Transport Cleanup Helpers
+
+For debug or local reset scenarios you can explicitly clean transport entities before starting consumers again:
+
+```csharp
+await host.CleanUpTransportation();
+await host.FullCleanUpTransportation();
+await host.UseQsMessaging();
+```
+
+- `CleanUpTransportation()` removes entities that QsMessaging can derive from the current app contracts.
+- `FullCleanUpTransportation()` removes everything visible in the configured transport scope.
+- For RabbitMQ, full cleanup uses the Management HTTP API for the configured virtual host.
+
+RabbitMQ full cleanup configuration:
+
+```csharp
+builder.Services.AddQsMessaging(options =>
+{
+    options.RabbitMQ.Host = "localhost";
+    options.RabbitMQ.VirtualHost = "/";
+    options.RabbitMQ.ManagementPort = 15672;
+    options.RabbitMQ.ManagementScheme = "http";
+});
+```
+
 ---
 
 ## Azure Service Bus Support _(Early Preview)_

@@ -16,6 +16,17 @@ builder.Services.AddQsMessaging(options =>
 var host = builder.Build();
 await host.UseQsMessaging();
 ```
+
+For debug or reset scenarios you can also trigger cleanup explicitly:
+
+```csharp
+await host.CleanUpTransportation();
+await host.FullCleanUpTransportation();
+await host.UseQsMessaging();
+```
+
+`FullCleanUpTransportation()` removes everything visible in the configured transport scope.
+For RabbitMQ it uses the Management HTTP API of the configured virtual host.
 ```csharp
 builder.Services.AddQsMessaging(options =>
 {
