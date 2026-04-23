@@ -4,6 +4,7 @@
     {
         OneMessage,
         OneEvent,
+        Event50,
         Event100,
         Event50Paused,
         Messages100,
