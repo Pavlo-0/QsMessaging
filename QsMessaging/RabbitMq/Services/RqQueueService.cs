@@ -82,7 +82,7 @@ namespace QsMessaging.RabbitMq.Services
                 catch (OperationInterruptedException oie)
                 {
                     logger.LogError(oie, $"Failed to declare the {queueName} queue. Try to delete manually.");
-                    throw oie;
+                    throw;
                     /*
                     logger.LogTrace("This queue already exists. For permanent, instance and single queues, this exception can be ignored.");
 

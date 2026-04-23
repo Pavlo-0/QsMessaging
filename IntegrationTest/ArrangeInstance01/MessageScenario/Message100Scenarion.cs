@@ -3,7 +3,7 @@ using TestContract.MessageContract;
 
 namespace ArrangeInstance01.MessageScenario
 {
-    internal class Message100Scenarion(IQsMessaging messaging): IScenario
+    internal class Message100Scenarion(IQsMessaging messaging) : IScenario
     {
         public bool IsRepeatable => false;
 
