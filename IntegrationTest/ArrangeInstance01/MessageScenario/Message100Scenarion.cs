@@ -22,5 +22,5 @@ namespace ArrangeInstance01.MessageScenario
 
             await Task.WhenAll(tasks);
         }
-    }
+}
 }
