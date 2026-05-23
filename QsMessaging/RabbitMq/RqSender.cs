@@ -198,7 +198,7 @@ namespace QsMessaging.RabbitMq
                 return true;
             }
 
-            var resilience = configuration.RabbitMQ.Resilience;
+            var resilience = configuration.Resilience;
 
             try
             {

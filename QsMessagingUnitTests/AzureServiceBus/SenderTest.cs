@@ -45,14 +45,11 @@ namespace QsMessagingUnitTests.AzureServiceBus
                 .Setup(x => x.GetOrCreateTopicAsync(typeof(TestMessage), It.IsAny<CancellationToken>()))
                 .ReturnsAsync("topic");
             _mockConfiguration
-                .SetupGet(x => x.AzureServiceBus)
-                .Returns(new QsAzureServiceBusConfiguration
+                .SetupGet(x => x.Resilience)
+                .Returns(new QsMessageReceiverRetryConfiguration
                 {
-                    Resilience = new QsMessageReceiverRetryConfiguration
-                    {
-                        MaxRetryAttempts = 0,
-                        Delay = TimeSpan.Zero
-                    }
+                    MaxRetryAttempts = 0,
+                    Delay = TimeSpan.Zero
                 });
 
             _sender = new AsbSender(
@@ -73,14 +70,11 @@ namespace QsMessagingUnitTests.AzureServiceBus
             var mockSender = new Mock<ServiceBusSender>();
 
             _mockConfiguration
-                .SetupGet(x => x.AzureServiceBus)
-                .Returns(new QsAzureServiceBusConfiguration
+                .SetupGet(x => x.Resilience)
+                .Returns(new QsMessageReceiverRetryConfiguration
                 {
-                    Resilience = new QsMessageReceiverRetryConfiguration
-                    {
-                        MaxRetryAttempts = 1,
-                        Delay = TimeSpan.Zero
-                    }
+                    MaxRetryAttempts = 1,
+                    Delay = TimeSpan.Zero
                 });
             _mockConnectionService
                 .Setup(x => x.GetOrCreateConnectionAsync(It.IsAny<CancellationToken>()))

@@ -30,6 +30,16 @@ namespace QsMessaging.RabbitMq
         public QsRabbitMQConfiguration RabbitMQ { get; set; } = new QsRabbitMQConfiguration();
 
         /// <summary>
+        /// Retry settings for user message handlers before QsMessaging calls consumer error handlers.
+        /// </summary>
+        public QsMessageHandlerRetryConfiguration HandlerResilience { get; set; } = new();
+
+        /// <summary>
+        /// Retry settings for transport send operations shared by RabbitMQ and Azure Service Bus.
+        /// </summary>
+        public QsMessageReceiverRetryConfiguration Resilience { get; set; } = new();
+
+        /// <summary>
         /// Allows you to set a custom displayed service name. By default, it uses your assembly name.
         /// </summary>
         public string ServiceName { get; set; }
@@ -57,6 +67,5 @@ namespace QsMessaging.RabbitMq
         public string? ManagementApiBaseAddress { get; set; }
         public string? ManagementUserName { get; set; }
         public string? ManagementPassword { get; set; }
-        public QsMessageReceiverRetryConfiguration Resilience { get; set; } = new();
     }
 }

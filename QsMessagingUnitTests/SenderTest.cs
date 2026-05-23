@@ -41,14 +41,11 @@ namespace QsMessaging.Tests
             _mockMessageStore = new Mock<IRequestResponseMessageStore>();
 
             _mockConfiguration
-                .SetupGet(x => x.RabbitMQ)
-                .Returns(new QsRabbitMQConfiguration
+                .SetupGet(x => x.Resilience)
+                .Returns(new QsMessageReceiverRetryConfiguration
                 {
-                    Resilience = new QsMessageReceiverRetryConfiguration
-                    {
-                        MaxRetryAttempts = 3,
-                        Delay = TimeSpan.Zero
-                    }
+                    MaxRetryAttempts = 3,
+                    Delay = TimeSpan.Zero
                 });
 
             _sender = new RqSender(
@@ -110,14 +107,11 @@ namespace QsMessaging.Tests
             var exchangeName = "TestExchange";
 
             _mockConfiguration
-                .SetupGet(x => x.RabbitMQ)
-                .Returns(new QsRabbitMQConfiguration
+                .SetupGet(x => x.Resilience)
+                .Returns(new QsMessageReceiverRetryConfiguration
                 {
-                    Resilience = new QsMessageReceiverRetryConfiguration
-                    {
-                        MaxRetryAttempts = 1,
-                        Delay = TimeSpan.Zero
-                    }
+                    MaxRetryAttempts = 1,
+                    Delay = TimeSpan.Zero
                 });
             _mockConnectionService.Setup(x => x.GetOrCreateConnectionAsync(CancellationToken.None))
                 .ReturnsAsync(connection.Object);

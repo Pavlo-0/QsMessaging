@@ -158,7 +158,7 @@
                     </article>
                     <article class="feature-card">
                         <h3>Error interception</h3>
-                        <p>Plug in custom consumer error handlers for logging, alerting, retry orchestration, or dead-letter flows.</p>
+                        <p>Configure handler retries before custom consumer error handlers take over logging, alerting, or dead-letter flows.</p>
                     </article>
                 </div>
             </section>
@@ -181,8 +181,10 @@
 builder.Services.AddQsMessaging(options =&gt;
 {
     options.Transport = QsMessagingTransport.RabbitMQ;
-    options.RabbitMQ.Resilience.MaxRetryAttempts = 3;
-    options.RabbitMQ.Resilience.Delay = TimeSpan.FromSeconds(1);
+    options.HandlerResilience.MaxRetryAttempts = 1;
+    options.HandlerResilience.Delay = TimeSpan.FromSeconds(1);
+    options.Resilience.MaxRetryAttempts = 3;
+    options.Resilience.Delay = TimeSpan.FromSeconds(1);
 });
 
 await host.UseQsMessaging();</code></pre>
@@ -298,8 +300,9 @@ await host.UseQsMessaging();</code></pre>
                         <li>Handlers are registered as transient services.</li>
                         <li>Message sends are not preceded by queue or subscription existence checks.</li>
                         <li>Missing or unroutable receiver send failures use Polly retry settings before a warning is logged.</li>
+                        <li>User handlers are retried with <code>HandlerResilience</code> before consumer error handlers are called.</li>
                         <li>Azure Service Bus normal messages use a 14 day TTL; events use a 60 second TTL.</li>
-                        <li>There is no built-in handler retry or dead-letter orchestration yet.</li>
+                        <li>There is no built-in dead-letter orchestration yet.</li>
                         <li>Request/response uses correlation identifiers and a default timeout.</li>
                         <li>Transport-specific entity names are generated automatically by the library.</li>
                     </ul>

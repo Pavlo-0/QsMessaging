@@ -137,38 +137,35 @@ namespace QsMessaging.Public
 
         private static void RegisterRabbitMqManagementHttpClient(IServiceCollection services, IQsMessagingConfiguration configuration)
         {
-            var resilience = configuration.RabbitMQ.Resilience;
+            var resilience = configuration.Resilience;
+            var httpClientBuilder = services.AddHttpClient(RqManagementService.HttpClientName);
 
-            services
-                .AddHttpClient(RqManagementService.HttpClientName)
-                .AddResilienceHandler("RabbitMqManagement", builder =>
+            if (resilience.MaxRetryAttempts == 0)
+            {
+                return;
+            }
+
+            httpClientBuilder.AddResilienceHandler("RabbitMqManagement", builder =>
+            {
+                builder.AddRetry(new HttpRetryStrategyOptions
                 {
-                    builder.AddRetry(new HttpRetryStrategyOptions
+                    MaxRetryAttempts = resilience.MaxRetryAttempts,
+                    Delay = resilience.Delay,
+                    BackoffType = resilience.BackoffType,
+                    UseJitter = resilience.UseJitter,
+                    ShouldRetryAfterHeader = true,
+                    ShouldHandle = args =>
                     {
-                        MaxRetryAttempts = resilience.MaxRetryAttempts,
-                        Delay = resilience.Delay,
-                        BackoffType = resilience.BackoffType,
-                        UseJitter = resilience.UseJitter,
-                        ShouldRetryAfterHeader = true,
-                        ShouldHandle = args =>
-                        {
-                            return ValueTask.FromResult(HttpClientResiliencePredicates.IsTransient(args.Outcome));
-                        }
-                    });
+                        return ValueTask.FromResult(HttpClientResiliencePredicates.IsTransient(args.Outcome));
+                    }
                 });
+            });
         }
 
         private static void ValidateConfiguration(IQsMessagingConfiguration configuration)
         {
-            switch (configuration.Transport)
-            {
-                case QsMessagingTransport.RabbitMq:
-                    ValidateRetryConfiguration(configuration.RabbitMQ.Resilience, "RabbitMQ.Resilience");
-                    break;
-                case QsMessagingTransport.AzureServiceBus:
-                    ValidateRetryConfiguration(configuration.AzureServiceBus.Resilience, "AzureServiceBus.Resilience");
-                    break;
-            }
+            ValidateRetryConfiguration(configuration.Resilience, "Resilience");
+            ValidateRetryConfiguration(configuration.HandlerResilience, "HandlerResilience");
 
             if (configuration.Transport != QsMessagingTransport.AzureServiceBus)
             {

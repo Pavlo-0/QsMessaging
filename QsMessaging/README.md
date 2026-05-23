@@ -13,10 +13,12 @@ using Polly;
 
 builder.Services.AddQsMessaging(options =>
 {
+    options.HandlerResilience.MaxRetryAttempts = 1;
+    options.HandlerResilience.Delay = TimeSpan.FromSeconds(1);
+    options.Resilience.MaxRetryAttempts = 3;
+    options.Resilience.Delay = TimeSpan.FromSeconds(1);
+    options.Resilience.BackoffType = DelayBackoffType.Constant;
     options.RabbitMQ.Host = "localhost";
-    options.RabbitMQ.Resilience.MaxRetryAttempts = 3;
-    options.RabbitMQ.Resilience.Delay = TimeSpan.FromSeconds(1);
-    options.RabbitMQ.Resilience.BackoffType = DelayBackoffType.Constant;
 });
 
 var host = builder.Build();
@@ -33,8 +35,8 @@ builder.Services.AddQsMessaging(options =>
     options.Transport = QsMessagingTransport.AzureServiceBus;
     options.AzureServiceBus.ConnectionString =
         "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
-    options.AzureServiceBus.Resilience.MaxRetryAttempts = 3;
-    options.AzureServiceBus.Resilience.Delay = TimeSpan.FromSeconds(1);
+    options.Resilience.MaxRetryAttempts = 3;
+    options.Resilience.Delay = TimeSpan.FromSeconds(1);
 });
 
 var host = builder.Build();
@@ -47,7 +49,7 @@ For cloud namespaces, use the regular Azure Service Bus namespace connection str
 
 QsMessaging does not check receiver queues or subscriptions before every `SendMessageAsync` call. The send path stays fast and retry starts only after the transport reports a missing/unroutable receiver.
 
-Resilience settings are available under both `options.RabbitMQ.Resilience` and `options.AzureServiceBus.Resilience`:
+Send resilience settings are shared by both transports under `options.Resilience`:
 
 | Property           | Default    | Description                                                             |
 | ------------------ | ---------- | ----------------------------------------------------------------------- |
@@ -57,9 +59,24 @@ Resilience settings are available under both `options.RabbitMQ.Resilience` and `
 | `UseJitter`        | `false`    | Adds jitter to retry delays when enabled.                               |
 
 - RabbitMQ durable messages use publisher confirms/return tracking with `mandatory` publishing. If RabbitMQ returns a normal message as unroutable, QsMessaging retries with Polly, then logs a warning and swallows the failure.
-- RabbitMQ Management HTTP API calls use `Microsoft.Extensions.Http.Resilience` with `options.RabbitMQ.Resilience` for transient HTTP failures.
+- RabbitMQ Management HTTP API calls use `Microsoft.Extensions.Http.Resilience` with `options.Resilience` for transient HTTP failures.
 - Azure Service Bus retries only when send throws `ServiceBusException` with `MessagingEntityNotFound`. A send to an existing topic with no subscriptions is usually accepted by Azure Service Bus, so that case cannot be detected after send without a management check.
 - Azure Service Bus normal `SendMessageAsync` messages use a 14 day TTL. Events use a 60 second TTL.
+
+## Handler Resilience
+
+When a user handler throws, QsMessaging retries that handler before calling `IQsMessagingConsumerErrorHandler`.
+
+`options.HandlerResilience` uses the same option shape as send resilience:
+
+| Property           | Default    | Description                                                                  |
+| ------------------ | ---------- | ---------------------------------------------------------------------------- |
+| `MaxRetryAttempts` | `1`        | Number of retry attempts after the initial failed handler call. Set `0` to skip retry. |
+| `Delay`            | `1 second` | Base delay between retries.                                                  |
+| `BackoffType`      | `Constant` | Polly backoff type: `Constant`, `Linear`, or `Exponential`.                  |
+| `UseJitter`        | `false`    | Adds jitter to retry delays when enabled.                                    |
+
+If a retry succeeds, error handlers are not called. If all attempts fail, QsMessaging calls each registered `IQsMessagingConsumerErrorHandler` once with `ErrorConsumerType.InHandlerProblem`.
 
 ## Cleanup Helpers
 

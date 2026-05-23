@@ -102,7 +102,7 @@ namespace QsMessaging.AzureServiceBus
             Type contractType,
             CancellationToken cancellationToken = default)
         {
-            var resilience = configuration.AzureServiceBus.Resilience;
+            var resilience = configuration.Resilience;
 
             try
             {

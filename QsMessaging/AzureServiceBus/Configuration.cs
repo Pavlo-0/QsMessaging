@@ -1,5 +1,3 @@
-using QsMessaging.Public;
-
 namespace QsMessaging.AzureServiceBus
 {
     public class QsAzureServiceBusConfiguration
@@ -23,7 +21,5 @@ namespace QsMessaging.AzureServiceBus
         /// Ignored for cloud namespaces and when the administration endpoint already specifies a port.
         /// </summary>
         public int EmulatorManagementPort { get; set; } = 5300;
-
-        public QsMessageReceiverRetryConfiguration Resilience { get; set; } = new();
     }
 }
