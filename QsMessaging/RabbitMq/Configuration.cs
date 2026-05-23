@@ -57,5 +57,6 @@ namespace QsMessaging.RabbitMq
         public string? ManagementApiBaseAddress { get; set; }
         public string? ManagementUserName { get; set; }
         public string? ManagementPassword { get; set; }
+        public QsMessageReceiverRetryConfiguration Resilience { get; set; } = new();
     }
 }

@@ -9,8 +9,11 @@ namespace QsMessaging.RabbitMq.Services
 {
     internal sealed class RqManagementService(
         ILogger<RqManagementService> logger,
-        IQsMessagingConfiguration configuration) : IRqManagementService
+        IQsMessagingConfiguration configuration,
+        IHttpClientFactory httpClientFactory) : IRqManagementService
     {
+        internal const string HttpClientName = "QsMessaging.RabbitMq.Management";
+
         private static readonly JsonSerializerOptions _jsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
@@ -85,10 +88,8 @@ namespace QsMessaging.RabbitMq.Services
         private HttpClient CreateClient()
         {
             var managementConfiguration = configuration.RabbitMQ;
-            var client = new HttpClient
-            {
-                BaseAddress = BuildManagementBaseUri()
-            };
+            var client = httpClientFactory.CreateClient(HttpClientName);
+            client.BaseAddress = BuildManagementBaseUri();
 
             var userName = string.IsNullOrWhiteSpace(managementConfiguration.ManagementUserName)
                 ? managementConfiguration.UserName

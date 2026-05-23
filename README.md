@@ -43,14 +43,48 @@ await host.UseQsMessaging();
 ### Custom RabbitMQ Configuration
 
 ```csharp
+using Polly;
+
 builder.Services.AddQsMessaging(options =>
 {
     options.RabbitMQ.Host = "my-rabbitmq-host";
     options.RabbitMQ.UserName = "myuser";
     options.RabbitMQ.Password = "mypassword";
     options.RabbitMQ.Port = 5672;
+    options.RabbitMQ.Resilience.MaxRetryAttempts = 3;
+    options.RabbitMQ.Resilience.Delay = TimeSpan.FromSeconds(1);
+    options.RabbitMQ.Resilience.BackoffType = DelayBackoffType.Constant;
+    options.RabbitMQ.Resilience.UseJitter = false;
 });
 ```
+
+### Send Resilience And Missing Receivers
+
+`SendMessageAsync` does not run a queue/subscription existence check before every message. That keeps the hot send path fast and avoids a management call per publish.
+
+If the transport reports that a message cannot be delivered because the receiver entity is missing, QsMessaging retries the send with a Polly resilience pipeline and then logs a warning instead of throwing.
+
+Shared resilience options:
+
+| Property           | Default    | Description                                                             |
+| ------------------ | ---------- | ----------------------------------------------------------------------- |
+| `MaxRetryAttempts` | `3`        | Number of retry attempts after the initial failed send. Set `0` to skip retry. |
+| `Delay`            | `1 second` | Base delay between retries.                                             |
+| `BackoffType`      | `Constant` | Polly backoff type: `Constant`, `Linear`, or `Exponential`.             |
+| `UseJitter`        | `false`    | Adds jitter to retry delays when enabled.                               |
+
+RabbitMQ behavior:
+
+- Durable message publishing uses publisher confirms/return tracking and `mandatory` publishing.
+- If RabbitMQ returns a normal message as unroutable, QsMessaging retries according to `options.RabbitMQ.Resilience`.
+- After retries are exhausted, the send is swallowed and a warning is logged.
+
+Azure Service Bus behavior:
+
+- QsMessaging does not check subscriptions before every topic send.
+- If Azure Service Bus throws `ServiceBusException` with `MessagingEntityNotFound`, QsMessaging retries according to `options.AzureServiceBus.Resilience`.
+- After retries are exhausted, the send is swallowed and a warning is logged.
+- Azure Service Bus usually accepts a send to an existing topic even when the topic has no subscriptions, so that specific case cannot be detected after send without a management check.
 
 ### Transport Cleanup Helpers
 
@@ -65,6 +99,7 @@ await host.UseQsMessaging();
 - `CleanUpTransportation()` removes entities that QsMessaging can derive from the current app contracts.
 - `FullCleanUpTransportation()` removes everything visible in the configured transport scope.
 - For RabbitMQ, full cleanup uses the Management HTTP API for the configured virtual host.
+- RabbitMQ Management HTTP API calls use `Microsoft.Extensions.Http.Resilience` with the configured `RabbitMQ.Resilience` retry settings for transient HTTP failures.
 
 RabbitMQ full cleanup configuration:
 
@@ -93,6 +128,8 @@ builder.Services.AddQsMessaging(options =>
 {
     options.Transport = QsMessagingTransport.AzureServiceBus;
     options.AzureServiceBus.ConnectionString = "<your-connection-string>";
+    options.AzureServiceBus.Resilience.MaxRetryAttempts = 3;
+    options.AzureServiceBus.Resilience.Delay = TimeSpan.FromSeconds(1);
 });
 
 ...
@@ -135,6 +172,7 @@ builder.Services.AddQsMessaging(options =>
 | `EmulatorAmqpPort`               | `5672`       | AMQP port for the local emulator. Ignored for cloud namespaces.                                          |
 | `EmulatorManagementPort`         | `5300`       | Management/admin port for the local emulator. Ignored for cloud namespaces.                              |
 | `AdministrationConnectionString` | `null`       | Optional separate connection string for admin operations. Falls back to `ConnectionString` when omitted. |
+| `Resilience`                     | see above    | Polly-based retry settings used after send failures caused by missing receiver entities.                 |
 
 ## Usage
 
@@ -201,7 +239,9 @@ If you need retry, dead-letter, alerting, or custom logging, implement `IQsMessa
 #### Short Operational Notes
 
 - **Queue/exchange naming**: RabbitMQ uses names like `Qs:{FullTypeName}:ex` for exchanges and `Qs:{FullTypeName}:permanent` for durable queues. Azure Service Bus uses `Qs-Queue-{FullTypeName}` and `Qs-Topic-{FullTypeName}`. Long names are hashed.
-- **Retry / dead-letter**: there is currently no built-in retry or dead-letter flow managed by QsMessaging.
+- **Send retry**: ordinary message sends retry only after the transport reports a missing/unroutable receiver. There is no per-message pre-check of queue or subscription existence.
+- **Handler retry / dead-letter**: there is currently no built-in retry or dead-letter flow for failed message handlers.
+- **Azure Service Bus TTL**: normal `SendMessageAsync` messages use a 14 day TTL. Events use a 60 second TTL.
 - **Multiple instances of one consumer**: for `IQsMessageHandler<T>`, instances compete on one shared queue, so one message is processed by one instance. For `IQsEventHandler<T>`, each instance gets its own temporary queue/subscription, so every instance receives the event.
 - **Unhappy path**: if a handler throws, the exception is sent to `IQsMessagingConsumerErrorHandler`, but the message is not automatically retried by the library.
 - **Request/response**: default timeout is `50000` ms. If no response arrives in time, the request fails with `TimeoutException`. Correlation ID is generated automatically per request as a new `Guid` string and copied to the response. Cancellation token is passed into transport operations, but timeout is the main response wait guard. Duplicate responses are not specially deduplicated by the library; late responses are ignored after the request is removed from the local store.

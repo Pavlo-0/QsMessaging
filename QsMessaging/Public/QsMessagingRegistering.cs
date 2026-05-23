@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Hosting;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.AzureServiceBus;
@@ -11,6 +12,8 @@ using QsMessaging.Shared.Interface;
 using QsMessaging.Shared.Services.Interfaces;
 using QsMessaging.Shared.Services;
 using QsMessaging.Shared;
+using Polly;
+using Polly.Retry;
 using System.Reflection;
 
 
@@ -89,6 +92,8 @@ namespace QsMessaging.Public
             {
                 case QsMessagingTransport.RabbitMq:
 
+                    RegisterRabbitMqManagementHttpClient(services, configuration);
+
                     services.AddSingleton<IRqConnectionService, RbConnectionService>();
                     services.AddTransient<ISubscriber, RqSubscriber>();
                     services.AddTransient<IQsMessagingConnectionManager, RqConnectionManager>();
@@ -130,8 +135,41 @@ namespace QsMessaging.Public
             }
         }
 
+        private static void RegisterRabbitMqManagementHttpClient(IServiceCollection services, IQsMessagingConfiguration configuration)
+        {
+            var resilience = configuration.RabbitMQ.Resilience;
+
+            services
+                .AddHttpClient(RqManagementService.HttpClientName)
+                .AddResilienceHandler("RabbitMqManagement", builder =>
+                {
+                    builder.AddRetry(new HttpRetryStrategyOptions
+                    {
+                        MaxRetryAttempts = resilience.MaxRetryAttempts,
+                        Delay = resilience.Delay,
+                        BackoffType = resilience.BackoffType,
+                        UseJitter = resilience.UseJitter,
+                        ShouldRetryAfterHeader = true,
+                        ShouldHandle = args =>
+                        {
+                            return ValueTask.FromResult(HttpClientResiliencePredicates.IsTransient(args.Outcome));
+                        }
+                    });
+                });
+        }
+
         private static void ValidateConfiguration(IQsMessagingConfiguration configuration)
         {
+            switch (configuration.Transport)
+            {
+                case QsMessagingTransport.RabbitMq:
+                    ValidateRetryConfiguration(configuration.RabbitMQ.Resilience, "RabbitMQ.Resilience");
+                    break;
+                case QsMessagingTransport.AzureServiceBus:
+                    ValidateRetryConfiguration(configuration.AzureServiceBus.Resilience, "AzureServiceBus.Resilience");
+                    break;
+            }
+
             if (configuration.Transport != QsMessagingTransport.AzureServiceBus)
             {
                 return;
@@ -140,6 +178,19 @@ namespace QsMessaging.Public
             if (string.IsNullOrWhiteSpace(configuration.AzureServiceBus.ConnectionString))
             {
                 throw new InvalidOperationException("Azure Service Bus transport requires AzureServiceBus.ConnectionString to be configured.");
+            }
+        }
+
+        private static void ValidateRetryConfiguration(QsMessageReceiverRetryConfiguration resilience, string optionName)
+        {
+            if (resilience.MaxRetryAttempts < 0)
+            {
+                throw new InvalidOperationException($"{optionName}.MaxRetryAttempts can not be negative.");
+            }
+
+            if (resilience.Delay < TimeSpan.Zero)
+            {
+                throw new InvalidOperationException($"{optionName}.Delay can not be negative.");
             }
         }
     }

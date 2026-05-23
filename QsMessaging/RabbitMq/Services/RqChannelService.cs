@@ -80,7 +80,12 @@ namespace QsMessaging.RabbitMq.Services
                 logger.LogTrace("Creating RabbitMQ channel for purpose {Purpose}", purpose);
 
                 var connection = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
-                var channel = await connection.CreateChannelAsync(options: null, cancellationToken); //TODO: Low: Add options if needed
+                var channelOptions = purpose == RqChannelPurpose.MessagePublish
+                    ? new CreateChannelOptions(
+                        publisherConfirmationsEnabled: true,
+                        publisherConfirmationTrackingEnabled: true)
+                    : null;
+                var channel = await connection.CreateChannelAsync(options: channelOptions, cancellationToken);
                 if (channel == null)
                 {
                     logger.LogCritical("Failed to create RabbitMQ channel for purpose {Purpose}", purpose);

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using QsMessaging.Public;
 using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.RabbitMq.Services;
@@ -7,7 +8,10 @@ using QsMessaging.Shared;
 using QsMessaging.Shared.Interface;
 using QsMessaging.Shared.Models.Enums;
 using QsMessaging.Shared.Services.Interfaces;
+using Polly;
+using Polly.Retry;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Exceptions;
 using System.Text;
 using System.Text.Json;
 
@@ -18,6 +22,7 @@ namespace QsMessaging.RabbitMq
         IRqConnectionService connectionService,
         IRqChannelService channelService,
         IRqExchangeService queuesService,
+        IQsMessagingConfiguration configuration,
 
         IHandlerService handlerService,
         Lazy<ISubscriber> subscriber,
@@ -140,13 +145,11 @@ namespace QsMessaging.RabbitMq
                 cancellationToken);
 
 
-            await channel.BasicPublishAsync(
-                                   exchange: exchangeName,
-                                   routingKey: string.Empty,
-                                   mandatory: messageType == MessageTypeEnum.Message,
-                                   body: body,
-                                   basicProperties: props,
-                                   cancellationToken: cancellationToken);
+            var published = await PublishAsync(channel, exchangeName, props, body, type, messageType, !isLiveTime, cancellationToken);
+            if (!published)
+            {
+                return;
+            }
 
             logger.LogInformation("Message has been published");
             logger.LogDebug("{type}", type.FullName);
@@ -169,16 +172,91 @@ namespace QsMessaging.RabbitMq
             var connection = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
             var channel = await channelService.GetOrCreateChannelAsync(channelPurpose, cancellationToken);
 
-            await channel.BasicPublishAsync(
-                                    exchange: exchangeName,
-                                    routingKey: string.Empty,
-                                    mandatory: messageType == MessageTypeEnum.Message,
-                                    body: body,
-                                    basicProperties: props,
-                                    cancellationToken: cancellationToken);
+            var published = await PublishAsync(channel, exchangeName, props, body, type, messageType, false, cancellationToken);
+            if (!published)
+            {
+                return;
+            }
 
             logger.LogInformation("Message has been published");
             logger.LogDebug("{type}", type.FullName);
+        }
+
+        private async Task<bool> PublishAsync(
+            IChannel channel,
+            string exchangeName,
+            BasicProperties props,
+            ReadOnlyMemory<byte> body,
+            Type type,
+            MessageTypeEnum messageType,
+            bool swallowMissingReceiver,
+            CancellationToken cancellationToken)
+        {
+            if (!swallowMissingReceiver)
+            {
+                await PublishRawAsync(channel, exchangeName, props, body, messageType, cancellationToken);
+                return true;
+            }
+
+            var resilience = configuration.RabbitMQ.Resilience;
+
+            try
+            {
+                if (resilience.MaxRetryAttempts == 0)
+                {
+                    await PublishRawAsync(channel, exchangeName, props, body, messageType, cancellationToken);
+                }
+                else
+                {
+                    var retryPipeline = new ResiliencePipelineBuilder()
+                        .AddRetry(new RetryStrategyOptions
+                        {
+                            MaxRetryAttempts = resilience.MaxRetryAttempts,
+                            Delay = resilience.Delay,
+                            BackoffType = resilience.BackoffType,
+                            UseJitter = resilience.UseJitter,
+                            ShouldHandle = args =>
+                            {
+                                return ValueTask.FromResult(args.Outcome.Exception is PublishException { IsReturn: true });
+                            }
+                        })
+                        .Build();
+
+                    await retryPipeline.ExecuteAsync(
+                        async token => await PublishRawAsync(channel, exchangeName, props, body, messageType, token),
+                        cancellationToken);
+                }
+
+                return true;
+            }
+            catch (PublishException ex) when (ex.IsReturn)
+            {
+                logger.LogWarning(
+                    ex,
+                    "RabbitMQ returned message {MessageType} from exchange {ExchangeName} after {RetryAttempts} retry attempts. The message was not published.",
+                    type.FullName,
+                    exchangeName,
+                    resilience.MaxRetryAttempts);
+
+                return false;
+            }
+        }
+
+        private static async ValueTask PublishRawAsync(
+            IChannel channel,
+            string exchangeName,
+            BasicProperties props,
+            ReadOnlyMemory<byte> body,
+            MessageTypeEnum messageType,
+            CancellationToken cancellationToken)
+        {
+            await channel.BasicPublishAsync(
+                exchange: exchangeName,
+                routingKey: string.Empty,
+                mandatory: messageType == MessageTypeEnum.Message,
+                body: body,
+                basicProperties: props,
+                cancellationToken: cancellationToken);
         }
     }
 }

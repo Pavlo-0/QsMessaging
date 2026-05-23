@@ -7,7 +7,9 @@ using QsMessaging.RabbitMq.Services.Interfaces;
 using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.Shared.Services.Interfaces;
 using QsMessaging.Shared.Models;
+using QsMessaging.Public;
 using QsMessaging.Public.Handler;
+using RabbitMQ.Client.Exceptions;
 
 namespace QsMessaging.Tests
 {
@@ -19,6 +21,7 @@ namespace QsMessaging.Tests
         private Mock<IRqConnectionService> _mockConnectionService;
         private Mock<IRqChannelService> _mockChannelService;
         private Mock<IRqExchangeService> _mockExchangeService;
+        private Mock<IQsMessagingConfiguration> _mockConfiguration;
         private Mock<IHandlerService> _mockHandlerService;
         private Mock<ISubscriber> _mockSubscriber;
         private Mock<IRequestResponseMessageStore> _mockMessageStore;
@@ -32,15 +35,28 @@ namespace QsMessaging.Tests
             _mockConnectionService = new Mock<IRqConnectionService>();
             _mockChannelService = new Mock<IRqChannelService>();
             _mockExchangeService = new Mock<IRqExchangeService>();
+            _mockConfiguration = new Mock<IQsMessagingConfiguration>();
             _mockHandlerService = new Mock<IHandlerService>();
             _mockSubscriber = new Mock<ISubscriber>();
             _mockMessageStore = new Mock<IRequestResponseMessageStore>();
+
+            _mockConfiguration
+                .SetupGet(x => x.RabbitMQ)
+                .Returns(new QsRabbitMQConfiguration
+                {
+                    Resilience = new QsMessageReceiverRetryConfiguration
+                    {
+                        MaxRetryAttempts = 3,
+                        Delay = TimeSpan.Zero
+                    }
+                });
 
             _sender = new RqSender(
                 _mockLogger.Object,
                 _mockConnectionService.Object,
                 _mockChannelService.Object,
                 _mockExchangeService.Object,
+                _mockConfiguration.Object,
                 _mockHandlerService.Object,
                 new Lazy<ISubscriber>(() => _mockSubscriber.Object),
                 _mockMessageStore.Object);
@@ -80,6 +96,64 @@ namespace QsMessaging.Tests
                 It.Is<BasicProperties>(props => props.DeliveryMode == DeliveryModes.Persistent),
                 It.Is<ReadOnlyMemory<byte>>(p => p.Length == 22),
                 It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [TestMethod]
+        public async Task SendMessageAsync_WhenRabbitReturnsMessage_RetriesThenLogsWarning()
+        {
+            // Arrange
+            var model = new { Name = "TestMessage" };
+            var modelType = model.GetType();
+            var connection = new Mock<IConnection>();
+            var channel = new Mock<IChannel>();
+            var exchangeName = "TestExchange";
+
+            _mockConfiguration
+                .SetupGet(x => x.RabbitMQ)
+                .Returns(new QsRabbitMQConfiguration
+                {
+                    Resilience = new QsMessageReceiverRetryConfiguration
+                    {
+                        MaxRetryAttempts = 1,
+                        Delay = TimeSpan.Zero
+                    }
+                });
+            _mockConnectionService.Setup(x => x.GetOrCreateConnectionAsync(CancellationToken.None))
+                .ReturnsAsync(connection.Object);
+            _mockChannelService.Setup(x => x.GetOrCreateChannelAsync(RqChannelPurpose.MessagePublish, CancellationToken.None))
+                .ReturnsAsync(channel.Object);
+            _mockExchangeService.Setup(x => x.GetOrCreateExchangeAsync(channel.Object, modelType, RqExchangePurpose.Permanent, CancellationToken.None))
+                .ReturnsAsync(exchangeName);
+            channel
+                .Setup(x => x.BasicPublishAsync(
+                    exchangeName,
+                    string.Empty,
+                    true,
+                    It.IsAny<BasicProperties>(),
+                    It.IsAny<ReadOnlyMemory<byte>>(),
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new PublishException(1, isReturn: true));
+
+            // Act
+            await _sender.SendMessageAsync(model);
+
+            // Assert
+            channel.Verify(x => x.BasicPublishAsync(
+                exchangeName,
+                string.Empty,
+                true,
+                It.IsAny<BasicProperties>(),
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                It.IsAny<CancellationToken>()),
+                Times.Exactly(2));
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((value, _) => value.ToString()!.Contains("was not published")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
 

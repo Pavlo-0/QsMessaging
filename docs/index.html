@@ -181,6 +181,8 @@
 builder.Services.AddQsMessaging(options =&gt;
 {
     options.Transport = QsMessagingTransport.RabbitMQ;
+    options.RabbitMQ.Resilience.MaxRetryAttempts = 3;
+    options.RabbitMQ.Resilience.Delay = TimeSpan.FromSeconds(1);
 });
 
 await host.UseQsMessaging();</code></pre>
@@ -200,7 +202,8 @@ await host.UseQsMessaging();</code></pre>
                         <p>
                             RabbitMQ is the default transport and the most mature path in the project. It uses a
                             conventional host, username, password, and port configuration and is ready for local
-                            development or hosted deployments.
+                            development or hosted deployments. Ordinary message publishing uses publisher confirms
+                            and return tracking so unroutable messages can be retried and reported.
                         </p>
                     </div>
                     <div class="transport-card warning">
@@ -208,7 +211,8 @@ await host.UseQsMessaging();</code></pre>
                         <p>
                             Azure Service Bus support is available behind the same public API, but it is still marked
                             as early preview in the project documentation. The goal is transport flexibility without
-                            changing handler code, though some features may still evolve.
+                            changing handler code, though some features may still evolve. Send retry starts only when
+                            Azure Service Bus reports a missing destination during send.
                         </p>
                     </div>
                 </article>
@@ -292,7 +296,10 @@ await host.UseQsMessaging();</code></pre>
                     <h2>Operational notes</h2>
                     <ul class="detail-list">
                         <li>Handlers are registered as transient services.</li>
-                        <li>There is no built-in retry or dead-letter orchestration yet.</li>
+                        <li>Message sends are not preceded by queue or subscription existence checks.</li>
+                        <li>Missing or unroutable receiver send failures use Polly retry settings before a warning is logged.</li>
+                        <li>Azure Service Bus normal messages use a 14 day TTL; events use a 60 second TTL.</li>
+                        <li>There is no built-in handler retry or dead-letter orchestration yet.</li>
                         <li>Request/response uses correlation identifiers and a default timeout.</li>
                         <li>Transport-specific entity names are generated automatically by the library.</li>
                     </ul>
