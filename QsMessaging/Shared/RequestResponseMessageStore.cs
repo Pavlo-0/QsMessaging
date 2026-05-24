@@ -83,13 +83,13 @@ namespace QsMessaging.Shared
 
             while (storeConsumerRecords.TryGetValue(correlationId, out var record))
             {
-                if (record.IsResponsed)
+                if (record.IsResponded)
                 {
                     return;
                 }
 
                 var updatedRecord = record with { 
-                    IsResponsed = true, 
+                    IsResponded = true, 
                     ResponseMessage = message, 
                     ResponseMessageType = message.GetType() };
 
@@ -113,7 +113,7 @@ namespace QsMessaging.Shared
         {
             if (storeConsumerRecords.TryGetValue(correlationId, out var record))
             {
-                return record.IsResponsed;
+                return record.IsResponded;
             }
             throw new KeyNotFoundException($"Message with ID {correlationId} not found.");
         }

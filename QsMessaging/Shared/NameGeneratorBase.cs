@@ -17,15 +17,11 @@ namespace QsMessaging.Shared
                 throw new ArgumentException("Maximum length must be greater than 0.");
             }
 
-            using (var sha256 = SHA256.Create())
-            {
-                byte[] inputBytes = Encoding.UTF8.GetBytes(input);
-                byte[] hashBytes = sha256.ComputeHash(inputBytes);
+            byte[] inputBytes = Encoding.UTF8.GetBytes(input);
+            byte[] hashBytes = SHA256.HashData(inputBytes);
+            var hashString = Convert.ToHexString(hashBytes).ToLowerInvariant();
 
-                var hashString = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-
-                return hashString.Length > maxLength ? hashString.Substring(0, maxLength) : hashString;
-            }
+            return hashString.Length > maxLength ? hashString.Substring(0, maxLength) : hashString;
         }
     }
 }

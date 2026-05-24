@@ -29,7 +29,7 @@ namespace QsMessaging.AzureServiceBus.Services
                 throw new ArgumentNullException();
             }
 
-            var fullName = TModel.FullName ?? "unknowType";
+            var fullName = TModel.FullName ?? "unknownType";
             return "Qs-Topic-" + (fullName.Length > 200 ? HashString(fullName) : fullName);
         }
 

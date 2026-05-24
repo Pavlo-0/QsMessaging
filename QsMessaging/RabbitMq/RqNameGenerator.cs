@@ -40,8 +40,6 @@ namespace QsMessaging.RabbitMq
                 throw new ArgumentNullException();
             }
 
-            string banseQueueName = $"Qs:{TModel.FullName}";
-
             switch (queueType)
             {
                 case RqQueuePurpose.Permanent:
@@ -59,7 +57,7 @@ namespace QsMessaging.RabbitMq
 
         private string GenerateName(Type type, string endName = "")
         {
-            var fullName = type.FullName ?? "unknowType";
+            var fullName = type.FullName ?? "unknownType";
             return "Qs:" + (fullName.Length > 200 ? HashString(fullName) : fullName) + ":" + endName;
         }
     }
