@@ -64,7 +64,7 @@ namespace QsMessaging.AzureServiceBus.Services
                                  args.Identifier,
                                  null,
                                  null,
-                                 ErrorConsumerType.RecevingProblem));
+                                 ErrorConsumerType.ReceivingProblem));
 
         }
 

@@ -37,13 +37,16 @@
         ErrorConsumerType ErrorType);
 
     /// <summary>
-    /// InHandlerProblem - Problem in your handler. Check your implementation
-    /// RecevingProblem - Problem in receiving message. Check what you send.
+    /// InHandlerProblem - Problem in your handler implementation.
+    /// ReceivingProblem - Problem while QsMessaging receives, deserializes, or dispatches the message.
     /// </summary>
     public enum ErrorConsumerType
     {
-        InHandlerProblem,
-        RecevingProblem,
+        InHandlerProblem = 0,
+        ReceivingProblem = 1,
+
+        [Obsolete("Use ReceivingProblem. This misspelled member is kept for compatibility and will be removed in a future major version.")]
+        RecevingProblem = ReceivingProblem,
     }
 
 }

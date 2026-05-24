@@ -23,6 +23,8 @@ namespace QsMessaging.Shared.Services
     {
         public async Task UniversalConsumer(byte[] data, HandlersStoreRecord record, string? correlationId, string replyTo, string name, CancellationToken cancellationToken)
         {
+            byte[]? bodyBytes = null;
+            object? modelInstance = null;
 
             try
             {
@@ -30,10 +32,9 @@ namespace QsMessaging.Shared.Services
 
                 correlationId = correlationId ?? string.Empty;
 
-                byte[] bodyBytes = data;
+                bodyBytes = data;
                 var message = Encoding.UTF8.GetString(bodyBytes);
 
-                object? modelInstance = null;
                 modelInstance = JsonSerializer.Deserialize(message, record.GenericType);
 
                 await using var scope = scopeFactory.CreateAsyncScope();
@@ -98,14 +99,14 @@ namespace QsMessaging.Shared.Services
                 await ErrorAsync(
                     e,
                     new ErrorConsumerDetail(
-                        null,
-                        null,
+                        modelInstance,
+                        bodyBytes,
                         name,
                         record?.supportedInterfacesType?.FullName,
                         record?.ConcreteHandlerInterfaceType?.FullName,
                         record?.HandlerType?.FullName,
                         record?.GenericType?.FullName,
-                        ErrorConsumerType.RecevingProblem));
+                        ErrorConsumerType.ReceivingProblem));
             }
         }
 

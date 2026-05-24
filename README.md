@@ -134,6 +134,7 @@ builder.Services.AddQsMessaging(options =>
 | `UseJitter`        | `false`    | Adds jitter to retry delays when enabled.                                    |
 
 If a retry succeeds, QsMessaging does not call consumer error handlers. If all attempts fail, QsMessaging calls each registered `IQsMessagingConsumerErrorHandler` once with `ErrorConsumerType.InHandlerProblem`.
+Receive, deserialization, and dispatch failures are reported as `ErrorConsumerType.ReceivingProblem`; the misspelled `RecevingProblem` member remains as a compatibility alias.
 
 ### Transport Cleanup Helpers
 

@@ -93,6 +93,7 @@ When a user handler throws, QsMessaging retries that handler before calling `IQs
 | `UseJitter`        | `false`    | Adds jitter to retry delays when enabled.                                    |
 
 If a retry succeeds, error handlers are not called. If all attempts fail, QsMessaging calls each registered `IQsMessagingConsumerErrorHandler` once with `ErrorConsumerType.InHandlerProblem`.
+Receive, deserialization, and dispatch failures are reported as `ErrorConsumerType.ReceivingProblem`; the misspelled `RecevingProblem` member remains as a compatibility alias.
 
 ## Cleanup Helpers
 

@@ -130,6 +130,38 @@ namespace QsMessagingUnitTests.Shared.Services
         }
 
         [TestMethod]
+        public async Task UniversalConsumer_WhenPayloadCannotDeserialize_CallsErrorHandlerWithReceivingProblem()
+        {
+            var invalidPayload = Encoding.UTF8.GetBytes("{");
+            var handler = new RetryThenSucceedHandler();
+            var errorHandler = new Mock<IQsMessagingConsumerErrorHandler>();
+            var consumer = CreateConsumerService<RetryThenSucceedHandler>(
+                handler,
+                errorHandler,
+                maxRetryAttempts: 0);
+
+            await consumer.UniversalConsumer(
+                invalidPayload,
+                CreateMessageHandlerRecord<RetryThenSucceedHandler>(),
+                null,
+                string.Empty,
+                "test-queue",
+                CancellationToken.None);
+
+            Assert.AreEqual(0, handler.Attempts);
+            errorHandler.Verify(
+                x => x.HandleErrorAsync(
+                    It.IsAny<JsonException>(),
+                    It.Is<ErrorConsumerDetail>(detail =>
+                        detail.ErrorType == ErrorConsumerType.ReceivingProblem
+                        && detail.QueueName == "test-queue"
+                        && detail.MessageObject == null
+                        && detail.MessageBytes != null
+                        && detail.MessageBytes.SequenceEqual(invalidPayload))),
+                Times.Once);
+        }
+
+        [TestMethod]
         public async Task UniversalConsumer_WhenHandlerHasCancellationTokenOverload_PassesToken()
         {
             var handler = new CancellableHandler();
