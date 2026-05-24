@@ -148,7 +148,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                     correlationId,
                     replyTo,
                     queueName,
-                    CancellationToken.None))
+                    It.IsAny<CancellationToken>()))
                 .Returns(async () =>
                 {
                     processingStarted.TrySetResult();
@@ -182,7 +182,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 correlationId,
                 replyTo,
                 queueName,
-                CancellationToken.None), Times.Once);
+                It.Is<CancellationToken>(token => token.CanBeCanceled)), Times.Once);
             _mockChannel.Verify(c => c.BasicAckAsync(1UL, false, It.IsAny<CancellationToken>()), Times.Once);
             _mockChannel.Verify(c => c.BasicNackAsync(It.IsAny<ulong>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
         }
@@ -220,7 +220,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                     It.IsAny<string?>(),
                     It.IsAny<string>(),
                     queueName,
-                    CancellationToken.None))
+                    It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new InvalidOperationException("boom"));
             _mockChannel
                 .Setup(c => c.BasicAckAsync(1UL, false, It.IsAny<CancellationToken>()))
@@ -236,6 +236,79 @@ namespace QsMessagingUnitTests.RabbitMq.Services
 
             _mockChannel.Verify(c => c.BasicAckAsync(1UL, false, It.IsAny<CancellationToken>()), Times.Once);
             _mockChannel.Verify(c => c.BasicNackAsync(It.IsAny<ulong>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [TestMethod]
+        public async Task CloseAsync_WhenConsumersExist_CancelsConsumersAndClearsStore()
+        {
+            const string consumerTag = "test-consumer-tag";
+            const string queueName = "test-queue";
+            IAsyncBasicConsumer? registeredConsumer = null;
+            var processingStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var allowProcessingToFinish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var receivedCancellationToken = CancellationToken.None;
+
+            _mockChannel
+                .Setup(c => c.BasicConsumeAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<bool>(),
+                    It.IsAny<string>(),
+                    It.IsAny<bool>(),
+                    It.IsAny<bool>(),
+                    It.IsAny<IDictionary<string, object?>?>(),
+                    It.IsAny<IAsyncBasicConsumer>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback<string, bool, string, bool, bool, IDictionary<string, object?>?, IAsyncBasicConsumer, CancellationToken>((_, _, _, _, _, _, consumer, _) => registeredConsumer = consumer)
+                .ReturnsAsync(consumerTag);
+            _mockChannel
+                .Setup(c => c.BasicCancelAsync(consumerTag, false, It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            _mockChannel
+                .Setup(c => c.BasicAckAsync(1UL, false, It.IsAny<CancellationToken>()))
+                .Returns(ValueTask.CompletedTask);
+
+            var record = new HandlersStoreRecord(
+                typeof(IQsMessageHandler<>),
+                typeof(IQsMessageHandler<TestModel>),
+                typeof(IQsMessageHandler<TestModel>),
+                typeof(TestModel));
+
+            _mockInnerConsumerService
+                .Setup(s => s.UniversalConsumer(
+                    It.IsAny<byte[]>(),
+                    record,
+                    It.IsAny<string?>(),
+                    It.IsAny<string>(),
+                    queueName,
+                    It.IsAny<CancellationToken>()))
+                .Callback<byte[], HandlersStoreRecord, string?, string, string, CancellationToken>((_, _, _, _, _, token) =>
+                {
+                    receivedCancellationToken = token;
+                    processingStarted.TrySetResult();
+                })
+                .Returns(async () => await allowProcessingToFinish.Task);
+
+            await _consumerService.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, record);
+
+            Assert.IsNotNull(registeredConsumer);
+
+            var deliveryTask = RaiseReceivedAsync(
+                registeredConsumer!,
+                Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new TestModel())));
+
+            await processingStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+            await _consumerService.CloseAsync();
+
+            Assert.IsTrue(receivedCancellationToken.IsCancellationRequested);
+            _mockChannel.Verify(c => c.BasicCancelAsync(consumerTag, false, It.IsAny<CancellationToken>()), Times.Once);
+
+            var field = typeof(RqConsumerService).GetField("storeConsumerRecords", BindingFlags.NonPublic | BindingFlags.Static);
+            var bag = (ConcurrentBag<RqStoreConsumerRecord>)field!.GetValue(null)!;
+            Assert.IsFalse(bag.Any());
+
+            allowProcessingToFinish.TrySetResult();
+            await deliveryTask.WaitAsync(TimeSpan.FromSeconds(2));
         }
 
         [TestMethod]

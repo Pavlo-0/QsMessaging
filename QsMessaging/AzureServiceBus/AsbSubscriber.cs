@@ -15,7 +15,7 @@ namespace QsMessaging.AzureServiceBus
         IHandlerService handlerService,
         IAsbConsumerService handlersService) : ISubscriber
     {
-        private readonly static ConcurrentBag<ServiceBusProcessor> _processors = new();
+        private readonly static ConcurrentBag<AsbProcessorRecord> _processors = new();
 
         public async Task SubscribeAsync(CancellationToken cancellationToken = default)
         {
@@ -30,31 +30,43 @@ namespace QsMessaging.AzureServiceBus
             logger.LogInformation("Subscribing handler to the {Type}", record.GenericType.FullName);
 
             var processor = await serviceBusProcessorService.GetOrCreate(record, cancellationToken);
+            var processorCancellation = new CancellationTokenSource();
 
 
-            processor.ProcessMessageAsync += args => handlersService.HandleMessageAsync(args, record, processor.Identifier, cancellationToken);
+            processor.ProcessMessageAsync += args => handlersService.HandleMessageAsync(args, record, processor.Identifier, processorCancellation.Token);
             processor.ProcessErrorAsync += args => handlersService.HandleProcessingErrorAsync(args, processor.Identifier);
 
-            await processor.StartProcessingAsync(cancellationToken);
+            try
+            {
+                await processor.StartProcessingAsync(cancellationToken);
 
-            _processors.Add(processor);
+                _processors.Add(new AsbProcessorRecord(processor, processorCancellation));
+            }
+            catch
+            {
+                processorCancellation.Dispose();
+                throw;
+            }
         }
 
         public async Task CloseAsync(CancellationToken cancellationToken = default)
         {
-            await Task.WhenAll(_processors.Select(StopAndDisposeProcessorAsync));
+            await Task.WhenAll(_processors.Select(processorRecord => StopAndDisposeProcessorAsync(processorRecord, cancellationToken)));
             _processors.Clear();
         }
 
-        private async Task StopAndDisposeProcessorAsync(ServiceBusProcessor processor)
+        private async Task StopAndDisposeProcessorAsync(AsbProcessorRecord processorRecord, CancellationToken cancellationToken)
         {
+            var processor = processorRecord.Processor;
+            CancelProcessor(processorRecord.CancellationTokenSource);
+
             try
             {
                 if (!processor.IsClosed)
                 {
                     if (processor.IsProcessing)
                     {
-                        await processor.StopProcessingAsync(CancellationToken.None);
+                        await processor.StopProcessingAsync(cancellationToken);
                     }
 
                     await processor.DisposeAsync();
@@ -64,6 +76,25 @@ namespace QsMessaging.AzureServiceBus
             {
                 logger.LogWarning(ex, "Failed to stop Azure Service Bus processor cleanly.");
             }
+            finally
+            {
+                processorRecord.CancellationTokenSource.Dispose();
+            }
         }
+
+        private static void CancelProcessor(CancellationTokenSource cancellationTokenSource)
+        {
+            try
+            {
+                cancellationTokenSource.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
+        private sealed record AsbProcessorRecord(
+            ServiceBusProcessor Processor,
+            CancellationTokenSource CancellationTokenSource);
     }
 }

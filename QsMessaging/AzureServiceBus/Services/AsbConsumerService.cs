@@ -24,13 +24,17 @@ namespace QsMessaging.AzureServiceBus.Services
 
             try
             {
+                using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                    args.CancellationToken,
+                    cancellationToken);
+
                 await consumerService.UniversalConsumer(
                     data: args.Message.Body.ToMemory().ToArray(),
                     record: record,
                     correlationId: args.Message.CorrelationId,
                     replyTo: args.Message.ReplyTo,
                     name: entityDisplayName,
-                    cancellationToken: cancellationToken);
+                    cancellationToken: linkedCancellation.Token);
             }
             catch (Exception ex)
             {

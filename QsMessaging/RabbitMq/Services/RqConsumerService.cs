@@ -25,7 +25,8 @@ namespace QsMessaging.RabbitMq.Services
         public async Task<string> GetOrCreateConsumerAsync(
             IChannel channel,
             string queueName,
-            HandlersStoreRecord record)
+            HandlersStoreRecord record,
+            CancellationToken cancellationToken = default)
         {
             if (storeConsumerRecords.Any(consumer => consumer.QueueName == queueName && consumer.Channel == channel))
             {
@@ -36,6 +37,20 @@ namespace QsMessaging.RabbitMq.Services
             logger.LogDebug("Attempting to declare consumer");
 
             var consumer = new AsyncEventingBasicConsumer(channel);
+            var consumerCancellation = new CancellationTokenSource();
+
+            consumer.ShutdownAsync += (_, _) =>
+            {
+                CancelConsumer(consumerCancellation);
+                return Task.CompletedTask;
+            };
+
+            consumer.UnregisteredAsync += (_, _) =>
+            {
+                CancelConsumer(consumerCancellation);
+                return Task.CompletedTask;
+            };
+
             consumer.ReceivedAsync += async (model, ea) =>
             {
                 await using var _ = MessageHandlerExecutionContext.Enter();
@@ -48,7 +63,7 @@ namespace QsMessaging.RabbitMq.Services
                         correlationId: ea.BasicProperties.CorrelationId,
                         replyTo: ea.BasicProperties.ReplyTo ?? string.Empty,
                         name: queueName,
-                        cancellationToken: CancellationToken.None);
+                        cancellationToken: consumerCancellation.Token);
                 }
                 catch (Exception ex)
                 {
@@ -66,14 +81,79 @@ namespace QsMessaging.RabbitMq.Services
             };
 
             logger.LogTrace("Register basic consumer.");
-            var consumerTag = await channel.BasicConsumeAsync(queueName, autoAck: false, consumer: consumer);
-            storeConsumerRecords.Add(new RqStoreConsumerRecord(channel, queueName, consumerTag));
-            return consumerTag;
+            try
+            {
+                var consumerTag = await channel.BasicConsumeAsync(
+                    queueName,
+                    autoAck: false,
+                    consumer: consumer,
+                    cancellationToken: cancellationToken);
+                storeConsumerRecords.Add(new RqStoreConsumerRecord(channel, queueName, consumerTag)
+                {
+                    CancellationTokenSource = consumerCancellation
+                });
+                return consumerTag;
+            }
+            catch
+            {
+                consumerCancellation.Dispose();
+                throw;
+            }
         }
 
         public IEnumerable<string> GetConsumersByChannel(IChannel channel)
         {
             return storeConsumerRecords.Where(c => c.Channel == channel).Select(c => c.ConsumerTag);
+        }
+
+        public async Task CloseAsync(CancellationToken cancellationToken = default)
+        {
+            var consumerRecords = storeConsumerRecords.ToArray();
+            if (consumerRecords.Length == 0)
+            {
+                return;
+            }
+
+            await Parallel.ForEachAsync(consumerRecords, async (consumerRecord, _) =>
+            {
+                CancelConsumer(consumerRecord.CancellationTokenSource);
+
+                try
+                {
+                    if (consumerRecord.Channel.IsOpen)
+                    {
+                        await consumerRecord.Channel.BasicCancelAsync(
+                            consumerRecord.ConsumerTag,
+                            noWait: false,
+                            cancellationToken: cancellationToken);
+                    }
+                }
+                catch (OperationCanceledException ex)
+                {
+                    logger.LogDebug(ex, "RabbitMQ consumer cancellation was interrupted for {ConsumerTag}.", consumerRecord.ConsumerTag);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to cancel RabbitMQ consumer {ConsumerTag}.", consumerRecord.ConsumerTag);
+                }
+                finally
+                {
+                    consumerRecord.CancellationTokenSource.Dispose();
+                }
+            });
+
+            storeConsumerRecords.Clear();
+        }
+
+        private static void CancelConsumer(CancellationTokenSource cancellationTokenSource)
+        {
+            try
+            {
+                cancellationTokenSource.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
         }
 
         private async Task TryNegativeAckAsync(IChannel channel, ulong deliveryTag)

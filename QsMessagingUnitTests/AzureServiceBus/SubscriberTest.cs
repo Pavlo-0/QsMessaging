@@ -7,6 +7,7 @@ using Azure.Messaging.ServiceBus;
 using QsMessaging.Public.Handler;
 using QsMessaging.Shared.Models;
 using QsMessaging.Shared.Services.Interfaces;
+using System.Reflection;
 
 namespace QsMessagingUnitTests.AzureServiceBus
 {
@@ -32,12 +33,27 @@ namespace QsMessagingUnitTests.AzureServiceBus
             _mockHandlerService = new Mock<IHandlerService>();
             _mockHandlersService = new Mock<IAsbConsumerService>();
             _mockProcessor = new Mock<ServiceBusProcessor>();
+            _mockProcessor.SetupGet(processor => processor.Identifier).Returns("processor-1");
+            _mockProcessor
+                .Setup(processor => processor.StartProcessingAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            _mockProcessor
+                .Setup(processor => processor.StopProcessingAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            ClearProcessors();
 
             _subscriber = new AsbSubscriber(
                 _mockLogger.Object,
                 _mockProcessorService.Object,
                 _mockHandlerService.Object,
                 _mockHandlersService.Object);
+        }
+
+        [TestCleanup]
+        public void Cleanup()
+        {
+            ClearProcessors();
         }
 
         [TestMethod]
@@ -51,14 +67,31 @@ namespace QsMessagingUnitTests.AzureServiceBus
                 s => s.GetOrCreate(It.IsAny<HandlersStoreRecord>(), It.IsAny<CancellationToken>()),
                 Times.Never);
         }
-        /*
+
         [TestMethod]
-        public async Task CloseAsync_StopsProcessorsThroughProcessorService()
+        public async Task CloseAsync_WhenProcessorsExist_CancelsStoredTokenAndStopsProcessors()
         {
+            var record = new HandlersStoreRecord(
+                typeof(IQsMessageHandler<>),
+                typeof(IQsMessageHandler<TestModel>),
+                typeof(IQsMessageHandler<TestModel>),
+                typeof(TestModel));
+
+            _mockProcessor.SetupGet(processor => processor.IsClosed).Returns(false);
+            _mockProcessor.SetupGet(processor => processor.IsProcessing).Returns(true);
+            _mockProcessorService
+                .Setup(service => service.GetOrCreate(record, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(_mockProcessor.Object);
+
+            await _subscriber.SubscribeHandlerAsync(record);
+
+            var processorCancellationToken = GetStoredProcessorCancellationToken();
+
             await _subscriber.CloseAsync();
 
-            _mockProcessorService.Verify(s => s.StopAndDisposeProcessorAsync(), Times.Once);
-        }*/
+            Assert.IsTrue(processorCancellationToken.IsCancellationRequested);
+            _mockProcessor.Verify(processor => processor.StopProcessingAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
 
         [TestMethod]
         public async Task SubscribeHandlerAsync_RegistersHandlersWithProcessorService()
@@ -72,18 +105,40 @@ namespace QsMessagingUnitTests.AzureServiceBus
             _mockProcessorService
                 .Setup(service => service.GetOrCreate(record, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(_mockProcessor.Object);
-            _mockProcessor
-                .Setup(processor => processor.StartProcessingAsync(It.IsAny<CancellationToken>()))
-                .Returns(Task.CompletedTask);
 
             await _subscriber.SubscribeHandlerAsync(record);
-            /*
-            _mockProcessorService.Verify(
-                service => service.RegisterHandlers(
-                    _mockProcessor.Object,
-                    It.IsAny<Func<ProcessMessageEventArgs, Task>>(),
-                    It.IsAny<Func<ProcessErrorEventArgs, Task>>()),
-                Times.Once);*/
+
+            _mockProcessor.Verify(
+                processor => processor.StartProcessingAsync(It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        private static void ClearProcessors()
+        {
+            var field = typeof(AsbSubscriber).GetField("_processors", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("Processor store field was not found.");
+            var value = field.GetValue(null)
+                ?? throw new InvalidOperationException("Processor store value was not found.");
+            var clearMethod = value.GetType().GetMethod("Clear")
+                ?? throw new InvalidOperationException("Processor store clear method was not found.");
+
+            clearMethod.Invoke(value, null);
+        }
+
+        private static CancellationToken GetStoredProcessorCancellationToken()
+        {
+            var field = typeof(AsbSubscriber).GetField("_processors", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("Processor store field was not found.");
+            var value = field.GetValue(null) as System.Collections.IEnumerable
+                ?? throw new InvalidOperationException("Processor store value was not enumerable.");
+            var processorRecord = value.Cast<object>().Single();
+            var cancellationTokenSource = processorRecord
+                .GetType()
+                .GetProperty("CancellationTokenSource", BindingFlags.Public | BindingFlags.Instance)!
+                .GetValue(processorRecord) as CancellationTokenSource
+                ?? throw new InvalidOperationException("Processor cancellation token source was not found.");
+
+            return cancellationTokenSource.Token;
         }
     }
 }

@@ -8,8 +8,11 @@ namespace QsMessaging.RabbitMq.Services.Interfaces
         Task<string> GetOrCreateConsumerAsync(
             IChannel channel, 
             string queueName,
-            HandlersStoreRecord record);
+            HandlersStoreRecord record,
+            CancellationToken cancellationToken = default);
 
         IEnumerable<string> GetConsumersByChannel(IChannel channel);
+
+        Task CloseAsync(CancellationToken cancellationToken = default);
     }
 }

@@ -8,6 +8,8 @@ using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.Shared.Models;
 using QsMessaging.Shared.Services.Interfaces;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Text.Json;
 
@@ -34,13 +36,13 @@ namespace QsMessaging.Shared.Services
                 object? modelInstance = null;
                 modelInstance = JsonSerializer.Deserialize(message, record.GenericType);
 
-                var consumeMethod = record.HandlerType.GetMethod(nameof(IQsMessageHandler<object>.Consumer))
-                    ?? throw new NullReferenceException("Can't find Consumer method for handler.");
                 await using var scope = scopeFactory.CreateAsyncScope();
                 var handlerInstance = scope.ServiceProvider.GetService(record.ConcreteHandlerInterfaceType)
                     ?? throw new InvalidOperationException($"Handler instance for {record.ConcreteHandlerInterfaceType} is null.");
 
                 var consumerPurpose = HardConfiguration.GetConsumerPurpose(record.supportedInterfacesType);
+                var consumeMethod = GetConsumerMethod(record, consumerPurpose)
+                    ?? throw new NullReferenceException("Can't find Consumer method for handler.");
                 object? responseModel = null;
 
                 try
@@ -53,6 +55,11 @@ namespace QsMessaging.Shared.Services
                         correlationId,
                         record,
                         cancellationToken);
+                }
+                catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+                {
+                    logger.LogDebug(ex, "Message handler processing was cancelled for {HandlerType}.", record.HandlerType.FullName);
+                    return;
                 }
                 catch (Exception ex)
                 {
@@ -81,6 +88,10 @@ namespace QsMessaging.Shared.Services
                         cancellationToken);
                 }
             }
+            catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+            {
+                logger.LogDebug(ex, "Message processing was cancelled.");
+            }
             catch (Exception e)
             {
                 logger.LogError(e, "An error occurred while processing the message in UniversalConsumer.");
@@ -100,7 +111,7 @@ namespace QsMessaging.Shared.Services
 
         private async Task<object?> InvokeHandlerWithRetryAsync(
             RqConsumerPurpose consumerPurpose,
-            System.Reflection.MethodInfo consumeMethod,
+            MethodInfo consumeMethod,
             object handlerInstance,
             object? modelInstance,
             string correlationId,
@@ -110,7 +121,7 @@ namespace QsMessaging.Shared.Services
             var resilience = configuration.HandlerResilience;
             if (resilience.MaxRetryAttempts == 0)
             {
-                return await InvokeHandlerAsync(consumerPurpose, consumeMethod, handlerInstance, modelInstance, correlationId);
+                return await InvokeHandlerAsync(consumerPurpose, consumeMethod, handlerInstance, modelInstance, correlationId, cancellationToken);
             }
 
             var retryPipeline = new ResiliencePipelineBuilder()
@@ -120,7 +131,9 @@ namespace QsMessaging.Shared.Services
                     Delay = resilience.Delay,
                     BackoffType = resilience.BackoffType,
                     UseJitter = resilience.UseJitter,
-                    ShouldHandle = args => ValueTask.FromResult(args.Outcome.Exception is not null),
+                    ShouldHandle = args => ValueTask.FromResult(
+                        args.Outcome.Exception is not null
+                        && !IsExpectedCancellation(args.Outcome.Exception, cancellationToken)),
                     OnRetry = args =>
                     {
                         logger.LogWarning(
@@ -137,25 +150,33 @@ namespace QsMessaging.Shared.Services
                 .Build();
 
             return await retryPipeline.ExecuteAsync(
-                async _ => await InvokeHandlerAsync(consumerPurpose, consumeMethod, handlerInstance, modelInstance, correlationId),
+                async _ => await InvokeHandlerAsync(consumerPurpose, consumeMethod, handlerInstance, modelInstance, correlationId, cancellationToken),
                 cancellationToken);
         }
 
         private async ValueTask<object?> InvokeHandlerAsync(
             RqConsumerPurpose consumerPurpose,
-            System.Reflection.MethodInfo consumeMethod,
+            MethodInfo consumeMethod,
             object handlerInstance,
             object? modelInstance,
-            string correlationId)
+            string correlationId,
+            CancellationToken cancellationToken)
         {
+            var consumerArguments = CreateConsumerArguments(
+                consumerPurpose,
+                consumeMethod,
+                modelInstance,
+                correlationId,
+                cancellationToken);
+
             switch (consumerPurpose)
             {
                 case RqConsumerPurpose.MessageEventConsumer:
-                    await InvokeAsync(consumeMethod.Invoke(handlerInstance, new object?[] { modelInstance }));
+                    await InvokeAsync(InvokeConsumerMethod(consumeMethod, handlerInstance, consumerArguments));
                     return null;
 
                 case RqConsumerPurpose.RRRequestConsumer:
-                    var resultTask = consumeMethod.Invoke(handlerInstance, new object?[] { modelInstance });
+                    var resultTask = InvokeConsumerMethod(consumeMethod, handlerInstance, consumerArguments);
                     if (resultTask is Task task)
                     {
                         await task;
@@ -167,11 +188,80 @@ namespace QsMessaging.Shared.Services
                     throw new NullReferenceException("No Task<T> result was found. This is unexpected and may indicate an internal issue. Verify the RequestResponseHandler implementation.");
 
                 case RqConsumerPurpose.RRResponseConsumer:
-                    await InvokeAsync(consumeMethod.Invoke(handlerInstance, new object?[] { modelInstance, correlationId }));
+                    await InvokeAsync(InvokeConsumerMethod(consumeMethod, handlerInstance, consumerArguments));
                     return null;
 
                 default:
                     throw new NotSupportedException("No consumer found for the specified handler.");
+            }
+        }
+
+        private static MethodInfo? GetConsumerMethod(HandlersStoreRecord record, RqConsumerPurpose consumerPurpose)
+        {
+            return GetConsumerMethod(record, consumerPurpose, acceptsCancellationToken: true)
+                ?? GetConsumerMethod(record, consumerPurpose, acceptsCancellationToken: false);
+        }
+
+        private static MethodInfo? GetConsumerMethod(
+            HandlersStoreRecord record,
+            RqConsumerPurpose consumerPurpose,
+            bool acceptsCancellationToken)
+        {
+            var parameterTypes = consumerPurpose switch
+            {
+                RqConsumerPurpose.MessageEventConsumer or RqConsumerPurpose.RRRequestConsumer => acceptsCancellationToken
+                    ? new[] { record.GenericType, typeof(CancellationToken) }
+                    : new[] { record.GenericType },
+                RqConsumerPurpose.RRResponseConsumer => acceptsCancellationToken
+                    ? new[] { typeof(object), typeof(string), typeof(CancellationToken) }
+                    : new[] { typeof(object), typeof(string) },
+                _ => Array.Empty<Type>()
+            };
+
+            return record.HandlerType.GetMethod(
+                nameof(IQsMessageHandler<object>.Consumer),
+                BindingFlags.Instance | BindingFlags.Public,
+                binder: null,
+                types: parameterTypes,
+                modifiers: null);
+        }
+
+        private static object?[] CreateConsumerArguments(
+            RqConsumerPurpose consumerPurpose,
+            MethodInfo consumeMethod,
+            object? modelInstance,
+            string correlationId,
+            CancellationToken cancellationToken)
+        {
+            var acceptsCancellationToken = consumeMethod.GetParameters().LastOrDefault()?.ParameterType == typeof(CancellationToken);
+
+            return consumerPurpose switch
+            {
+                RqConsumerPurpose.MessageEventConsumer or RqConsumerPurpose.RRRequestConsumer => acceptsCancellationToken
+                    ? new object?[] { modelInstance, cancellationToken }
+                    : new object?[] { modelInstance },
+                RqConsumerPurpose.RRResponseConsumer => acceptsCancellationToken
+                    ? new object?[] { modelInstance, correlationId, cancellationToken }
+                    : new object?[] { modelInstance, correlationId },
+                _ => Array.Empty<object?>()
+            };
+        }
+
+        private static bool IsExpectedCancellation(Exception exception, CancellationToken cancellationToken)
+        {
+            return exception is OperationCanceledException && cancellationToken.IsCancellationRequested;
+        }
+
+        private static object? InvokeConsumerMethod(MethodInfo consumeMethod, object handlerInstance, object?[] consumerArguments)
+        {
+            try
+            {
+                return consumeMethod.Invoke(handlerInstance, consumerArguments);
+            }
+            catch (TargetInvocationException ex) when (ex.InnerException is not null)
+            {
+                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                throw;
             }
         }
 

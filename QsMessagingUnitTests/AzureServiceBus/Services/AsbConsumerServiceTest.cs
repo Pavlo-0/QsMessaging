@@ -58,7 +58,7 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
                     correlationId,
                     replyTo,
                     entityName,
-                    CancellationToken.None),
+                    It.Is<CancellationToken>(token => token.CanBeCanceled)),
                 Times.Once);
         }
     }

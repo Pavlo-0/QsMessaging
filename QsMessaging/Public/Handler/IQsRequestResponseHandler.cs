@@ -16,5 +16,10 @@
     public interface IQsRequestResponseHandler<TRequest, TResponse>
     {
         Task<TResponse> Consumer(TRequest request);
+
+        Task<TResponse> Consumer(TRequest request, CancellationToken cancellationToken = default)
+        {
+            return Consumer(request);
+        }
     }
 }

@@ -46,6 +46,36 @@ namespace QsMessagingUnitTests.Shared.Services
             }
         }
 
+        private sealed class CancellableHandler : IQsMessageHandler<TestMessage>
+        {
+            public CancellationToken ReceivedCancellationToken { get; private set; }
+
+            public Task Consumer(TestMessage contractModel)
+            {
+                throw new InvalidOperationException("The non-cancellable overload should not be used when a cancellable overload exists.");
+            }
+
+            public Task Consumer(TestMessage contractModel, CancellationToken cancellationToken)
+            {
+                ReceivedCancellationToken = cancellationToken;
+                return Task.CompletedTask;
+            }
+        }
+
+        private sealed class CancelledHandler : IQsMessageHandler<TestMessage>
+        {
+            public Task Consumer(TestMessage contractModel)
+            {
+                throw new InvalidOperationException("The non-cancellable overload should not be used when a cancellable overload exists.");
+            }
+
+            public Task Consumer(TestMessage contractModel, CancellationToken cancellationToken)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return Task.CompletedTask;
+            }
+        }
+
         [TestMethod]
         public async Task UniversalConsumer_WhenHandlerRetrySucceeds_DoesNotCallErrorHandler()
         {
@@ -97,6 +127,56 @@ namespace QsMessagingUnitTests.Shared.Services
                         && detail.QueueName == "test-queue"
                         && detail.MessageObject is TestMessage)),
                 Times.Once);
+        }
+
+        [TestMethod]
+        public async Task UniversalConsumer_WhenHandlerHasCancellationTokenOverload_PassesToken()
+        {
+            var handler = new CancellableHandler();
+            var errorHandler = new Mock<IQsMessagingConsumerErrorHandler>();
+            var consumer = CreateConsumerService<CancellableHandler>(
+                handler,
+                errorHandler,
+                maxRetryAttempts: 0);
+            using var cancellationTokenSource = new CancellationTokenSource();
+
+            await consumer.UniversalConsumer(
+                CreatePayload(),
+                CreateMessageHandlerRecord<CancellableHandler>(),
+                null,
+                string.Empty,
+                "test-queue",
+                cancellationTokenSource.Token);
+
+            Assert.AreEqual(cancellationTokenSource.Token, handler.ReceivedCancellationToken);
+            errorHandler.Verify(
+                x => x.HandleErrorAsync(It.IsAny<Exception>(), It.IsAny<ErrorConsumerDetail>()),
+                Times.Never);
+        }
+
+        [TestMethod]
+        public async Task UniversalConsumer_WhenCancellationTokenIsCancelled_DoesNotCallErrorHandler()
+        {
+            var handler = new CancelledHandler();
+            var errorHandler = new Mock<IQsMessagingConsumerErrorHandler>();
+            var consumer = CreateConsumerService<CancelledHandler>(
+                handler,
+                errorHandler,
+                maxRetryAttempts: 0);
+            using var cancellationTokenSource = new CancellationTokenSource();
+            await cancellationTokenSource.CancelAsync();
+
+            await consumer.UniversalConsumer(
+                CreatePayload(),
+                CreateMessageHandlerRecord<CancelledHandler>(),
+                null,
+                string.Empty,
+                "test-queue",
+                cancellationTokenSource.Token);
+
+            errorHandler.Verify(
+                x => x.HandleErrorAsync(It.IsAny<Exception>(), It.IsAny<ErrorConsumerDetail>()),
+                Times.Never);
         }
 
         private static ConsumerService CreateConsumerService<THandler>(

@@ -240,7 +240,7 @@ namespace QsMessagingUnitTests.Public
 
             handlerTypeBuilder.DefineMethodOverride(
                 consumerMethod,
-                handlerInterfaceType.GetMethod(nameof(IQsMessageHandler<object>.Consumer))!);
+                handlerInterfaceType.GetMethod(nameof(IQsMessageHandler<object>.Consumer), new[] { contractType })!);
 
             var handlerType = handlerTypeBuilder.CreateType();
 

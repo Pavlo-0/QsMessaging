@@ -73,11 +73,11 @@ namespace QsMessagingUnitTests.RabbitMq
             _mockChannelService.Setup(s => s.GetOrCreateChannelAsync(It.IsAny<RqChannelPurpose>(), It.IsAny<CancellationToken>())).ReturnsAsync(_mockChannel.Object);
             _mockExchangeService.Setup(s => s.GetOrCreateExchangeAsync(It.IsAny<IChannel>(), It.IsAny<Type>(), It.IsAny<RqExchangePurpose>(), It.IsAny<CancellationToken>())).ReturnsAsync("exchange");
             _mockQueueService.Setup(s => s.GetOrCreateQueuesAsync(It.IsAny<IChannel>(), It.IsAny<Type>(), It.IsAny<string>(), It.IsAny<RqQueuePurpose>(), It.IsAny<CancellationToken>())).ReturnsAsync("queue");
-            _mockConsumerService.Setup(s => s.GetOrCreateConsumerAsync(It.IsAny<IChannel>(), It.IsAny<string>(), It.IsAny<HandlersStoreRecord>())).ReturnsAsync("tag");
+            _mockConsumerService.Setup(s => s.GetOrCreateConsumerAsync(It.IsAny<IChannel>(), It.IsAny<string>(), It.IsAny<HandlersStoreRecord>(), It.IsAny<CancellationToken>())).ReturnsAsync("tag");
 
             await _subscriber.SubscribeAsync();
 
-            _mockConsumerService.Verify(s => s.GetOrCreateConsumerAsync(It.IsAny<IChannel>(), It.IsAny<string>(), It.IsAny<HandlersStoreRecord>()), Times.Exactly(2));
+            _mockConsumerService.Verify(s => s.GetOrCreateConsumerAsync(It.IsAny<IChannel>(), It.IsAny<string>(), It.IsAny<HandlersStoreRecord>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
         }
 
         [TestMethod]
@@ -91,14 +91,14 @@ namespace QsMessagingUnitTests.RabbitMq
             _mockChannelService.Setup(s => s.GetOrCreateChannelAsync(RqChannelPurpose.QueuePermanent, It.IsAny<CancellationToken>())).ReturnsAsync(_mockChannel.Object);
             _mockExchangeService.Setup(s => s.GetOrCreateExchangeAsync(_mockChannel.Object, typeof(TestModel), RqExchangePurpose.Permanent, It.IsAny<CancellationToken>())).ReturnsAsync(exchangeName);
             _mockQueueService.Setup(s => s.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(TestModel), exchangeName, RqQueuePurpose.Permanent, It.IsAny<CancellationToken>())).ReturnsAsync(queueName);
-            _mockConsumerService.Setup(s => s.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, record)).ReturnsAsync("tag");
+            _mockConsumerService.Setup(s => s.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, record, It.IsAny<CancellationToken>())).ReturnsAsync("tag");
 
             await _subscriber.SubscribeHandlerAsync(record);
 
             _mockChannelService.Verify(s => s.GetOrCreateChannelAsync(RqChannelPurpose.QueuePermanent, It.IsAny<CancellationToken>()), Times.Once);
             _mockExchangeService.Verify(s => s.GetOrCreateExchangeAsync(_mockChannel.Object, typeof(TestModel), RqExchangePurpose.Permanent, It.IsAny<CancellationToken>()), Times.Once);
             _mockQueueService.Verify(s => s.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(TestModel), exchangeName, RqQueuePurpose.Permanent, It.IsAny<CancellationToken>()), Times.Once);
-            _mockConsumerService.Verify(s => s.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, record), Times.Once);
+            _mockConsumerService.Verify(s => s.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, record, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [TestMethod]
@@ -112,7 +112,7 @@ namespace QsMessagingUnitTests.RabbitMq
             _mockChannelService.Setup(s => s.GetOrCreateChannelAsync(RqChannelPurpose.QueueConsumerTemporary, It.IsAny<CancellationToken>())).ReturnsAsync(_mockChannel.Object);
             _mockExchangeService.Setup(s => s.GetOrCreateExchangeAsync(_mockChannel.Object, typeof(TestModel), RqExchangePurpose.Temporary, It.IsAny<CancellationToken>())).ReturnsAsync(exchangeName);
             _mockQueueService.Setup(s => s.GetOrCreateQueuesAsync(_mockChannel.Object, typeof(TestModel), exchangeName, RqQueuePurpose.ConsumerTemporary, It.IsAny<CancellationToken>())).ReturnsAsync(queueName);
-            _mockConsumerService.Setup(s => s.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, record)).ReturnsAsync("tag");
+            _mockConsumerService.Setup(s => s.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, record, It.IsAny<CancellationToken>())).ReturnsAsync("tag");
 
             await _subscriber.SubscribeHandlerAsync(record);
 
@@ -131,11 +131,19 @@ namespace QsMessagingUnitTests.RabbitMq
             _mockChannelService.Setup(s => s.GetOrCreateChannelAsync(It.IsAny<RqChannelPurpose>(), It.IsAny<CancellationToken>())).ReturnsAsync(_mockChannel.Object);
             _mockExchangeService.Setup(s => s.GetOrCreateExchangeAsync(It.IsAny<IChannel>(), It.IsAny<Type>(), It.IsAny<RqExchangePurpose>(), It.IsAny<CancellationToken>())).ReturnsAsync("exchange");
             _mockQueueService.Setup(s => s.GetOrCreateQueuesAsync(It.IsAny<IChannel>(), It.IsAny<Type>(), It.IsAny<string>(), It.IsAny<RqQueuePurpose>(), It.IsAny<CancellationToken>())).ReturnsAsync(expectedQueueName);
-            _mockConsumerService.Setup(s => s.GetOrCreateConsumerAsync(It.IsAny<IChannel>(), expectedQueueName, record)).ReturnsAsync("tag");
+            _mockConsumerService.Setup(s => s.GetOrCreateConsumerAsync(It.IsAny<IChannel>(), expectedQueueName, record, It.IsAny<CancellationToken>())).ReturnsAsync("tag");
 
             await _subscriber.SubscribeHandlerAsync(record);
 
-            _mockConsumerService.Verify(s => s.GetOrCreateConsumerAsync(It.IsAny<IChannel>(), expectedQueueName, record), Times.Once);
+            _mockConsumerService.Verify(s => s.GetOrCreateConsumerAsync(It.IsAny<IChannel>(), expectedQueueName, record, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task CloseAsync_ClosesConsumers()
+        {
+            await _subscriber.CloseAsync();
+
+            _mockConsumerService.Verify(s => s.CloseAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

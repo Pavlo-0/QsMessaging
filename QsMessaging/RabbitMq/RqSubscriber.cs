@@ -38,7 +38,13 @@ namespace QsMessaging.RabbitMq
             var exchangeName = await exchangeService.GetOrCreateExchangeAsync(channel, record.GenericType, exchangePurpose, cancellationToken);
             var queueName = await queueService.GetOrCreateQueuesAsync(channel, record.GenericType, exchangeName, queueType, cancellationToken);
 
-            await consumerService.GetOrCreateConsumerAsync(channel, queueName, record);
+            await consumerService.GetOrCreateConsumerAsync(channel, queueName, record, cancellationToken);
+        }
+
+        public async Task CloseAsync(CancellationToken cancellationToken = default)
+        {
+            logger.LogInformation("Closing RabbitMQ consumers.");
+            await consumerService.CloseAsync(cancellationToken);
         }
     }
 }

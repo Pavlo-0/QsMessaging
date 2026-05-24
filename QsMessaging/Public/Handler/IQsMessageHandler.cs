@@ -12,5 +12,13 @@
         /// If the message cannot be received for any reason, it will wait until receiving becomes possible and then be received.
         /// </summary>
         Task Consumer(TModel contractModel);
+
+        /// <summary>
+        /// This method is called when a message is received and allows the handler to observe shutdown cancellation.
+        /// </summary>
+        Task Consumer(TModel contractModel, CancellationToken cancellationToken = default)
+        {
+            return Consumer(contractModel);
+        }
     }
 }

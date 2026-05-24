@@ -17,5 +17,13 @@
         /// <param name="contract"></param>
         /// <returns></returns>
         Task Consumer(TModel contract);
+
+        /// <summary>
+        /// This method is called when a message is received and allows the handler to observe shutdown cancellation.
+        /// </summary>
+        Task Consumer(TModel contract, CancellationToken cancellationToken = default)
+        {
+            return Consumer(contract);
+        }
     }
 }
