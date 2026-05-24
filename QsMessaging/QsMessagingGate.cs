@@ -6,42 +6,38 @@ namespace QsMessaging
 {
     internal class QsMessagingGate(ILogger<QsMessagingGate> logger, ISender sender) : IQsMessaging
     {
-        public Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
+        public async Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
         {
             ValidationType<TMessage>();
             ValidationModel(model);
 
             try
             {
-                return sender.SendMessageAsync(model);
+                await sender.SendMessageAsync(model);
             }
             catch (OperationCanceledException oce)
             {
                 logger.LogInformation($"Operation was canceled: {oce.Message}");
             }
-
-            return Task.CompletedTask;
         }
 
-        public Task SendEventAsync<TEvent>(TEvent model) where TEvent : class
+        public async Task SendEventAsync<TEvent>(TEvent model) where TEvent : class
         {
             ValidationType<TEvent>();
             ValidationModel(model);
 
             try
             {
-                return sender.SendEventAsync(model);
+                await sender.SendEventAsync(model);
             }
             catch (OperationCanceledException oce)
             {
                 logger.LogInformation($"Operation was canceled: {oce.Message}");
             }
 
-            return Task.CompletedTask;
-
         }
 
-        public Task<TResponse> RequestResponse<TRequest, TResponse>(TRequest request, CancellationToken cancellationToken) where TRequest : class where TResponse : class
+        public async Task<TResponse> RequestResponse<TRequest, TResponse>(TRequest request, CancellationToken cancellationToken) where TRequest : class where TResponse : class
         {
             ValidationType<TRequest>("Request");
             ValidationType<TResponse>("Response");
@@ -52,16 +48,13 @@ namespace QsMessaging
 
             try
             {
-                return sender.SendRequest<TRequest, TResponse>(request, cancellationToken);
+                return await sender.SendRequest<TRequest, TResponse>(request, cancellationToken);
             }
             catch (OperationCanceledException oce)
             {
                 logger.LogInformation($"Operation was canceled: {oce.Message}");
+                throw;
             }
-
-#pragma warning disable CS8619 // Nullability of reference types in value doesn't match target type.
-            return Task.FromResult((TResponse?)null);
-#pragma warning restore CS8619 // Nullability of reference types in value doesn't match target type.
 
         }
 
