@@ -273,13 +273,16 @@ namespace QsMessaging.RabbitMq
             MessageTypeEnum messageType,
             CancellationToken cancellationToken)
         {
-            await channel.BasicPublishAsync(
-                exchange: exchangeName,
-                routingKey: string.Empty,
-                mandatory: messageType == MessageTypeEnum.Message,
-                body: body,
-                basicProperties: props,
-                cancellationToken: cancellationToken);
+            await RqChannelExecutor.ExecuteAsync(
+                channel,
+                async token => await channel.BasicPublishAsync(
+                        exchange: exchangeName,
+                        routingKey: string.Empty,
+                        mandatory: messageType == MessageTypeEnum.Message,
+                        body: body,
+                        basicProperties: props,
+                        cancellationToken: token),
+                cancellationToken);
         }
     }
 }

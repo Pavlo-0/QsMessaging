@@ -62,22 +62,28 @@ namespace QsMessaging.RabbitMq.Services
 
                 try
                 {
-                    await channel.QueueDeclareAsync(
-                        queue: queueName,
-                        durable: durable,
-                        exclusive: exclusive,
-                        autoDelete: autoDelete,
-                        arguments: arguments,
-                        cancellationToken: cancellationToken);
+                    await RqChannelExecutor.ExecuteAsync(
+                        channel,
+                        async token =>
+                        {
+                            await channel.QueueDeclareAsync(
+                                queue: queueName,
+                                durable: durable,
+                                exclusive: exclusive,
+                                autoDelete: autoDelete,
+                                arguments: arguments,
+                                cancellationToken: token);
 
-                    logger.LogDebug("Attempting to bind queue");
+                            logger.LogDebug("Attempting to bind queue");
 
-                    await channel.QueueBindAsync(
-                        queue: queueName,
-                        exchange: exchangeName,
-                        routingKey: string.Empty,
-                        arguments: null,
-                        cancellationToken: cancellationToken);
+                            await channel.QueueBindAsync(
+                                queue: queueName,
+                                exchange: exchangeName,
+                                routingKey: string.Empty,
+                                arguments: null,
+                                cancellationToken: token);
+                        },
+                        cancellationToken);
                 }
                 catch (OperationInterruptedException oie)
                 {

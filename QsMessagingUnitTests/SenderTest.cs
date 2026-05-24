@@ -149,6 +149,54 @@ namespace QsMessaging.Tests
         }
 
         [TestMethod]
+        public async Task SendMessageAsync_WhenCalledConcurrentlyOnSameChannel_SerializesPublish()
+        {
+            var connection = new Mock<IConnection>();
+            var channel = new Mock<IChannel>();
+            var exchangeName = "TestExchange";
+            var activePublishes = 0;
+            var maxConcurrentPublishes = 0;
+
+            _mockConnectionService.Setup(x => x.GetOrCreateConnectionAsync(CancellationToken.None))
+                .ReturnsAsync(connection.Object);
+            _mockChannelService.Setup(x => x.GetOrCreateChannelAsync(RqChannelPurpose.MessagePublish, CancellationToken.None))
+                .ReturnsAsync(channel.Object);
+            _mockExchangeService.Setup(x => x.GetOrCreateExchangeAsync(channel.Object, typeof(RequestModel), RqExchangePurpose.Permanent, CancellationToken.None))
+                .ReturnsAsync(exchangeName);
+            channel
+                .Setup(x => x.BasicPublishAsync(
+                    exchangeName,
+                    string.Empty,
+                    true,
+                    It.IsAny<BasicProperties>(),
+                    It.IsAny<ReadOnlyMemory<byte>>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(async () =>
+                {
+                    var active = Interlocked.Increment(ref activePublishes);
+                    UpdateMax(ref maxConcurrentPublishes, active);
+
+                    await Task.Delay(50);
+
+                    Interlocked.Decrement(ref activePublishes);
+                });
+
+            await Task.WhenAll(
+                _sender.SendMessageAsync(new RequestModel { Name = "first" }),
+                _sender.SendMessageAsync(new RequestModel { Name = "second" }));
+
+            Assert.AreEqual(1, maxConcurrentPublishes);
+            channel.Verify(x => x.BasicPublishAsync(
+                exchangeName,
+                string.Empty,
+                true,
+                It.IsAny<BasicProperties>(),
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                It.IsAny<CancellationToken>()),
+                Times.Exactly(2));
+        }
+
+        [TestMethod]
         public async Task SendMessageAsync_WhenRabbitReturnsMessage_RetriesThenLogsWarning()
         {
             // Arrange
@@ -440,6 +488,23 @@ namespace QsMessaging.Tests
             return props.Headers is not null
                 && props.Headers.TryGetValue(name, out var value)
                 && string.Equals(value?.ToString(), expectedValue, StringComparison.Ordinal);
+        }
+
+        private static void UpdateMax(ref int target, int value)
+        {
+            while (true)
+            {
+                var current = Volatile.Read(ref target);
+                if (value <= current)
+                {
+                    return;
+                }
+
+                if (Interlocked.CompareExchange(ref target, value, current) == current)
+                {
+                    return;
+                }
+            }
         }
     }
 }

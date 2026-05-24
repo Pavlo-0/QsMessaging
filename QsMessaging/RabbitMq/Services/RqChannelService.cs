@@ -33,10 +33,15 @@ namespace QsMessaging.RabbitMq.Services
 
                     try
                     {
-                        if (storedChannel.channel.IsOpen)
-                        {
-                            await storedChannel.channel.CloseAsync();
-                        }
+                        await RqChannelExecutor.ExecuteAsync(
+                            storedChannel.channel,
+                            async _ =>
+                            {
+                                if (storedChannel.channel.IsOpen)
+                                {
+                                    await storedChannel.channel.CloseAsync();
+                                }
+                            });
                     }
                     catch (Exception ex)
                     {

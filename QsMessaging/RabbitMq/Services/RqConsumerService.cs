@@ -72,10 +72,13 @@ namespace QsMessaging.RabbitMq.Services
                 }
                 finally
                 {
-                    await channel.BasicAckAsync(
-                        deliveryTag: ea.DeliveryTag,
-                        multiple: false,
-                        cancellationToken: CancellationToken.None);
+                    await RqChannelExecutor.ExecuteAsync(
+                        channel,
+                        async token => await channel.BasicAckAsync(
+                            deliveryTag: ea.DeliveryTag,
+                            multiple: false,
+                            cancellationToken: token),
+                        CancellationToken.None);
                 }
 
             };
@@ -83,11 +86,14 @@ namespace QsMessaging.RabbitMq.Services
             logger.LogTrace("Register basic consumer.");
             try
             {
-                var consumerTag = await channel.BasicConsumeAsync(
-                    queueName,
-                    autoAck: false,
-                    consumer: consumer,
-                    cancellationToken: cancellationToken);
+                var consumerTag = await RqChannelExecutor.ExecuteAsync(
+                    channel,
+                    async token => await channel.BasicConsumeAsync(
+                            queueName,
+                            autoAck: false,
+                            consumer: consumer,
+                            cancellationToken: token),
+                    cancellationToken);
                 storeConsumerRecords.Add(new RqStoreConsumerRecord(channel, queueName, consumerTag)
                 {
                     CancellationTokenSource = consumerCancellation
@@ -122,10 +128,13 @@ namespace QsMessaging.RabbitMq.Services
                 {
                     if (consumerRecord.Channel.IsOpen)
                     {
-                        await consumerRecord.Channel.BasicCancelAsync(
-                            consumerRecord.ConsumerTag,
-                            noWait: false,
-                            cancellationToken: cancellationToken);
+                        await RqChannelExecutor.ExecuteAsync(
+                            consumerRecord.Channel,
+                            async token => await consumerRecord.Channel.BasicCancelAsync(
+                                consumerRecord.ConsumerTag,
+                                noWait: false,
+                                cancellationToken: token),
+                            cancellationToken);
                     }
                 }
                 catch (OperationCanceledException ex)
@@ -166,11 +175,14 @@ namespace QsMessaging.RabbitMq.Services
                     return;
                 }
 
-                await channel.BasicNackAsync(
-                    deliveryTag: deliveryTag,
-                    multiple: false,
-                    requeue: true,
-                    cancellationToken: CancellationToken.None);
+                await RqChannelExecutor.ExecuteAsync(
+                    channel,
+                    async token => await channel.BasicNackAsync(
+                        deliveryTag: deliveryTag,
+                        multiple: false,
+                        requeue: true,
+                        cancellationToken: token),
+                    CancellationToken.None);
             }
             catch (Exception nackException)
             {

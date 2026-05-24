@@ -32,12 +32,16 @@ namespace QsMessaging.RabbitMq.Services
 
                 try
                 {
-                    await channel.ExchangeDeclareAsync(
-                                   exchange: name,
-                                   type: ExchangeType.Fanout,
-                                   durable: true,
-                                   autoDelete: isAutoDelete,
-                                   arguments: null);
+                    await RqChannelExecutor.ExecuteAsync(
+                        channel,
+                        async token => await channel.ExchangeDeclareAsync(
+                                exchange: name,
+                                type: ExchangeType.Fanout,
+                                durable: true,
+                                autoDelete: isAutoDelete,
+                                arguments: null,
+                                cancellationToken: token),
+                        cancellationToken);
 
                 }
                 catch (OperationInterruptedException ex) when (ex.ShutdownReason != null && ex.ShutdownReason.ReplyCode == 406)
