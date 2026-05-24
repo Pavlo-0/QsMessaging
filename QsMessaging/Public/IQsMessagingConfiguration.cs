@@ -1,10 +1,12 @@
 ﻿using QsMessaging.AzureServiceBus;
 using QsMessaging.RabbitMq;
+using System.Reflection;
 
 namespace QsMessaging.Public
 {
     public interface IQsMessagingConfiguration
     {
+        ICollection<Assembly> AssembliesToScan { get; }
         QsAzureServiceBusConfiguration AzureServiceBus { get; set; }
         QsMessageHandlerRetryConfiguration HandlerResilience { get; set; }
         QsRabbitMQConfiguration RabbitMQ { get; set; }

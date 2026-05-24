@@ -2,9 +2,11 @@ using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Logging;
 using Moq;
 using QsMessaging.AzureServiceBus;
+using QsMessaging.AzureServiceBus.Models.Enums;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Public;
 using QsMessaging.Shared.Interface;
+using QsMessaging.Shared.Models;
 using QsMessaging.Shared.Services.Interfaces;
 
 namespace QsMessagingUnitTests.AzureServiceBus
@@ -25,6 +27,11 @@ namespace QsMessagingUnitTests.AzureServiceBus
 #pragma warning restore CS8618
 
         private sealed class TestMessage
+        {
+            public string Name { get; set; } = "";
+        }
+
+        private sealed class TestResponse
         {
             public string Name { get; set; } = "";
         }
@@ -124,7 +131,87 @@ namespace QsMessagingUnitTests.AzureServiceBus
 
             Assert.IsNotNull(sentMessage);
             Assert.AreEqual(TimeSpan.FromDays(14), sentMessage.TimeToLive);
+            Assert.AreEqual("application/json", sentMessage.ContentType);
+            Assert.AreEqual(typeof(TestMessage).FullName, sentMessage.Subject);
+            Assert.AreEqual("""{"Name":"ready"}""", sentMessage.Body.ToString());
             mockSender.Verify(x => x.SendMessageAsync(It.IsAny<ServiceBusMessage>(), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task SendEventAsync_WhenTemporarySubscriberExists_SendsEventWithEventTtl()
+        {
+            var mockClient = new Mock<ServiceBusClient>();
+            var mockSender = new Mock<ServiceBusSender>();
+            ServiceBusMessage? sentMessage = null;
+
+            _mockConnectionService
+                .Setup(x => x.GetOrCreateConnectionAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mockClient.Object);
+            mockClient
+                .Setup(x => x.CreateSender("topic"))
+                .Returns(mockSender.Object);
+            mockSender
+                .Setup(x => x.SendMessageAsync(It.IsAny<ServiceBusMessage>(), It.IsAny<CancellationToken>()))
+                .Callback<ServiceBusMessage, CancellationToken>((message, _) => sentMessage = message)
+                .Returns(Task.CompletedTask);
+
+            await _sender.SendEventAsync(new TestMessage { Name = "event" });
+
+            Assert.IsNotNull(sentMessage);
+            Assert.AreEqual(TimeSpan.FromSeconds(60), sentMessage.TimeToLive);
+            Assert.AreEqual("application/json", sentMessage.ContentType);
+            Assert.AreEqual(typeof(TestMessage).FullName, sentMessage.Subject);
+            Assert.AreEqual("""{"Name":"event"}""", sentMessage.Body.ToString());
+            _mockTopicService.Verify(x => x.GetOrCreateTopicAsync(typeof(TestMessage), It.IsAny<CancellationToken>()), Times.Once);
+            mockClient.Verify(x => x.CreateSender("topic"), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task SendRequest_WhenResponseWaitFaults_RemovesCorrelationRecord()
+        {
+            var mockClient = new Mock<ServiceBusClient>();
+            var mockSender = new Mock<ServiceBusSender>();
+            ServiceBusMessage? sentMessage = null;
+            var handlerRecord = new HandlersStoreRecord(
+                typeof(IRRResponseHandler),
+                typeof(IRRResponseHandler),
+                typeof(object),
+                typeof(TestResponse));
+
+            _mockMessageStore
+                .Setup(x => x.AddRequestMessageAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromException(new TimeoutException("Request timed out")));
+            _mockHandlerService
+                .Setup(x => x.AddRRResponseHandler<TestResponse>())
+                .Returns((handlerRecord, true));
+            _mockSubscriber
+                .Setup(x => x.SubscribeHandlerAsync(It.IsAny<HandlersStoreRecord>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            _mockQueueService
+                .Setup(x => x.GetOrCreateQueueAsync(typeof(TestMessage), AsbQueuePurpose.Request, It.IsAny<CancellationToken>()))
+                .ReturnsAsync("request-queue");
+            _mockQueueService
+                .Setup(x => x.GetOrCreateQueueAsync(typeof(TestResponse), AsbQueuePurpose.Response, It.IsAny<CancellationToken>()))
+                .ReturnsAsync("response-queue");
+            _mockConnectionService
+                .Setup(x => x.GetOrCreateConnectionAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mockClient.Object);
+            mockClient
+                .Setup(x => x.CreateSender("request-queue"))
+                .Returns(mockSender.Object);
+            mockSender
+                .Setup(x => x.SendMessageAsync(It.IsAny<ServiceBusMessage>(), It.IsAny<CancellationToken>()))
+                .Callback<ServiceBusMessage, CancellationToken>((message, _) => sentMessage = message)
+                .Returns(Task.CompletedTask);
+
+            await Assert.ThrowsExceptionAsync<TimeoutException>(
+                () => _sender.SendRequest<TestMessage, TestResponse>(new TestMessage { Name = "request" }, CancellationToken.None));
+
+            Assert.IsNotNull(sentMessage);
+            Assert.AreEqual("response-queue", sentMessage.ReplyTo);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(sentMessage.CorrelationId));
+            _mockMessageStore.Verify(x => x.RemoveMessage(It.IsAny<string>()), Times.Once);
+            _mockMessageStore.Verify(x => x.GetRespondedMessage<TestResponse>(It.IsAny<string>()), Times.Never);
         }
     }
 }

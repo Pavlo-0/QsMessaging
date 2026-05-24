@@ -25,6 +25,12 @@ namespace QsMessaging.RabbitMq
         public QsAzureServiceBusConfiguration AzureServiceBus { get; set; } = new QsAzureServiceBusConfiguration();
 
         /// <summary>
+        /// Assemblies that QsMessaging scans for consumer handlers and consumer error handlers.
+        /// When empty, QsMessaging falls back to the entry assembly and the assembly that called AddQsMessaging.
+        /// </summary>
+        public ICollection<Assembly> AssembliesToScan { get; } = new List<Assembly>();
+
+        /// <summary>
         /// Configuration settings related to the connection with the RabbitMQ instance.
         /// </summary>
         public QsRabbitMQConfiguration RabbitMQ { get; set; } = new QsRabbitMQConfiguration();

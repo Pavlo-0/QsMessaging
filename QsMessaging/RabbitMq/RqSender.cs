@@ -81,18 +81,22 @@ namespace QsMessaging.RabbitMq
             props.DeliveryMode = DeliveryModes.Persistent;
             props.CorrelationId = Guid.NewGuid().ToString();
 
-            logger.LogDebug("{CorrelationId}:{Type}", props.CorrelationId, typeof(TRequest).FullName);
+            var correlationId = props.CorrelationId;
 
-            var responseAsync = requestResponseMessageStore.AddRequestMessageAsync(props.CorrelationId, model, cancellationToken);
+            logger.LogDebug("{CorrelationId}:{Type}", correlationId, typeof(TRequest).FullName);
 
-            var (handlerRecord, isNew) = handlerService.AddRRResponseHandler<TResponse>();
-            if (isNew)
+            var responseAsync = requestResponseMessageStore.AddRequestMessageAsync(correlationId, model, cancellationToken);
+
+            try
             {
-                await subscriber.Value.SubscribeHandlerAsync(handlerRecord, cancellationToken);
-            }
+                var (handlerRecord, isNew) = handlerService.AddRRResponseHandler<TResponse>();
+                if (isNew)
+                {
+                    await subscriber.Value.SubscribeHandlerAsync(handlerRecord, cancellationToken);
+                }
 
-            var channelPurpose = HardConfiguration.GetChannelPurpose(handlerRecord.supportedInterfacesType);
-            var exchangePurpose = HardConfiguration.GetExchangePurpose(handlerRecord.supportedInterfacesType);
+                var channelPurpose = HardConfiguration.GetChannelPurpose(handlerRecord.supportedInterfacesType);
+                var exchangePurpose = HardConfiguration.GetExchangePurpose(handlerRecord.supportedInterfacesType);
   /*          string exchangeName = await RqChannelPurposeSynchronization.RunExclusiveAsync(
                 channelPurpose,
                 async () =>
@@ -103,22 +107,25 @@ namespace QsMessaging.RabbitMq
                 },
                 cancellationToken);
 */
-            var connection = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
-            var channel = await channelService.GetOrCreateChannelAsync(channelPurpose, cancellationToken);
-            var exchangeName = await queuesService.GetOrCreateExchangeAsync(channel, typeof(TResponse), exchangePurpose, cancellationToken);
+                var connection = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
+                var channel = await channelService.GetOrCreateChannelAsync(channelPurpose, cancellationToken);
+                var exchangeName = await queuesService.GetOrCreateExchangeAsync(channel, typeof(TResponse), exchangePurpose, cancellationToken);
 
-            props.ReplyTo = exchangeName;
+                props.ReplyTo = exchangeName;
 
-            await Send(model, typeof(TRequest), props, MessageTypeEnum.Message, true, cancellationToken);
+                await Send(model, typeof(TRequest), props, MessageTypeEnum.Message, true, cancellationToken);
 
-            await responseAsync;
+                await responseAsync;
 
-            logger.LogDebug("Get response message: {CorrelationId}", props.CorrelationId);
+                logger.LogDebug("Get response message: {CorrelationId}", correlationId);
 
-            var respondentMessage = requestResponseMessageStore.GetRespondedMessage<TResponse>(props.CorrelationId);
-            requestResponseMessageStore.RemoveMessage(props.CorrelationId);
+                return requestResponseMessageStore.GetRespondedMessage<TResponse>(correlationId);
+            }
+            finally
+            {
+                requestResponseMessageStore.RemoveMessage(correlationId);
+            }
 
-            return respondentMessage;
         }
 
         //TODO: join two Send methods into one with optional exchangeName parameter. If exchangeName is null, get or create exchange as before, if not null - use it

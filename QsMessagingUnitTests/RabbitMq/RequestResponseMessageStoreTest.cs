@@ -37,6 +37,8 @@ namespace QsMessagingUnitTests.RabbitMq
             var task = store.AddRequestMessageAsync("id-1", new object(), CancellationToken.None);
 
             Assert.IsFalse(task.IsCompleted);
+
+            store.RemoveMessage("id-1");
         }
 
         [TestMethod]
@@ -76,6 +78,8 @@ namespace QsMessagingUnitTests.RabbitMq
             var result = store.IsRespondedMessage("id-1");
 
             Assert.IsFalse(result);
+
+            store.RemoveMessage("id-1");
         }
 
         [TestMethod]
@@ -155,6 +159,24 @@ namespace QsMessagingUnitTests.RabbitMq
             var task = store.AddRequestMessageAsync("id-timeout", new object(), CancellationToken.None);
 
             await Assert.ThrowsExceptionAsync<TimeoutException>(() => task);
+            Assert.ThrowsException<KeyNotFoundException>(
+                () => store.IsRespondedMessage("id-timeout"));
+        }
+
+        [TestMethod]
+        public async Task AddRequestMessageAsync_WhenCancellationTokenCanceled_TaskCancelsAndRemovesRecord()
+        {
+            var mockConfig = new Mock<IQsMessagingConfiguration>();
+            mockConfig.Setup(c => c.RequestResponseTimeout).Returns(60_000);
+            var store = new RequestResponseMessageStore(_mockLogger.Object, mockConfig.Object);
+            using var cancellationTokenSource = new CancellationTokenSource();
+
+            var task = store.AddRequestMessageAsync("id-canceled", new object(), cancellationTokenSource.Token);
+            cancellationTokenSource.Cancel();
+
+            await Assert.ThrowsExceptionAsync<TaskCanceledException>(() => task);
+            Assert.ThrowsException<KeyNotFoundException>(
+                () => store.IsRespondedMessage("id-canceled"));
         }
     }
 }
