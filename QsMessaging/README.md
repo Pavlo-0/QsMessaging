@@ -104,4 +104,4 @@ await host.FullCleanUpTransportation();
 await host.UseQsMessaging();
 ```
 
-`FullCleanUpTransportation()` removes everything visible in the configured transport scope. For RabbitMQ it uses the Management HTTP API of the configured virtual host.
+`FullCleanUpTransportation()` removes only QsMessaging-prefixed entities by default: RabbitMQ queues/exchanges with `Qs:`, Azure Service Bus queues/topics with `Qs-`, and Azure subscriptions with `Qs_`. Set `options.AllowDangerousFullCleanup = true` only for isolated debug/test scopes when you intentionally want to delete every visible transport entity in the configured scope.

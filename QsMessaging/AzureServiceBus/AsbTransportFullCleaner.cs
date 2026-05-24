@@ -1,12 +1,15 @@
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using Microsoft.Extensions.Logging;
+using QsMessaging.AzureServiceBus.Services;
 using QsMessaging.Public;
+using QsMessaging.Shared;
 
 namespace QsMessaging.AzureServiceBus
 {
     internal sealed class AsbTransportFullCleaner(
         ILogger<AsbTransportFullCleaner> logger,
+        IQsMessagingConfiguration configuration,
         Services.Interfaces.IAsbConnectionService connectionService) : IQsMessagingTransportFullCleaner
     {
         public async Task FullCleanUp(CancellationToken cancellationToken = default)
@@ -17,25 +20,39 @@ namespace QsMessaging.AzureServiceBus
             }
 
             var administrationClient = await connectionService.GetOrCreateAdministrationClientAsync(cancellationToken);
+            var allowDangerousFullCleanup = configuration.AllowDangerousFullCleanup;
             var topicNames = new List<string>();
             var queueNames = new List<string>();
             var subscriptions = new List<(string TopicName, string SubscriptionName)>();
 
             try
             {
+                LogTargetScope();
+
                 await foreach (var topic in administrationClient.GetTopicsAsync(cancellationToken))
                 {
-                    topicNames.Add(topic.Name);
+                    if (TransportFullCleanupNameFilter.CanDeleteAzureServiceBusQueueOrTopic(topic.Name, allowDangerousFullCleanup))
+                    {
+                        topicNames.Add(topic.Name);
+                    }
 
                     await foreach (var subscription in administrationClient.GetSubscriptionsAsync(topic.Name, cancellationToken))
                     {
-                        subscriptions.Add((subscription.TopicName, subscription.SubscriptionName));
+                        if (TransportFullCleanupNameFilter.CanDeleteAzureServiceBusSubscription(
+                            subscription.SubscriptionName,
+                            allowDangerousFullCleanup))
+                        {
+                            subscriptions.Add((subscription.TopicName, subscription.SubscriptionName));
+                        }
                     }
                 }
 
                 await foreach (var queue in administrationClient.GetQueuesAsync(cancellationToken))
                 {
-                    queueNames.Add(queue.Name);
+                    if (TransportFullCleanupNameFilter.CanDeleteAzureServiceBusQueueOrTopic(queue.Name, allowDangerousFullCleanup))
+                    {
+                        queueNames.Add(queue.Name);
+                    }
                 }
 
                 foreach (var subscription in subscriptions.Distinct())
@@ -54,10 +71,11 @@ namespace QsMessaging.AzureServiceBus
                 }
 
                 logger.LogInformation(
-                    "Azure Service Bus full cleanup finished. Deleted {QueueCount} queues, {TopicCount} topics and {SubscriptionCount} subscriptions.",
+                    "Azure Service Bus full cleanup finished. Deleted {QueueCount} queues, {TopicCount} topics and {SubscriptionCount} subscriptions from namespace {Namespace}.",
                     queueNames.Count,
                     topicNames.Count,
-                    subscriptions.Count);
+                    subscriptions.Count,
+                    GetNamespaceForLog());
             }
             finally
             {
@@ -70,6 +88,35 @@ namespace QsMessaging.AzureServiceBus
                     logger.LogWarning(ex, "Failed to close Azure Service Bus administration client cleanly after full cleanup.");
                 }
             }
+        }
+
+        private void LogTargetScope()
+        {
+            if (configuration.AllowDangerousFullCleanup)
+            {
+                logger.LogWarning(
+                    "Azure Service Bus dangerous full cleanup is enabled. Target scope: all queues, topics and subscriptions in namespace {Namespace}.",
+                    GetNamespaceForLog());
+                return;
+            }
+
+            logger.LogInformation(
+                "Azure Service Bus full cleanup target scope: queues/topics with prefix {EntityPrefix} and subscriptions with prefix {SubscriptionPrefix} in namespace {Namespace}.",
+                TransportFullCleanupNameFilter.AzureServiceBusEntityPrefix,
+                TransportFullCleanupNameFilter.AzureServiceBusSubscriptionPrefix,
+                GetNamespaceForLog());
+        }
+
+        private string GetNamespaceForLog()
+        {
+            var connectionString = !string.IsNullOrWhiteSpace(configuration.AzureServiceBus.AdministrationConnectionString)
+                ? configuration.AzureServiceBus.AdministrationConnectionString
+                : configuration.AzureServiceBus.ConnectionString;
+            var sections = AsbConnectionStringHelper.Parse(connectionString);
+
+            return sections.TryGetValue("Endpoint", out var endpoint)
+                ? endpoint
+                : "configured namespace";
         }
 
         private async Task DeleteSubscriptionAsync(

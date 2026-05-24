@@ -138,7 +138,8 @@ namespace QsMessaging.Public
         }
 
         /// <summary>
-        /// Stops the current transport connection and removes all messaging entities visible to the configured transport scope.
+        /// Stops the current transport connection and removes QsMessaging-prefixed entities visible to the configured transport scope.
+        /// Set AllowDangerousFullCleanup to true to remove every visible entity in that scope.
         /// Intended for debug or local reset scenarios.
         /// </summary>
         public static async Task<IHost> FullCleanUpTransportation(this IHost host, CancellationToken cancellationToken = default)

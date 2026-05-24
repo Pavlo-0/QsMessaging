@@ -1,8 +1,8 @@
 namespace QsMessaging.Public
 {
     /// <summary>
-    /// Removes all messaging entities visible to the currently configured QsMessaging transport scope.
-    /// For RabbitMQ this means the configured virtual host, and for Azure Service Bus this means the configured namespace.
+    /// Removes QsMessaging-prefixed entities visible to the currently configured transport scope.
+    /// Set AllowDangerousFullCleanup to true to remove every visible entity in that scope.
     /// Intended for debug or local reset scenarios.
     /// </summary>
     public interface IQsMessagingTransportFullCleaner

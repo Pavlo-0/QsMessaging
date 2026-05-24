@@ -12,6 +12,7 @@ namespace QsMessaging.Public
         QsRabbitMQConfiguration RabbitMQ { get; set; }
         QsMessageReceiverRetryConfiguration Resilience { get; set; }
         QsMessagingTransport Transport { get; set; }
+        bool AllowDangerousFullCleanup { get; set; }
         int RequestResponseTimeout { get; set; }
         string ServiceName { get; set; }
     }

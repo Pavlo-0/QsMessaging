@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using QsMessaging.Public;
 using QsMessaging.RabbitMq.Services.Interfaces;
+using QsMessaging.Shared;
 using QsMessaging.Shared.Services;
 
 namespace QsMessaging.RabbitMq
@@ -17,9 +18,16 @@ namespace QsMessaging.RabbitMq
                 throw new InvalidOperationException("RabbitMQ full transport cleanup cannot run inside a message handler.");
             }
 
-            var queueNames = await managementService.GetQueueNamesAsync(cancellationToken);
+            LogTargetScope();
+
+            var allowDangerousFullCleanup = configuration.AllowDangerousFullCleanup;
+            var queueNames = (await managementService.GetQueueNamesAsync(cancellationToken))
+                .Where(queueName => TransportFullCleanupNameFilter.CanDeleteRabbitMqQueue(queueName, allowDangerousFullCleanup))
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
             var exchangeNames = (await managementService.GetExchangeNamesAsync(cancellationToken))
-                .Where(CanDeleteExchange)
+                .Where(exchangeName => TransportFullCleanupNameFilter.CanDeleteRabbitMqExchange(exchangeName, allowDangerousFullCleanup))
+                .Distinct(StringComparer.Ordinal)
                 .ToArray();
 
             foreach (var queueName in queueNames)
@@ -34,15 +42,25 @@ namespace QsMessaging.RabbitMq
 
             logger.LogInformation(
                 "RabbitMQ full cleanup finished. Deleted {QueueCount} queues and {ExchangeCount} exchanges from virtual host {VirtualHost}.",
-                queueNames.Count,
+                queueNames.Length,
                 exchangeNames.Length,
                 configuration.RabbitMQ.VirtualHost);
         }
 
-        private static bool CanDeleteExchange(string exchangeName)
+        private void LogTargetScope()
         {
-            return !string.IsNullOrWhiteSpace(exchangeName)
-                && !exchangeName.StartsWith("amq.", StringComparison.OrdinalIgnoreCase);
+            if (configuration.AllowDangerousFullCleanup)
+            {
+                logger.LogWarning(
+                    "RabbitMQ dangerous full cleanup is enabled. Target scope: all queues and all non-reserved exchanges in virtual host {VirtualHost}.",
+                    configuration.RabbitMQ.VirtualHost);
+                return;
+            }
+
+            logger.LogInformation(
+                "RabbitMQ full cleanup target scope: queues and exchanges with prefix {EntityPrefix} in virtual host {VirtualHost}.",
+                TransportFullCleanupNameFilter.RabbitMqEntityPrefix,
+                configuration.RabbitMQ.VirtualHost);
         }
     }
 }

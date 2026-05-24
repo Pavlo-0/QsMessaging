@@ -59,6 +59,12 @@ namespace QsMessaging.RabbitMq
         /// Active transport used by QsMessaging.
         /// </summary>
         public QsMessagingTransport Transport { get; set; } = QsMessagingTransport.RabbitMq;
+
+        /// <summary>
+        /// Allows FullCleanUpTransportation to delete every visible transport entity.
+        /// When false, full cleanup is limited to QsMessaging-prefixed entities.
+        /// </summary>
+        public bool AllowDangerousFullCleanup { get; set; }
     }
 
     public class QsRabbitMQConfiguration

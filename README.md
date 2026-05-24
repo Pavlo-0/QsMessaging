@@ -146,7 +146,10 @@ await host.UseQsMessaging();
 ```
 
 - `CleanUpTransportation()` removes entities that QsMessaging can derive from the current app contracts.
-- `FullCleanUpTransportation()` removes everything visible in the configured transport scope.
+- `FullCleanUpTransportation()` removes only QsMessaging-prefixed entities by default.
+- RabbitMQ safe full cleanup deletes queues and non-reserved exchanges with the `Qs:` prefix.
+- Azure Service Bus safe full cleanup deletes queues/topics with the `Qs-` prefix and subscriptions with the `Qs_` prefix.
+- Set `options.AllowDangerousFullCleanup = true` only for isolated debug/test scopes when you intentionally want to delete every visible queue/topic/subscription/exchange in the configured transport scope.
 - For RabbitMQ, full cleanup uses the Management HTTP API for the configured virtual host.
 - RabbitMQ Management HTTP API calls use `Microsoft.Extensions.Http.Resilience` with the configured `Resilience` retry settings for transient HTTP failures.
 
@@ -159,6 +162,9 @@ builder.Services.AddQsMessaging(options =>
     options.RabbitMQ.VirtualHost = "/";
     options.RabbitMQ.ManagementPort = 15672;
     options.RabbitMQ.ManagementScheme = "http";
+    // Dangerous: deletes every visible transport entity in the configured scope.
+    // Leave false unless the scope is isolated and disposable.
+    options.AllowDangerousFullCleanup = false;
 });
 ```
 
