@@ -15,23 +15,54 @@ using QsMessaging.Shared;
 using Polly;
 using Polly.Retry;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 
 namespace QsMessaging.Public
 {
     public static class QsMessagingRegistering
     {
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public static IServiceCollection AddQsMessaging(this IServiceCollection services, Action<IQsMessagingConfiguration> options)
         {
+            return AddQsMessagingCore(services, options, Assembly.GetCallingAssembly(), Array.Empty<Assembly>());
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static IServiceCollection AddQsMessaging(this IServiceCollection services, Action<IQsMessagingConfiguration> options, params Assembly[] assembliesToScan)
+        {
+            return AddQsMessagingCore(services, options, Assembly.GetCallingAssembly(), assembliesToScan);
+        }
+
+        private static IServiceCollection AddQsMessagingCore(
+            IServiceCollection services,
+            Action<IQsMessagingConfiguration> options,
+            Assembly callingAssembly,
+            Assembly[] assembliesToScan)
+        {
+            ArgumentNullException.ThrowIfNull(services);
+            ArgumentNullException.ThrowIfNull(options);
+
             var configuration = new Configuration();
             options(configuration);
             ValidateConfiguration(configuration);
+            assembliesToScan ??= Array.Empty<Assembly>();
+            var scanAssemblies = ResolveAssembliesToScan(configuration, callingAssembly, assembliesToScan);
+            var explicitScanAssemblies =
+                configuration.AssembliesToScan.Any(assembly => assembly is not null) ||
+                assembliesToScan.Any(assembly => assembly is not null);
+            var handlerGeneratorInstance = new HandlerService(services, scanAssemblies);
+
+            if (explicitScanAssemblies && handlerGeneratorInstance.DiscoveredConsumerHandlerCount == 0)
+            {
+                var assemblyNames = string.Join(", ", scanAssemblies.Select(assembly => assembly.GetName().Name));
+                throw new InvalidOperationException($"No QsMessaging handlers were found in the configured scan assemblies: {assemblyNames}.");
+            }
 
             services.AddSingleton<IQsMessagingConfiguration>(configuration);
 
             services.AddTransient<IInstanceService, InstanceService>();
             services.AddTransient<IQsMessaging, QsMessagingGate>();
-            var handlerGeneratorInstance = new HandlerService(services, Assembly.GetEntryAssembly()!);
             services.AddTransient<IHandlerService>(hg=>
             {
                 return handlerGeneratorInstance;
@@ -44,6 +75,43 @@ namespace QsMessaging.Public
             RegisterTransportServices(services, configuration);
 
             return services;
+        }
+
+        private static IReadOnlyCollection<Assembly> ResolveAssembliesToScan(
+            IQsMessagingConfiguration configuration,
+            Assembly callingAssembly,
+            IEnumerable<Assembly> assembliesToScan)
+        {
+            var configuredAssemblies = configuration.AssembliesToScan
+                .Concat(assembliesToScan)
+                .Where(assembly => assembly is not null)
+                .Distinct()
+                .ToArray();
+
+            if (configuredAssemblies.Length > 0)
+            {
+                return configuredAssemblies;
+            }
+
+            var defaultAssemblies = new List<Assembly>();
+            var entryAssembly = Assembly.GetEntryAssembly();
+
+            if (entryAssembly is not null)
+            {
+                defaultAssemblies.Add(entryAssembly);
+            }
+
+            if (!defaultAssemblies.Contains(callingAssembly))
+            {
+                defaultAssemblies.Add(callingAssembly);
+            }
+
+            if (defaultAssemblies.Count == 0)
+            {
+                throw new InvalidOperationException("No assembly is available for QsMessaging handler discovery. Configure options.AssembliesToScan or use AddQsMessaging(..., params Assembly[]).");
+            }
+
+            return defaultAssemblies;
         }
 
         public static async Task<IHost> UseQsMessaging(this IHost host)

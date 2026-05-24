@@ -50,24 +50,29 @@ namespace QsMessaging.AzureServiceBus
             var correlationId = Guid.NewGuid().ToString("N");
             var waitForResponse = requestResponseMessageStore.AddRequestMessageAsync(correlationId, model, cancellationToken);
 
-            var (responseHandlerRecord, isNew) = handlerService.AddRRResponseHandler<TResponse>();
-            if (isNew)
+            try
             {
-                await subscriber.Value.SubscribeHandlerAsync(responseHandlerRecord, cancellationToken);
+                var (responseHandlerRecord, isNew) = handlerService.AddRRResponseHandler<TResponse>();
+                if (isNew)
+                {
+                    await subscriber.Value.SubscribeHandlerAsync(responseHandlerRecord, cancellationToken);
+                }
+
+                //TODO: reconsidering  queue purpose type
+                var requestQueueName = await queueService.GetOrCreateQueueAsync(typeof(TRequest), AsbQueuePurpose.Request, cancellationToken);
+                var responseQueueName = await queueService.GetOrCreateQueueAsync(typeof(TResponse), AsbQueuePurpose.Response, cancellationToken);
+
+                var requestMessage = CreateMessage(model, typeof(TRequest), MessageTypeEnum.Message, correlationId, responseQueueName);
+                await SendToEntityRawAsync(requestQueueName, requestMessage, cancellationToken);
+
+                await waitForResponse;
+
+                return requestResponseMessageStore.GetRespondedMessage<TResponse>(correlationId);
             }
-
-            //TODO: reconsidering  queue purpose type
-            var requestQueueName = await queueService.GetOrCreateQueueAsync(typeof(TRequest), AsbQueuePurpose.Request, cancellationToken);
-            var responseQueueName = await queueService.GetOrCreateQueueAsync(typeof(TResponse), AsbQueuePurpose.Response);
-
-            var requestMessage = CreateMessage(model, typeof(TRequest), MessageTypeEnum.Message, correlationId, responseQueueName);
-            await SendToEntityRawAsync(requestQueueName, requestMessage, cancellationToken);
-
-            await waitForResponse;
-
-            var response = requestResponseMessageStore.GetRespondedMessage<TResponse>(correlationId);
-            requestResponseMessageStore.RemoveMessage(correlationId);
-            return response;
+            finally
+            {
+                requestResponseMessageStore.RemoveMessage(correlationId);
+            }
         }
 
         public async Task SendMessageCorrelatedAsync(

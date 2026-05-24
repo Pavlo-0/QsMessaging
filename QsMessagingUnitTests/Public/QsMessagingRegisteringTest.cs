@@ -5,8 +5,15 @@ using QsMessaging.AzureServiceBus;
 using QsMessaging.AzureServiceBus.Services;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Public;
+using QsMessaging.Public.Handler;
 using QsMessaging.RabbitMq;
 using QsMessaging.RabbitMq.Interfaces;
+using QsMessaging.RabbitMq.Models;
+using QsMessaging.Shared.Models;
+using QsMessaging.Shared.Services;
+using System.Collections.Concurrent;
+using System.Reflection;
+using System.Reflection.Emit;
 using AzureConnectionService = QsMessaging.AzureServiceBus.Services.Interfaces.IAsbConnectionService;
 using RabbitConnectionService = QsMessaging.RabbitMq.Services.Interfaces.IRqConnectionService;
 
@@ -15,6 +22,21 @@ namespace QsMessagingUnitTests.Public
     [TestClass]
     public class QsMessagingRegisteringTest
     {
+        private class CallingAssemblyContract { }
+
+        private class CallingAssemblyHandler : IQsMessageHandler<CallingAssemblyContract>
+        {
+            public Task Consumer(CallingAssemblyContract contractModel) => Task.CompletedTask;
+        }
+
+        private sealed record DynamicHandlerAssembly(Assembly Assembly, Type HandlerInterfaceType, Type HandlerType);
+
+        [TestInitialize]
+        public void Setup()
+        {
+            ResetHandlerServiceState();
+        }
+
         [TestMethod]
         public void AddQsMessaging_WhenAzureTransportHasNoConnectionString_ThrowsInvalidOperationException()
         {
@@ -79,6 +101,58 @@ namespace QsMessagingUnitTests.Public
         }
 
         [TestMethod]
+        public void AddQsMessaging_WhenNoAssembliesConfigured_RegistersHandlersFromCallingAssembly()
+        {
+            var services = new ServiceCollection();
+
+            services.AddQsMessaging(_ => { });
+
+            Assert.IsTrue(services.Any(s =>
+                s.ServiceType == typeof(IQsMessageHandler<CallingAssemblyContract>) &&
+                s.ImplementationType == typeof(CallingAssemblyHandler)));
+        }
+
+        [TestMethod]
+        public void AddQsMessaging_WhenAssembliesConfiguredInOptions_RegistersHandlersFromThoseAssemblies()
+        {
+            var dynamicHandlerAssembly = CreateDynamicMessageHandlerAssembly();
+            var services = new ServiceCollection();
+
+            services.AddQsMessaging(options =>
+            {
+                options.AssembliesToScan.Add(dynamicHandlerAssembly.Assembly);
+            });
+
+            Assert.IsTrue(services.Any(s =>
+                s.ServiceType == dynamicHandlerAssembly.HandlerInterfaceType &&
+                s.ImplementationType == dynamicHandlerAssembly.HandlerType));
+        }
+
+        [TestMethod]
+        public void AddQsMessaging_WhenAssembliesPassedToOverload_RegistersHandlersFromThoseAssemblies()
+        {
+            var dynamicHandlerAssembly = CreateDynamicMessageHandlerAssembly();
+            var services = new ServiceCollection();
+
+            services.AddQsMessaging(_ => { }, dynamicHandlerAssembly.Assembly);
+
+            Assert.IsTrue(services.Any(s =>
+                s.ServiceType == dynamicHandlerAssembly.HandlerInterfaceType &&
+                s.ImplementationType == dynamicHandlerAssembly.HandlerType));
+        }
+
+        [TestMethod]
+        public void AddQsMessaging_WhenExplicitAssembliesHaveNoHandlers_ThrowsInvalidOperationException()
+        {
+            var services = new ServiceCollection();
+
+            Assert.ThrowsException<InvalidOperationException>(() =>
+            {
+                services.AddQsMessaging(_ => { }, typeof(string).Assembly);
+            });
+        }
+
+        [TestMethod]
         public async Task CleanUpTransportation_ClosesCurrentTransportBeforeRunningCleaner()
         {
             var manager = new Mock<IQsMessagingConnectionManager>();
@@ -136,6 +210,50 @@ namespace QsMessagingUnitTests.Public
             Assert.AreSame(host.Object, returnedHost);
             manager.Verify(m => m.Close(It.IsAny<CancellationToken>()), Times.Once);
             cleaner.Verify(c => c.FullCleanUp(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        private static DynamicHandlerAssembly CreateDynamicMessageHandlerAssembly()
+        {
+            var assemblyName = new AssemblyName($"QsMessagingUnitTests.DynamicHandlers.{Guid.NewGuid():N}");
+            var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+            var moduleBuilder = assemblyBuilder.DefineDynamicModule("Main");
+
+            var contractType = moduleBuilder
+                .DefineType($"{assemblyName.Name}.Contract", TypeAttributes.Public | TypeAttributes.Class)
+                .CreateType();
+
+            var handlerInterfaceType = typeof(IQsMessageHandler<>).MakeGenericType(contractType);
+            var handlerTypeBuilder = moduleBuilder.DefineType(
+                $"{assemblyName.Name}.Handler",
+                TypeAttributes.Public | TypeAttributes.Class);
+            handlerTypeBuilder.AddInterfaceImplementation(handlerInterfaceType);
+
+            var consumerMethod = handlerTypeBuilder.DefineMethod(
+                nameof(IQsMessageHandler<object>.Consumer),
+                MethodAttributes.Public | MethodAttributes.Virtual,
+                typeof(Task),
+                new[] { contractType });
+
+            var il = consumerMethod.GetILGenerator();
+            il.Emit(OpCodes.Call, typeof(Task).GetProperty(nameof(Task.CompletedTask))!.GetMethod!);
+            il.Emit(OpCodes.Ret);
+
+            handlerTypeBuilder.DefineMethodOverride(
+                consumerMethod,
+                handlerInterfaceType.GetMethod(nameof(IQsMessageHandler<object>.Consumer))!);
+
+            var handlerType = handlerTypeBuilder.CreateType();
+
+            return new DynamicHandlerAssembly(assemblyBuilder, handlerInterfaceType, handlerType);
+        }
+
+        private static void ResetHandlerServiceState()
+        {
+            var handlersField = typeof(HandlerService).GetField("_handlers", BindingFlags.NonPublic | BindingFlags.Static);
+            handlersField!.SetValue(null, new ConcurrentBag<HandlersStoreRecord>());
+
+            var errorHandlersField = typeof(HandlerService).GetField("_consumerErrorHandler", BindingFlags.NonPublic | BindingFlags.Static);
+            errorHandlersField!.SetValue(null, new ConcurrentBag<RqConsumerErrorHandlerStoreRecord>());
         }
     }
 }

@@ -25,6 +25,22 @@ var host = builder.Build();
 await host.UseQsMessaging();
 ```
 
+## Handler Discovery
+
+By default, QsMessaging scans the entry assembly and the assembly that called `AddQsMessaging`. If handlers live in separate class libraries, pass those assemblies explicitly:
+
+```csharp
+builder.Services.AddQsMessaging(options =>
+{
+    options.AssembliesToScan.Add(typeof(MyMessageHandler).Assembly);
+});
+
+// or
+builder.Services.AddQsMessaging(options => { }, typeof(MyMessageHandler).Assembly);
+```
+
+When scan assemblies are explicitly configured and no QsMessaging consumer handlers are found, registration fails fast with an `InvalidOperationException`.
+
 ## Azure Service Bus
 
 Azure Service Bus support is available as an early preview behind the same public API.

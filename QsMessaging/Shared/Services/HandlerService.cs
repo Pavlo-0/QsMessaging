@@ -13,25 +13,45 @@ namespace QsMessaging.Shared.Services
     {
         private static ConcurrentBag<HandlersStoreRecord> _handlers = new ConcurrentBag<HandlersStoreRecord>();
         private static ConcurrentBag<RqConsumerErrorHandlerStoreRecord> _consumerErrorHandler = new ConcurrentBag<RqConsumerErrorHandlerStoreRecord>();
-
-        private readonly object _lock = new();
-
+        private static readonly object _handlersLock = new();
+        private static readonly object _consumerErrorHandlersLock = new();
 
         private IServiceCollection _services;
 
         public HandlerService(IServiceCollection services, Assembly assembly)
+            : this(services, new[] { assembly })
+        {
+        }
+
+        public HandlerService(IServiceCollection services, IEnumerable<Assembly> assemblies)
         {
             _services = services;
+            var assembliesToScan = assemblies
+                .Where(assembly => assembly is not null)
+                .Distinct()
+                .ToArray();
+
+            if (assembliesToScan.Length == 0)
+            {
+                throw new ArgumentException("At least one assembly must be provided for handler discovery.", nameof(assemblies));
+            }
+
             foreach (var supportedInterfacesType in HardConfiguration.SupportedInterfacesTypes)
             {
-                foreach (var findedHandler in FindHandlers(assembly, supportedInterfacesType))
+                foreach (var findedHandler in assembliesToScan.SelectMany(assembly => FindHandlers(assembly, supportedInterfacesType)))
                 {
-                    _handlers.Add(findedHandler);
+                    DiscoveredConsumerHandlerCount++;
+                    AddHandlerIfMissing(findedHandler);
                 }
             }
 
-            FindImplementations<IQsMessagingConsumerErrorHandler>(assembly);
+            foreach (var assembly in assembliesToScan)
+            {
+                FindImplementations<IQsMessagingConsumerErrorHandler>(assembly);
+            }
         }
+
+        internal int DiscoveredConsumerHandlerCount { get; }
 
         public (HandlersStoreRecord record, bool isNew) AddRRResponseHandler<TContract>()
         {
@@ -41,7 +61,7 @@ namespace QsMessaging.Shared.Services
                 typeof(RRResponseHandler),
                 typeof(TContract));
 
-            lock (_lock)
+            lock (_handlersLock)
             {
                 if (!_handlers.Contains(record))
                 {
@@ -94,7 +114,29 @@ namespace QsMessaging.Shared.Services
 
             foreach (var record in records)
             {
-                _consumerErrorHandler.Add(record);
+                AddConsumerErrorHandlerIfMissing(record);
+            }
+        }
+
+        private static void AddHandlerIfMissing(HandlersStoreRecord record)
+        {
+            lock (_handlersLock)
+            {
+                if (!_handlers.Contains(record))
+                {
+                    _handlers.Add(record);
+                }
+            }
+        }
+
+        private static void AddConsumerErrorHandlerIfMissing(RqConsumerErrorHandlerStoreRecord record)
+        {
+            lock (_consumerErrorHandlersLock)
+            {
+                if (!_consumerErrorHandler.Contains(record))
+                {
+                    _consumerErrorHandler.Add(record);
+                }
             }
         }
 

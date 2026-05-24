@@ -9,10 +9,13 @@ namespace ArrangeInstance01.MessageScenario
 
         public async Task Run()
         {
+            var runId = Guid.NewGuid().ToString("N");
+
             foreach (var i in Enumerable.Range(0, 50))
             {
                 var message = new Message50PausedContract
                 {
+                    RunId = runId,
                     MyMessageCount = i
                 };
 

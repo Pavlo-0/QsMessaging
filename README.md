@@ -31,6 +31,22 @@ builder.Services.AddQsMessaging(options => { });
 await host.UseQsMessaging();
 ```
 
+### Handler Discovery
+
+By default, QsMessaging scans the entry assembly and the assembly that called `AddQsMessaging`. If your handlers live in separate class libraries, pass those assemblies explicitly:
+
+```csharp
+builder.Services.AddQsMessaging(options =>
+{
+    options.AssembliesToScan.Add(typeof(MyMessageHandler).Assembly);
+});
+
+// or
+builder.Services.AddQsMessaging(options => { }, typeof(MyMessageHandler).Assembly);
+```
+
+When scan assemblies are explicitly configured and no QsMessaging consumer handlers are found, registration fails fast with an `InvalidOperationException`.
+
 ### Default Configuration
 
 **RabbitMQ** (default transport)

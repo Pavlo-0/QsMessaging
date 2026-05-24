@@ -265,6 +265,7 @@ namespace QsMessaging.Tests
             _mockHandlerService.Verify(x => x.AddRRResponseHandler<ResponseModel>(), Times.Once);
             _mockMessageStore.Verify(x => x.AddRequestMessageAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Once);
             _mockMessageStore.Verify(x => x.GetRespondedMessage<ResponseModel>(It.IsAny<string>()), Times.Once);
+            _mockMessageStore.Verify(x => x.RemoveMessage(It.IsAny<string>()), Times.Once);
 
             Assert.IsNotNull(response);
             Assert.AreEqual(responseAssertModel.Name, response.Name);
@@ -279,6 +280,58 @@ namespace QsMessaging.Tests
               It.IsAny<ReadOnlyMemory<byte>>(),
               It.IsAny<CancellationToken>()),
               Times.Once);
+        }
+
+        [TestMethod]
+        public async Task SendRequest_WhenResponseWaitFaults_RemovesCorrelationRecord()
+        {
+            var requestModel = new RequestModel { Name = "Request" };
+            var connection = new Mock<IConnection>();
+            var publishChannel = new Mock<IChannel>();
+            var responseChannel = new Mock<IChannel>();
+            var requestExchangeName = "RequestExchange";
+            var responseExchangeName = "ResponseExchange";
+            var handlerRecord = new HandlersStoreRecord(
+                typeof(IRRResponseHandler),
+                typeof(IRRResponseHandler),
+                typeof(object),
+                typeof(ResponseModel));
+
+            _mockMessageStore
+                .Setup(x => x.AddRequestMessageAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromException(new TimeoutException("Request timed out")));
+
+            _mockHandlerService
+                .Setup(x => x.AddRRResponseHandler<ResponseModel>())
+                .Returns((handlerRecord, true));
+
+            _mockSubscriber
+                .Setup(x => x.SubscribeHandlerAsync(It.IsAny<HandlersStoreRecord>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            _mockConnectionService
+                .Setup(x => x.GetOrCreateConnectionAsync(CancellationToken.None))
+                .ReturnsAsync(connection.Object);
+
+            _mockChannelService
+                .Setup(x => x.GetOrCreateChannelAsync(RqChannelPurpose.QueueInstanceTemporary, CancellationToken.None))
+                .ReturnsAsync(responseChannel.Object);
+            _mockChannelService
+                .Setup(x => x.GetOrCreateChannelAsync(RqChannelPurpose.MessagePublish, CancellationToken.None))
+                .ReturnsAsync(publishChannel.Object);
+
+            _mockExchangeService
+                .Setup(x => x.GetOrCreateExchangeAsync(responseChannel.Object, typeof(ResponseModel), RqExchangePurpose.TemporaryForResponse, CancellationToken.None))
+                .ReturnsAsync(responseExchangeName);
+            _mockExchangeService
+                .Setup(x => x.GetOrCreateExchangeAsync(publishChannel.Object, requestModel.GetType(), RqExchangePurpose.Temporary, CancellationToken.None))
+                .ReturnsAsync(requestExchangeName);
+
+            await Assert.ThrowsExceptionAsync<TimeoutException>(
+                () => _sender.SendRequest<RequestModel, ResponseModel>(requestModel));
+
+            _mockMessageStore.Verify(x => x.RemoveMessage(It.IsAny<string>()), Times.Once);
+            _mockMessageStore.Verify(x => x.GetRespondedMessage<ResponseModel>(It.IsAny<string>()), Times.Never);
         }
 
         [TestMethod]
