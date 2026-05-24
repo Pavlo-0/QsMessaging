@@ -7,13 +7,23 @@ namespace AssertInstance01.MessageAssert
 {
     internal class Message50PausedHandler(IQsMessagingConnectionManager connectionManager) : IQsMessageHandler<Message50PausedContract>
     {
-        private readonly static ConcurrentBag<Message50PausedContract> _contracts = new ConcurrentBag<Message50PausedContract>();
+        private static readonly ConcurrentDictionary<string, ConcurrentDictionary<int, byte>> _contractsByRunId = new();
+        private static readonly ConcurrentDictionary<string, byte> _pauseTriggeredRunIds = new();
 
         public async Task Consumer(Message50PausedContract contractModel)
         {
-            _contracts.Add(contractModel);
+            if (string.IsNullOrWhiteSpace(contractModel.RunId))
+            {
+                return;
+            }
 
-            if (contractModel.MyMessageCount == 30)
+            var contracts = _contractsByRunId.GetOrAdd(
+                contractModel.RunId,
+                _ => new ConcurrentDictionary<int, byte>());
+            contracts.TryAdd(contractModel.MyMessageCount, 0);
+
+            if (contractModel.MyMessageCount == 30 &&
+                _pauseTriggeredRunIds.TryAdd(contractModel.RunId, 0))
             {
                 await connectionManager.Close();
                 await Task.Delay(1000);
@@ -21,18 +31,9 @@ namespace AssertInstance01.MessageAssert
             }
             
 
-            if (_contracts.Count == 50)
+            if (contracts.Count == 50)
             {
-                var i = 0;
-                var isFail = false;
-                foreach (var contract in _contracts.OrderBy(v=> v.MyMessageCount))
-                {
-                    if (contract.MyMessageCount != i)
-                    {
-                        isFail = true;
-                    }
-                    i++;
-                }
+                var isFail = !Enumerable.Range(0, 50).All(contracts.ContainsKey);
 
                 if (isFail)
                 {
