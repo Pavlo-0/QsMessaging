@@ -46,6 +46,11 @@ namespace QsMessaging.RabbitMq
         public QsMessageReceiverRetryConfiguration Resilience { get; set; } = new();
 
         /// <summary>
+        /// JSON serialization and message metadata settings shared by all transports.
+        /// </summary>
+        public QsMessagingSerializationConfiguration Serialization { get; set; } = new();
+
+        /// <summary>
         /// Allows you to set a custom displayed service name. By default, it uses your assembly name.
         /// </summary>
         public string ServiceName { get; set; }

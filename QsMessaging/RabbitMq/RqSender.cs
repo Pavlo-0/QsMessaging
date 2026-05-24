@@ -140,7 +140,10 @@ namespace QsMessaging.RabbitMq
             if (model == null)
                 throw new ArgumentNullException(nameof(model), "You can not send NULL data. You model is null");
 
-            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(model));
+            ApplySerializationMetadata(props, type);
+            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
+                model,
+                SerializationMetadata.GetJsonSerializerOptions(configuration)));
             var channelPurpose = messageType == MessageTypeEnum.Message ? RqChannelPurpose.MessagePublish : RqChannelPurpose.EventPublish;
 
             var connection = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
@@ -173,7 +176,10 @@ namespace QsMessaging.RabbitMq
             if (model == null)
                 throw new ArgumentNullException(nameof(model), "You can not send NULL data. You model is null");
 
-            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(model));
+            ApplySerializationMetadata(props, type);
+            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
+                model,
+                SerializationMetadata.GetJsonSerializerOptions(configuration)));
             var channelPurpose = messageType == MessageTypeEnum.Message ? RqChannelPurpose.MessagePublish : RqChannelPurpose.EventPublish;
 
             var connection = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
@@ -247,6 +253,16 @@ namespace QsMessaging.RabbitMq
 
                 return false;
             }
+        }
+
+        private void ApplySerializationMetadata(BasicProperties props, Type contractType)
+        {
+            props.ContentType = SerializationMetadata.GetContentType(configuration);
+            props.ContentEncoding = SerializationMetadata.GetContentEncoding(configuration);
+            props.Type = contractType.FullName;
+            props.Headers ??= new Dictionary<string, object?>();
+            props.Headers[SerializationMetadata.ContractVersionHeader] = SerializationMetadata.GetContractVersion(configuration);
+            props.Headers[SerializationMetadata.ContractTypeHeader] = contractType.FullName;
         }
 
         private static async ValueTask PublishRawAsync(

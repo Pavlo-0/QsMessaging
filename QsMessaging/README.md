@@ -61,6 +61,24 @@ await host.UseQsMessaging();
 
 For cloud namespaces, use the regular Azure Service Bus namespace connection string. For the emulator, keep emulator-only port settings in development configuration.
 
+## Serialization
+
+Configure shared `System.Text.Json` options and contract metadata on `options.Serialization`:
+
+```csharp
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+builder.Services.AddQsMessaging(options =>
+{
+    options.Serialization.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.Serialization.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.Serialization.ContractVersion = "v2";
+});
+```
+
+RabbitMQ publishes JSON content-type, content-encoding, contract type, and contract version headers. Azure Service Bus publishes the same contract metadata in `ContentType`, `Subject`, and application properties.
+
 ## Send Resilience
 
 QsMessaging does not check receiver queues or subscriptions before every `SendMessageAsync` call. The send path stays fast and retry starts only after the transport reports a missing/unroutable receiver.

@@ -4,6 +4,7 @@ using QsMessaging.AzureServiceBus.Models.Enums;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
 using QsMessaging.Public;
 using QsMessaging.RabbitMq.Interfaces;
+using QsMessaging.Shared;
 using QsMessaging.Shared.Interface;
 using QsMessaging.Shared.Models.Enums;
 using QsMessaging.Shared.Services.Interfaces;
@@ -162,16 +163,22 @@ namespace QsMessaging.AzureServiceBus
             await sender.SendMessageAsync(message, cancellationToken);
         }
 
-        private static ServiceBusMessage CreateMessage(object model, Type contractType, MessageTypeEnum messageType, string? correlationId = null, string? replyTo = null)
+        private ServiceBusMessage CreateMessage(object model, Type contractType, MessageTypeEnum messageType, string? correlationId = null, string? replyTo = null)
         {
-            var message = new ServiceBusMessage(BinaryData.FromString(JsonSerializer.Serialize(model)))
+            var message = new ServiceBusMessage(BinaryData.FromString(JsonSerializer.Serialize(
+                model,
+                SerializationMetadata.GetJsonSerializerOptions(configuration))))
             {
-                ContentType = "application/json",
+                ContentType = SerializationMetadata.GetContentType(configuration),
                 Subject = contractType.FullName, //TODO: Can be type of message for queue topic event or message and etc
                 TimeToLive = messageType == MessageTypeEnum.Message ? TimeSpan.FromDays(14) : TimeSpan.FromSeconds(60),
                 CorrelationId = correlationId,
                 ReplyTo = replyTo
             };
+
+            message.ApplicationProperties[SerializationMetadata.ContractVersionHeader] = SerializationMetadata.GetContractVersion(configuration);
+            message.ApplicationProperties[SerializationMetadata.ContractTypeHeader] = contractType.FullName;
+            message.ApplicationProperties[SerializationMetadata.ContentEncodingHeader] = SerializationMetadata.GetContentEncoding(configuration);
 
             return message;
         }

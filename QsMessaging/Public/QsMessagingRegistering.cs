@@ -235,6 +235,7 @@ namespace QsMessaging.Public
         {
             ValidateRetryConfiguration(configuration.Resilience, "Resilience");
             ValidateRetryConfiguration(configuration.HandlerResilience, "HandlerResilience");
+            ValidateSerializationConfiguration(configuration.Serialization);
 
             if (configuration.Transport != QsMessagingTransport.AzureServiceBus)
             {
@@ -257,6 +258,34 @@ namespace QsMessaging.Public
             if (resilience.Delay < TimeSpan.Zero)
             {
                 throw new InvalidOperationException($"{optionName}.Delay can not be negative.");
+            }
+        }
+
+        private static void ValidateSerializationConfiguration(QsMessagingSerializationConfiguration serialization)
+        {
+            if (serialization is null)
+            {
+                throw new InvalidOperationException("Serialization configuration can not be null.");
+            }
+
+            if (serialization.JsonSerializerOptions is null)
+            {
+                throw new InvalidOperationException("Serialization.JsonSerializerOptions can not be null.");
+            }
+
+            if (string.IsNullOrWhiteSpace(serialization.ContentType))
+            {
+                throw new InvalidOperationException("Serialization.ContentType can not be empty.");
+            }
+
+            if (string.IsNullOrWhiteSpace(serialization.ContentEncoding))
+            {
+                throw new InvalidOperationException("Serialization.ContentEncoding can not be empty.");
+            }
+
+            if (string.IsNullOrWhiteSpace(serialization.ContractVersion))
+            {
+                throw new InvalidOperationException("Serialization.ContractVersion can not be empty.");
             }
         }
     }

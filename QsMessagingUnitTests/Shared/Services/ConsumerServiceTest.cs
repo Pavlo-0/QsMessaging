@@ -76,6 +76,17 @@ namespace QsMessagingUnitTests.Shared.Services
             }
         }
 
+        private sealed class CapturingHandler : IQsMessageHandler<TestMessage>
+        {
+            public TestMessage? ReceivedMessage { get; private set; }
+
+            public Task Consumer(TestMessage contractModel)
+            {
+                ReceivedMessage = contractModel;
+                return Task.CompletedTask;
+            }
+        }
+
         [TestMethod]
         public async Task UniversalConsumer_WhenHandlerRetrySucceeds_DoesNotCallErrorHandler()
         {
@@ -162,6 +173,37 @@ namespace QsMessagingUnitTests.Shared.Services
         }
 
         [TestMethod]
+        public async Task UniversalConsumer_UsesConfiguredJsonSerializerOptions()
+        {
+            var handler = new CapturingHandler();
+            var errorHandler = new Mock<IQsMessagingConsumerErrorHandler>();
+            var consumer = CreateConsumerService<CapturingHandler>(
+                handler,
+                errorHandler,
+                maxRetryAttempts: 0,
+                serialization: new QsMessagingSerializationConfiguration
+                {
+                    JsonSerializerOptions = new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    }
+                });
+
+            await consumer.UniversalConsumer(
+                Encoding.UTF8.GetBytes("""{"name":"camel"}"""),
+                CreateMessageHandlerRecord<CapturingHandler>(),
+                null,
+                string.Empty,
+                "test-queue",
+                CancellationToken.None);
+
+            Assert.AreEqual("camel", handler.ReceivedMessage?.Name);
+            errorHandler.Verify(
+                x => x.HandleErrorAsync(It.IsAny<Exception>(), It.IsAny<ErrorConsumerDetail>()),
+                Times.Never);
+        }
+
+        [TestMethod]
         public async Task UniversalConsumer_WhenHandlerHasCancellationTokenOverload_PassesToken()
         {
             var handler = new CancellableHandler();
@@ -214,7 +256,8 @@ namespace QsMessagingUnitTests.Shared.Services
         private static ConsumerService CreateConsumerService<THandler>(
             THandler handler,
             Mock<IQsMessagingConsumerErrorHandler> errorHandler,
-            int maxRetryAttempts)
+            int maxRetryAttempts,
+            QsMessagingSerializationConfiguration? serialization = null)
             where THandler : class, IQsMessageHandler<TestMessage>
         {
             var services = new ServiceCollection();
@@ -230,6 +273,12 @@ namespace QsMessagingUnitTests.Shared.Services
                     MaxRetryAttempts = maxRetryAttempts,
                     Delay = TimeSpan.Zero
                 });
+            if (serialization is not null)
+            {
+                configuration
+                    .SetupGet(x => x.Serialization)
+                    .Returns(serialization);
+            }
 
             return new ConsumerService(
                 Mock.Of<ILogger<ConsumerService>>(),

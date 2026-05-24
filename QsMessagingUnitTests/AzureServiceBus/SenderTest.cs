@@ -8,6 +8,7 @@ using QsMessaging.Public;
 using QsMessaging.Shared.Interface;
 using QsMessaging.Shared.Models;
 using QsMessaging.Shared.Services.Interfaces;
+using System.Text.Json;
 
 namespace QsMessagingUnitTests.AzureServiceBus
 {
@@ -133,8 +134,51 @@ namespace QsMessagingUnitTests.AzureServiceBus
             Assert.AreEqual(TimeSpan.FromDays(14), sentMessage.TimeToLive);
             Assert.AreEqual("application/json", sentMessage.ContentType);
             Assert.AreEqual(typeof(TestMessage).FullName, sentMessage.Subject);
+            Assert.AreEqual("1", sentMessage.ApplicationProperties["qs-contract-version"]);
+            Assert.AreEqual(typeof(TestMessage).FullName, sentMessage.ApplicationProperties["qs-contract-type"]);
+            Assert.AreEqual("utf-8", sentMessage.ApplicationProperties["content-encoding"]);
             Assert.AreEqual("""{"Name":"ready"}""", sentMessage.Body.ToString());
             mockSender.Verify(x => x.SendMessageAsync(It.IsAny<ServiceBusMessage>(), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task SendMessageAsync_UsesConfiguredJsonSerializerOptionsAndMetadata()
+        {
+            var mockClient = new Mock<ServiceBusClient>();
+            var mockSender = new Mock<ServiceBusSender>();
+            ServiceBusMessage? sentMessage = null;
+
+            _mockConfiguration
+                .SetupGet(x => x.Serialization)
+                .Returns(new QsMessagingSerializationConfiguration
+                {
+                    JsonSerializerOptions = new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    },
+                    ContentType = "application/vnd.qsmessaging+json",
+                    ContentEncoding = "utf-8",
+                    ContractVersion = "v2"
+                });
+            _mockConnectionService
+                .Setup(x => x.GetOrCreateConnectionAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mockClient.Object);
+            mockClient
+                .Setup(x => x.CreateSender("topic"))
+                .Returns(mockSender.Object);
+            mockSender
+                .Setup(x => x.SendMessageAsync(It.IsAny<ServiceBusMessage>(), It.IsAny<CancellationToken>()))
+                .Callback<ServiceBusMessage, CancellationToken>((message, _) => sentMessage = message)
+                .Returns(Task.CompletedTask);
+
+            await _sender.SendMessageAsync(new TestMessage { Name = "camel" });
+
+            Assert.IsNotNull(sentMessage);
+            Assert.AreEqual("application/vnd.qsmessaging+json", sentMessage.ContentType);
+            Assert.AreEqual("v2", sentMessage.ApplicationProperties["qs-contract-version"]);
+            Assert.AreEqual(typeof(TestMessage).FullName, sentMessage.ApplicationProperties["qs-contract-type"]);
+            Assert.AreEqual("utf-8", sentMessage.ApplicationProperties["content-encoding"]);
+            Assert.AreEqual("""{"name":"camel"}""", sentMessage.Body.ToString());
         }
 
         [TestMethod]

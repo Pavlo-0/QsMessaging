@@ -6,6 +6,7 @@ using QsMessaging.Public;
 using QsMessaging.Public.Handler;
 using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Models.Enums;
+using QsMessaging.Shared;
 using QsMessaging.Shared.Models;
 using QsMessaging.Shared.Services.Interfaces;
 using System.Reflection;
@@ -35,7 +36,10 @@ namespace QsMessaging.Shared.Services
                 bodyBytes = data;
                 var message = Encoding.UTF8.GetString(bodyBytes);
 
-                modelInstance = JsonSerializer.Deserialize(message, record.GenericType);
+                modelInstance = JsonSerializer.Deserialize(
+                    message,
+                    record.GenericType,
+                    SerializationMetadata.GetJsonSerializerOptions(configuration));
 
                 await using var scope = scopeFactory.CreateAsyncScope();
                 var handlerInstance = scope.ServiceProvider.GetService(record.ConcreteHandlerInterfaceType)

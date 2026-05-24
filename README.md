@@ -76,6 +76,26 @@ builder.Services.AddQsMessaging(options =>
 });
 ```
 
+### Serialization
+
+By default, QsMessaging uses `System.Text.Json` with default JSON options and publishes messages as `application/json`.
+
+Configure shared JSON options and contract metadata on `options.Serialization`:
+
+```csharp
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+builder.Services.AddQsMessaging(options =>
+{
+    options.Serialization.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.Serialization.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.Serialization.ContractVersion = "v2";
+});
+```
+
+RabbitMQ publishes `ContentType`, `ContentEncoding`, `Type`, and `qs-contract-version` headers. Azure Service Bus publishes `ContentType`, `Subject`, and matching application properties.
+
 ### Send Resilience And Missing Receivers
 
 `SendMessageAsync` does not run a queue/subscription existence check before every message. That keeps the hot send path fast and avoids a management call per publish.

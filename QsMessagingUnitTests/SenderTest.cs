@@ -10,6 +10,8 @@ using QsMessaging.Shared.Models;
 using QsMessaging.Public;
 using QsMessaging.Public.Handler;
 using RabbitMQ.Client.Exceptions;
+using System.Text;
+using System.Text.Json;
 
 namespace QsMessaging.Tests
 {
@@ -90,8 +92,58 @@ namespace QsMessaging.Tests
                 exchangeName,
                 string.Empty,
                 true,
-                It.Is<BasicProperties>(props => props.DeliveryMode == DeliveryModes.Persistent),
+                It.Is<BasicProperties>(props =>
+                    props.DeliveryMode == DeliveryModes.Persistent
+                    && props.ContentType == "application/json"
+                    && props.ContentEncoding == "utf-8"
+                    && props.Type == modelType.FullName
+                    && HasHeader(props, "qs-contract-version", "1")
+                    && HasHeader(props, "qs-contract-type", modelType.FullName!)),
                 It.Is<ReadOnlyMemory<byte>>(p => p.Length == 22),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [TestMethod]
+        public async Task SendMessageAsync_UsesConfiguredJsonSerializerOptionsAndMetadata()
+        {
+            var model = new RequestModel { Name = "Camel" };
+            var connection = new Mock<IConnection>();
+            var channel = new Mock<IChannel>();
+            var exchangeName = "TestExchange";
+
+            _mockConfiguration
+                .SetupGet(x => x.Serialization)
+                .Returns(new QsMessagingSerializationConfiguration
+                {
+                    JsonSerializerOptions = new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    },
+                    ContentType = "application/vnd.qsmessaging+json",
+                    ContentEncoding = "utf-8",
+                    ContractVersion = "v2"
+                });
+            _mockConnectionService.Setup(x => x.GetOrCreateConnectionAsync(CancellationToken.None))
+                .ReturnsAsync(connection.Object);
+            _mockChannelService.Setup(x => x.GetOrCreateChannelAsync(RqChannelPurpose.MessagePublish, CancellationToken.None))
+                .ReturnsAsync(channel.Object);
+            _mockExchangeService.Setup(x => x.GetOrCreateExchangeAsync(channel.Object, typeof(RequestModel), RqExchangePurpose.Permanent, CancellationToken.None))
+                .ReturnsAsync(exchangeName);
+
+            await _sender.SendMessageAsync(model);
+
+            channel.Verify(x => x.BasicPublishAsync(
+                exchangeName,
+                string.Empty,
+                true,
+                It.Is<BasicProperties>(props =>
+                    props.ContentType == "application/vnd.qsmessaging+json"
+                    && props.ContentEncoding == "utf-8"
+                    && props.Type == typeof(RequestModel).FullName
+                    && HasHeader(props, "qs-contract-version", "v2")
+                    && HasHeader(props, "qs-contract-type", typeof(RequestModel).FullName!)),
+                It.Is<ReadOnlyMemory<byte>>(body => Encoding.UTF8.GetString(body.ToArray()) == """{"name":"Camel"}"""),
                 It.IsAny<CancellationToken>()),
                 Times.Once);
         }
@@ -381,6 +433,13 @@ namespace QsMessaging.Tests
         private class ResponseModel
         {
             public string Name { get; set; } = "";
+        }
+
+        private static bool HasHeader(BasicProperties props, string name, string expectedValue)
+        {
+            return props.Headers is not null
+                && props.Headers.TryGetValue(name, out var value)
+                && string.Equals(value?.ToString(), expectedValue, StringComparison.Ordinal);
         }
     }
 }
