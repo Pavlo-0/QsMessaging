@@ -29,9 +29,14 @@ namespace QsMessaging.AzureServiceBus
 
         public async Task SendMessageAsync<TMessage>(TMessage model) where TMessage : class
         {
-            var topicName = await topicService.GetOrCreateTopicAsync(typeof(TMessage));
-            var message = CreateMessage(model, typeof(TMessage), MessageTypeEnum.Message);
-            if (await SendToEntityAsync(topicName, message, typeof(TMessage)))
+            var messageType = typeof(TMessage);
+            var topicName = await topicService.GetOrCreateTopicAsync(messageType);
+            var message = CreateMessage(model, messageType, MessageTypeEnum.Message);
+            if (await SendToEntityAsync(
+                    topicName,
+                    message,
+                    messageType,
+                    token => RecreateTopicAsync(topicName, messageType, token)))
             {
                 logger.LogInformation("Message has been published to Azure Service Bus topic {TopicName}", topicName);
             }
@@ -39,8 +44,12 @@ namespace QsMessaging.AzureServiceBus
 
         public async Task SendEventAsync<TEvent>(TEvent model) where TEvent : class
         {
-            var topicName = await topicService.GetOrCreateTopicAsync(typeof(TEvent));
-            await SendToEntityRawAsync(topicName, CreateMessage(model, typeof(TEvent), MessageTypeEnum.Event));
+            var eventType = typeof(TEvent);
+            var topicName = await topicService.GetOrCreateTopicAsync(eventType);
+            await SendToEntityRawWithRecoveryAsync(
+                topicName,
+                CreateMessage(model, eventType, MessageTypeEnum.Event),
+                token => RecreateTopicAsync(topicName, eventType, token));
             logger.LogInformation("Event has been published to Azure Service Bus topic {TopicName}", topicName);
         }
 
@@ -60,11 +69,17 @@ namespace QsMessaging.AzureServiceBus
                 }
 
                 //TODO: reconsidering  queue purpose type
-                var requestQueueName = await queueService.GetOrCreateQueueAsync(typeof(TRequest), AsbQueuePurpose.Request, cancellationToken);
-                var responseQueueName = await queueService.GetOrCreateQueueAsync(typeof(TResponse), AsbQueuePurpose.Response, cancellationToken);
+                var requestType = typeof(TRequest);
+                var responseType = typeof(TResponse);
+                var requestQueueName = await queueService.GetOrCreateQueueAsync(requestType, AsbQueuePurpose.Request, cancellationToken);
+                var responseQueueName = await queueService.GetOrCreateQueueAsync(responseType, AsbQueuePurpose.Response, cancellationToken);
 
-                var requestMessage = CreateMessage(model, typeof(TRequest), MessageTypeEnum.Message, correlationId, responseQueueName);
-                await SendToEntityRawAsync(requestQueueName, requestMessage, cancellationToken);
+                var requestMessage = CreateMessage(model, requestType, MessageTypeEnum.Message, correlationId, responseQueueName);
+                await SendToEntityRawWithRecoveryAsync(
+                    requestQueueName,
+                    requestMessage,
+                    token => RecreateQueueAsync(requestQueueName, requestType, AsbQueuePurpose.Request, token),
+                    cancellationToken);
 
                 await waitForResponse;
 
@@ -106,6 +121,7 @@ namespace QsMessaging.AzureServiceBus
             string queueOrTopicName,
             ServiceBusMessage message,
             Type contractType,
+            Func<CancellationToken, Task>? recoverMissingEntityAsync = null,
             CancellationToken cancellationToken = default)
         {
             var resilience = configuration.Resilience;
@@ -145,8 +161,24 @@ namespace QsMessaging.AzureServiceBus
             }
             catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
             {
+                var exceptionToLog = ex;
+                if (recoverMissingEntityAsync is not null)
+                {
+                    RemoveSender(queueOrTopicName);
+                    try
+                    {
+                        await recoverMissingEntityAsync(cancellationToken);
+                        await SendToEntityRawAsync(queueOrTopicName, message, cancellationToken);
+                        return true;
+                    }
+                    catch (ServiceBusException retryException) when (retryException.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
+                    {
+                        exceptionToLog = retryException;
+                    }
+                }
+
                 logger.LogWarning(
-                    ex,
+                    exceptionToLog,
                     "Azure Service Bus destination {EntityName} for message {MessageType} was not found after {RetryAttempts} retry attempts. The message was not published.",
                     queueOrTopicName,
                     contractType.FullName,
@@ -156,11 +188,46 @@ namespace QsMessaging.AzureServiceBus
             }
         }
 
+        private async Task SendToEntityRawWithRecoveryAsync(
+            string queueOrTopicName,
+            ServiceBusMessage message,
+            Func<CancellationToken, Task> recoverMissingEntityAsync,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await SendToEntityRawAsync(queueOrTopicName, message, cancellationToken);
+            }
+            catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
+            {
+                RemoveSender(queueOrTopicName);
+                await recoverMissingEntityAsync(cancellationToken);
+                await SendToEntityRawAsync(queueOrTopicName, message, cancellationToken);
+            }
+        }
+
         private async Task SendToEntityRawAsync(string queueOrTopicName, ServiceBusMessage message, CancellationToken cancellationToken = default)
         {
             var client = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
             var sender = senders.GetOrAdd(queueOrTopicName, client.CreateSender);
             await sender.SendMessageAsync(message, cancellationToken);
+        }
+
+        private async Task RecreateTopicAsync(string topicName, Type contractType, CancellationToken cancellationToken)
+        {
+            topicService.InvalidateTopic(topicName);
+            await topicService.GetOrCreateTopicAsync(contractType, cancellationToken);
+        }
+
+        private async Task RecreateQueueAsync(string queueName, Type contractType, AsbQueuePurpose queuePurpose, CancellationToken cancellationToken)
+        {
+            queueService.InvalidateQueue(queueName);
+            await queueService.GetOrCreateQueueAsync(contractType, queuePurpose, cancellationToken);
+        }
+
+        private void RemoveSender(string queueOrTopicName)
+        {
+            senders.TryRemove(queueOrTopicName, out _);
         }
 
         private ServiceBusMessage CreateMessage(object model, Type contractType, MessageTypeEnum messageType, string? correlationId = null, string? replyTo = null)

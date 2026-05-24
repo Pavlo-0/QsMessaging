@@ -72,7 +72,7 @@ namespace QsMessagingUnitTests.AzureServiceBus
         }
 
         [TestMethod]
-        public async Task SendMessageAsync_WhenSendReportsMissingEntity_RetriesThenLogsWarning()
+        public async Task SendMessageAsync_WhenSendReportsMissingEntity_RecreatesThenLogsWarning()
         {
             var mockClient = new Mock<ServiceBusClient>();
             var mockSender = new Mock<ServiceBusSender>();
@@ -99,7 +99,8 @@ namespace QsMessagingUnitTests.AzureServiceBus
 
             await _sender.SendMessageAsync(new TestMessage { Name = "missing" });
 
-            mockSender.Verify(x => x.SendMessageAsync(It.IsAny<ServiceBusMessage>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            mockSender.Verify(x => x.SendMessageAsync(It.IsAny<ServiceBusMessage>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+            _mockTopicService.Verify(x => x.InvalidateTopic("topic"), Times.Once);
             _mockLogger.Verify(
                 x => x.Log(
                     LogLevel.Warning,
