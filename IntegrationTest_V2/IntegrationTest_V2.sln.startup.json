@@ -1,0 +1,19 @@
+/*
+    This is a configuration file for the SwitchStartupProject Visual Studio Extension.
+    Open IntegrationTest_V2.sln and choose IntegrationTest_V2.RabbitMq.
+*/
+{
+  "Version": 3,
+  "ListAllProjects": false,
+  "MultiProjectConfigurations": {
+    "IntegrationTest_V2.RabbitMq": {
+      "Projects": {
+        "IntegrationTestV2.Runner": {},
+        "IntegrationTestV2.Sender01": {},
+        "IntegrationTestV2.Sender02": {},
+        "IntegrationTestV2.Receiver01": {},
+        "IntegrationTestV2.Receiver02": {}
+      }
+    }
+  }
+}
