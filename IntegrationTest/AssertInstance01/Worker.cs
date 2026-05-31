@@ -11,7 +11,10 @@ namespace AssertInstance01
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            Console.Clear();
+            if (!Console.IsOutputRedirected)
+            {
+                Console.Clear();
+            }
             try
             {
                 while (!stoppingToken.IsCancellationRequested)
@@ -19,7 +22,10 @@ namespace AssertInstance01
                     var result = CollectionTestResults.GetAllTests();
 
                     //Console.Clear();
-                    Console.SetCursorPosition(0, 0);
+                    if (!Console.IsOutputRedirected)
+                    {
+                        Console.SetCursorPosition(0, 0);
+                    }
                     Console.WriteLine("Test Results:");
                     Console.WriteLine("-------------");
                     foreach (var test in result)

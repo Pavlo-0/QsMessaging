@@ -17,6 +17,7 @@ namespace AssertInstance01.MessageAssert
 
             if (contractModel.MyEventCount == 10)
             {
+                await CollectionTestResults.WaitForEvent50PausedTurnAsync();
                 var scenarioExecutionBlock = scenarioExecutionGate.BeginBlock();
 
                 try

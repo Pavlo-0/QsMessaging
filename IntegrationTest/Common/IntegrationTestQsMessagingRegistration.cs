@@ -30,6 +30,14 @@ internal static class IntegrationTestQsMessagingRegistration
             options.AzureServiceBus.AdministrationConnectionString = settings.AzureServiceBus.AdministrationConnectionString;
             options.AzureServiceBus.EmulatorAmqpPort = settings.AzureServiceBus.EmulatorAmqpPort;
             options.AzureServiceBus.EmulatorManagementPort = settings.AzureServiceBus.EmulatorManagementPort;
+
+            options.HandlerResilience.MaxRetryAttempts = settings.HandlerResilience.MaxRetryAttempts;
+            options.HandlerResilience.Delay = settings.HandlerResilience.Delay;
+            options.HandlerResilience.BackoffType = settings.HandlerResilience.BackoffType;
+            options.HandlerResilience.UseJitter = settings.HandlerResilience.UseJitter;
+
+            options.FailedMessageHandling.SendToErrorQueue = settings.FailedMessageHandling.SendToErrorQueue;
+            options.FailedMessageHandling.CallErrorHandlers = settings.FailedMessageHandling.CallErrorHandlers;
         });
 
         return services;
@@ -43,6 +51,18 @@ internal sealed class IntegrationTestQsMessagingSettings
     public IntegrationTestRabbitMqSettings RabbitMQ { get; set; } = new();
 
     public IntegrationTestAzureServiceBusSettings AzureServiceBus { get; set; } = new();
+
+    public QsMessageHandlerRetryConfiguration HandlerResilience { get; set; } = new()
+    {
+        MaxRetryAttempts = 1,
+        Delay = TimeSpan.Zero
+    };
+
+    public QsFailedMessageHandlingConfiguration FailedMessageHandling { get; set; } = new()
+    {
+        SendToErrorQueue = true,
+        CallErrorHandlers = true
+    };
 }
 
 internal sealed class IntegrationTestRabbitMqSettings

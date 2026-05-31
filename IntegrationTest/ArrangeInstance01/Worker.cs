@@ -18,7 +18,7 @@ namespace ArrangeInstance01
             await Task.Delay(2000, stoppingToken);
             Console.WriteLine($"------ Run all tests: {DateTimeOffset.Now} -------");
 
-            foreach (var scenario in _scenarios)
+            foreach (var scenario in _scenarios.OrderBy(GetExecutionOrder))
             {
                 Console.Write($"Test {scenario.GetType().Name} ...");
                 try
@@ -55,5 +55,15 @@ namespace ArrangeInstance01
                 Console.WriteLine($"----------------------");
                 await Task.Delay(3000, stoppingToken);
             }
+        }
+
+        private static int GetExecutionOrder(IScenario scenario)
+        {
+            return scenario switch
+            {
+                MessageScenario.Message50Paused => 1,
+                MessageScenario.Event50Paused => 2,
+                _ => 0
+            };
         }
     }}
