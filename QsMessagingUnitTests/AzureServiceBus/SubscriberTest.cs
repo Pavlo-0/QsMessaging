@@ -81,7 +81,7 @@ namespace QsMessagingUnitTests.AzureServiceBus
             _mockProcessor.SetupGet(processor => processor.IsProcessing).Returns(true);
             _mockProcessorService
                 .Setup(service => service.GetOrCreate(record, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(_mockProcessor.Object);
+                .ReturnsAsync(new AsbProcessorRegistration(_mockProcessor.Object, "entity", "topic", "entity"));
 
             await _subscriber.SubscribeHandlerAsync(record);
 
@@ -104,7 +104,7 @@ namespace QsMessagingUnitTests.AzureServiceBus
 
             _mockProcessorService
                 .Setup(service => service.GetOrCreate(record, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(_mockProcessor.Object);
+                .ReturnsAsync(new AsbProcessorRegistration(_mockProcessor.Object, "entity", "topic", "entity"));
 
             await _subscriber.SubscribeHandlerAsync(record);
 

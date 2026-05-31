@@ -27,6 +27,7 @@ namespace AssertInstance01.MessageAssert
             if (contractModel.MyMessageCount == 30 &&
                 _pauseTriggeredRunIds.TryAdd(contractModel.RunId, 0))
             {
+                await CollectionTestResults.WaitForMessage50PausedTurnAsync();
                 await using var scenarioBlock = scenarioExecutionGate.BeginBlock();
                 await connectionManager.Close();
                 await Task.Delay(1000);

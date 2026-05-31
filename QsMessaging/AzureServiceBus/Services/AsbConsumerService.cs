@@ -2,13 +2,11 @@ using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QsMessaging.AzureServiceBus.Services.Interfaces;
+using QsMessaging.Public;
 using QsMessaging.Public.Handler;
-using QsMessaging.RabbitMq.Interfaces;
-using QsMessaging.RabbitMq.Models.Enums;
 using QsMessaging.Shared;
 using QsMessaging.Shared.Models;
 using QsMessaging.Shared.Services.Interfaces;
-using System.Text.Json;
 
 namespace QsMessaging.AzureServiceBus.Services
 {
@@ -16,10 +14,14 @@ namespace QsMessaging.AzureServiceBus.Services
         ILogger<AsbSubscriber> logger,
         IServiceScopeFactory scopeFactory,
         IConsumerService consumerService,
-        ISender responseSender) : IAsbConsumerService
+        IQsMessagingConfiguration configuration) : IAsbConsumerService
     {
 
-        public async Task HandleMessageAsync(ProcessMessageEventArgs args, HandlersStoreRecord record, string entityDisplayName, CancellationToken cancellationToken)
+        public async Task HandleMessageAsync(
+            ProcessMessageEventArgs args,
+            HandlersStoreRecord record,
+            AsbProcessorRegistration processorRegistration,
+            CancellationToken cancellationToken)
         {
 
             try
@@ -31,9 +33,7 @@ namespace QsMessaging.AzureServiceBus.Services
                 await consumerService.UniversalConsumer(
                     data: args.Message.Body.ToMemory().ToArray(),
                     record: record,
-                    correlationId: args.Message.CorrelationId,
-                    replyTo: args.Message.ReplyTo,
-                    name: entityDisplayName,
+                    context: CreateMessageContext(args.Message, processorRegistration),
                     cancellationToken: linkedCancellation.Token);
             }
             catch (Exception ex)
@@ -54,6 +54,11 @@ namespace QsMessaging.AzureServiceBus.Services
                 entityDisplayName,
                 args.Identifier);
 
+            if (!(configuration.FailedMessageHandling?.CallErrorHandlers ?? true))
+            {
+                return;
+            }
+
             await ErrorAsync(
                              args.Exception,
                              new ErrorConsumerDetail(
@@ -70,17 +75,17 @@ namespace QsMessaging.AzureServiceBus.Services
 
         private async Task ErrorAsync(Exception ex, ErrorConsumerDetail model)
         {
-            try
+            await using var scope = scopeFactory.CreateAsyncScope();
+            foreach (var errorHandler in scope.ServiceProvider.GetServices<IQsMessagingConsumerErrorHandler>())
             {
-                await using var scope = scopeFactory.CreateAsyncScope();
-                foreach (var errorHandler in scope.ServiceProvider.GetServices<IQsMessagingConsumerErrorHandler>())
+                try
                 {
                     await errorHandler.HandleErrorAsync(ex, model);
                 }
-            }
-            catch (Exception handlerException)
-            {
-                logger.LogCritical(handlerException, "An exception occurred while handling Azure Service Bus consumer errors.");
+                catch (Exception handlerException)
+                {
+                    logger.LogCritical(handlerException, "An exception occurred while handling Azure Service Bus consumer errors.");
+                }
             }
         }
 
@@ -111,6 +116,59 @@ namespace QsMessaging.AzureServiceBus.Services
             {
                 logger.LogWarning(ex, "Failed to complete Azure Service Bus message {MessageId}.", args.Message.MessageId);
             }
+        }
+
+        private static ConsumerMessageContext CreateMessageContext(
+            ServiceBusReceivedMessage message,
+            AsbProcessorRegistration processorRegistration)
+        {
+            var applicationProperties = ConvertApplicationProperties(message.ApplicationProperties);
+            var metadata = new Dictionary<string, string?>
+            {
+                ["DeliveryCount"] = message.DeliveryCount.ToString(),
+                ["EnqueuedTimeUtc"] = message.EnqueuedTime.UtcDateTime.ToString("O"),
+                ["SequenceNumber"] = message.SequenceNumber.ToString(),
+                ["SubscriptionName"] = processorRegistration.SubscriptionName,
+                ["EntityPath"] = processorRegistration.SubscriptionName is null
+                    ? processorRegistration.EntityName
+                    : $"{processorRegistration.DestinationName}/Subscriptions/{processorRegistration.SubscriptionName}"
+            };
+
+            return new ConsumerMessageContext
+            {
+                TransportName = "AzureServiceBus",
+                OriginalQueueName = processorRegistration.EntityName,
+                OriginalHashedQueueName = processorRegistration.EntityName,
+                OriginalDestinationName = processorRegistration.DestinationName,
+                OriginalHashedDestinationName = processorRegistration.DestinationName,
+                Subject = message.Subject,
+                ReplyTo = message.ReplyTo,
+                CorrelationId = message.CorrelationId,
+                MessageId = message.MessageId,
+                ContentType = message.ContentType,
+                ContentEncoding = TryGetHeader(applicationProperties, SerializationMetadata.ContentEncodingHeader),
+                OriginalContractType = FirstNotEmpty(
+                    message.Subject,
+                    TryGetHeader(applicationProperties, SerializationMetadata.ContractTypeHeader)),
+                Headers = applicationProperties,
+                Metadata = metadata
+            };
+        }
+
+        private static IReadOnlyDictionary<string, string?> ConvertApplicationProperties(
+            IReadOnlyDictionary<string, object> applicationProperties)
+        {
+            return applicationProperties.ToDictionary(pair => pair.Key, pair => pair.Value?.ToString());
+        }
+
+        private static string? TryGetHeader(IReadOnlyDictionary<string, string?> headers, string name)
+        {
+            return headers.TryGetValue(name, out var value) ? value : null;
+        }
+
+        private static string? FirstNotEmpty(params string?[] values)
+        {
+            return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
         }
     }
 }

@@ -24,6 +24,10 @@ namespace ArrangeInstance01
                 options.AzureServiceBus.EmulatorManagementPort =
                     azureServiceBusConfiguration.GetValue<int?>("EmulatorManagementPort")
                     ?? options.AzureServiceBus.EmulatorManagementPort;
+                options.HandlerResilience.MaxRetryAttempts = 1;
+                options.HandlerResilience.Delay = TimeSpan.Zero;
+                options.FailedMessageHandling.SendToErrorQueue = true;
+                options.FailedMessageHandling.CallErrorHandlers = true;
             });
 
             // Register all classes that implement IRunScenario

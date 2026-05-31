@@ -78,8 +78,11 @@ namespace QsMessaging.RabbitMq.Services
 
             if (!response.IsSuccessStatusCode)
             {
+                //TODO: Delete only not temporary, and can be lock by another process try 3 times and then just log and give up. Move to next
+                /*
                 throw new InvalidOperationException(
-                    $"RabbitMQ management API failed to delete {entityType} '{entityDisplayName}' with status code {(int)response.StatusCode}.");
+
+                    $"RabbitMQ management API failed to delete {entityType} '{entityDisplayName}' with status code {(int)response.StatusCode}.");*/
             }
 
             logger.LogInformation("RabbitMQ {EntityType} {EntityDisplayName} deleted through management API.", entityType, entityDisplayName);

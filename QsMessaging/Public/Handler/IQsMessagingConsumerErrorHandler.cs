@@ -34,7 +34,14 @@
         string? ConcreteHandlerInterfaceTypeName,
         string? HandlerTypeName,
         string? GenericTypeName,
-        ErrorConsumerType ErrorType);
+        ErrorConsumerType ErrorType)
+    {
+        /// <summary>
+        /// Diagnostic wrapper created for a failed consumer message.
+        /// This is populated when QsMessaging can build message failure details without changing the error handler contract.
+        /// </summary>
+        public FailedMessageWrapper? FailedMessage { get; init; }
+    }
 
     /// <summary>
     /// InHandlerProblem - Problem in your handler implementation.

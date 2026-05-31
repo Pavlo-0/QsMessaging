@@ -18,6 +18,25 @@ namespace QsMessaging.AzureServiceBus.Services
         public async Task<string> GetOrCreateQueueAsync(Type contractType, AsbQueuePurpose queuePurpose, CancellationToken cancellationToken = default)
         {
             var queueName = nameGenerator.GetAsbQueueNameFromType(contractType, queuePurpose);
+            var autoDeleteOnIdle = queuePurpose == AsbQueuePurpose.Response ? TimeSpan.FromMinutes(5) : TimeSpan.FromDays(14);
+            return await GetOrCreateQueueAsync(queueName, autoDeleteOnIdle, cancellationToken);
+        }
+
+        public async Task<string> GetOrCreateQueueAsync(string queueName, CancellationToken cancellationToken = default)
+        {
+            return await GetOrCreateQueueAsync(queueName, TimeSpan.FromDays(14), cancellationToken);
+        }
+
+        private async Task<string> GetOrCreateQueueAsync(
+            string queueName,
+            TimeSpan autoDeleteOnIdle,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(queueName))
+            {
+                throw new ArgumentException("Queue name can not be empty.", nameof(queueName));
+            }
+
             if (existingQueues.ContainsKey(queueName))
             {
                 return queueName;
@@ -32,7 +51,7 @@ namespace QsMessaging.AzureServiceBus.Services
                     return queueName;
                 }
 
-                await CreateQueueIfMissingAsync(queueName, queuePurpose, cancellationToken);
+                await CreateQueueIfMissingAsync(queueName, autoDeleteOnIdle, cancellationToken);
                 existingQueues.TryAdd(queueName, 0);
                 return queueName;
             }
@@ -47,11 +66,11 @@ namespace QsMessaging.AzureServiceBus.Services
             existingQueues.TryRemove(queueName, out _);
         }
 
-        private async Task CreateQueueIfMissingAsync(string queueName, AsbQueuePurpose queuePurpose, CancellationToken cancellationToken)
+        private async Task CreateQueueIfMissingAsync(string queueName, TimeSpan autoDeleteOnIdle, CancellationToken cancellationToken)
         {
             var queueOptions = new CreateQueueOptions(queueName)
             {
-                AutoDeleteOnIdle = queuePurpose == AsbQueuePurpose.Response ? TimeSpan.FromMinutes(5) : TimeSpan.FromDays(14)
+                AutoDeleteOnIdle = autoDeleteOnIdle
             };
 
             var client = await absConnectionService.GetOrCreateAdministrationClientAsync(cancellationToken);

@@ -7,6 +7,8 @@ namespace QsMessaging.AzureServiceBus.Services.Interfaces
     {
         Task<string> GetOrCreateQueueAsync(Type contractType, AsbQueuePurpose queuePurpose, CancellationToken cancellationToken = default);
 
+        Task<string> GetOrCreateQueueAsync(string queueName, CancellationToken cancellationToken = default);
+
         void InvalidateQueue(string queueName);
     }
 }

@@ -9,6 +9,7 @@ namespace QsMessaging.Public
     {
         ICollection<Assembly> AssembliesToScan { get; }
         QsAzureServiceBusConfiguration AzureServiceBus { get; set; }
+        QsFailedMessageHandlingConfiguration FailedMessageHandling { get; set; }
         QsMessageHandlerRetryConfiguration HandlerResilience { get; set; }
         QsRabbitMQConfiguration RabbitMQ { get; set; }
         QsMessageReceiverRetryConfiguration Resilience { get; set; }
@@ -17,6 +18,21 @@ namespace QsMessaging.Public
         bool AllowDangerousFullCleanup { get; set; }
         int RequestResponseTimeout { get; set; }
         string ServiceName { get; set; }
+    }
+
+    public class QsFailedMessageHandlingConfiguration
+    {
+        /// <summary>
+        /// Sends a diagnostic wrapper for failed consumer messages to a dedicated error queue.
+        /// Disabled by default to preserve existing transport behavior.
+        /// </summary>
+        public bool SendToErrorQueue { get; set; }
+
+        /// <summary>
+        /// Calls registered IQsMessagingConsumerErrorHandler implementations after consumer failures.
+        /// Enabled by default to preserve existing error handler behavior.
+        /// </summary>
+        public bool CallErrorHandlers { get; set; } = true;
     }
 
     public class QsMessagingSerializationConfiguration

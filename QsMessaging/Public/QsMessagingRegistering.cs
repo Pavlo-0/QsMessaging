@@ -178,6 +178,7 @@ namespace QsMessaging.Public
                     services.AddTransient<IRqChannelService, RqChannelService>();
                     services.AddTransient<IRqQueueService, RqQueueService>();
                     services.AddTransient<IRqConsumerService, RqConsumerService>();
+                    services.AddTransient<IFailedMessageQueuePublisher, RqFailedMessageQueuePublisher>();
                     break;
 
                 case QsMessagingTransport.AzureServiceBus:
@@ -197,6 +198,7 @@ namespace QsMessaging.Public
 
                     services.AddTransient<IAsbServiceBusProcessorService, AsbServiceBusProcessorService>();
                     services.AddTransient<IAsbConsumerService, AsbConsumerService>();
+                    services.AddTransient<IFailedMessageQueuePublisher, AsbFailedMessageQueuePublisher>();
                     break;
 
                 default:
@@ -236,6 +238,7 @@ namespace QsMessaging.Public
             ValidateRetryConfiguration(configuration.Resilience, "Resilience");
             ValidateRetryConfiguration(configuration.HandlerResilience, "HandlerResilience");
             ValidateSerializationConfiguration(configuration.Serialization);
+            ValidateFailedMessageHandlingConfiguration(configuration.FailedMessageHandling);
 
             if (configuration.Transport != QsMessagingTransport.AzureServiceBus)
             {
@@ -286,6 +289,14 @@ namespace QsMessaging.Public
             if (string.IsNullOrWhiteSpace(serialization.ContractVersion))
             {
                 throw new InvalidOperationException("Serialization.ContractVersion can not be empty.");
+            }
+        }
+
+        private static void ValidateFailedMessageHandlingConfiguration(QsFailedMessageHandlingConfiguration failedMessageHandling)
+        {
+            if (failedMessageHandling is null)
+            {
+                throw new InvalidOperationException("FailedMessageHandling configuration can not be null.");
             }
         }
     }

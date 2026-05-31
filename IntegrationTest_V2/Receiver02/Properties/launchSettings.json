@@ -1,0 +1,9 @@
+{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "IntegrationTestV2.Receiver02": {
+      "commandName": "Project",
+      "dotnetRunMessages": true
+    }
+  }
+}

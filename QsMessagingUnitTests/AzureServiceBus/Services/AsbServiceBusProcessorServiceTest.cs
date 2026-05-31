@@ -69,9 +69,12 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
                 .Callback<string, ServiceBusProcessorOptions>((_, processorOptions) => options = processorOptions)
                 .Returns(_mockProcessor.Object);
 
-            var processor = await _service.GetOrCreate(record, CancellationToken.None);
+            var registration = await _service.GetOrCreate(record, CancellationToken.None);
 
-            Assert.AreSame(_mockProcessor.Object, processor);
+            Assert.AreSame(_mockProcessor.Object, registration.Processor);
+            Assert.AreEqual("request-queue", registration.EntityName);
+            Assert.AreEqual("request-queue", registration.DestinationName);
+            Assert.IsNull(registration.SubscriptionName);
             Assert.IsNotNull(options);
             Assert.IsFalse(options.AutoCompleteMessages);
             Assert.AreEqual(1, options.MaxConcurrentCalls);
@@ -96,9 +99,12 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
                 .Setup(connection => connection.CreateProcessor("response-queue", It.IsAny<ServiceBusProcessorOptions>()))
                 .Returns(_mockProcessor.Object);
 
-            var processor = await _service.GetOrCreate(record, CancellationToken.None);
+            var registration = await _service.GetOrCreate(record, CancellationToken.None);
 
-            Assert.AreSame(_mockProcessor.Object, processor);
+            Assert.AreSame(_mockProcessor.Object, registration.Processor);
+            Assert.AreEqual("response-queue", registration.EntityName);
+            Assert.AreEqual("response-queue", registration.DestinationName);
+            Assert.IsNull(registration.SubscriptionName);
             _mockQueueService.Verify(
                 service => service.GetOrCreateQueueAsync(typeof(TestResponse), AsbQueuePurpose.Response, It.IsAny<CancellationToken>()),
                 Times.Once);
@@ -125,9 +131,12 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
                 .Callback<string, string, ServiceBusProcessorOptions>((_, _, processorOptions) => options = processorOptions)
                 .Returns(_mockProcessor.Object);
 
-            var processor = await _service.GetOrCreate(record, CancellationToken.None);
+            var registration = await _service.GetOrCreate(record, CancellationToken.None);
 
-            Assert.AreSame(_mockProcessor.Object, processor);
+            Assert.AreSame(_mockProcessor.Object, registration.Processor);
+            Assert.AreEqual("subscription", registration.EntityName);
+            Assert.AreEqual("topic", registration.DestinationName);
+            Assert.AreEqual("subscription", registration.SubscriptionName);
             Assert.IsNotNull(options);
             Assert.IsFalse(options.AutoCompleteMessages);
             Assert.AreEqual(1, options.MaxConcurrentCalls);

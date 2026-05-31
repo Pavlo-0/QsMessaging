@@ -15,39 +15,46 @@ namespace QsMessaging.AzureServiceBus.Services
         IAsbTopicSubscriptionService topicSubscriptionService) : IAsbServiceBusProcessorService
     {
 
-        public async Task<ServiceBusProcessor> GetOrCreate(HandlersStoreRecord record, CancellationToken cancellationToken)
+        public async Task<AsbProcessorRegistration> GetOrCreate(HandlersStoreRecord record, CancellationToken cancellationToken)
         {
             var reciverPurpose = HardConfiguration.GetReciverPurpose(record.supportedInterfacesType);
+            logger.LogDebug(
+                "Creating Azure Service Bus processor for {HandlerType} with receiver purpose {ReceiverPurpose}.",
+                record.HandlerType.FullName,
+                reciverPurpose);
             var connection = await connectionService.GetOrCreateConnectionAsync(cancellationToken);
-
-            ServiceBusProcessor? processor = null;
 
             switch (reciverPurpose)
             {
                 case AsbReciverPurpose.QueueForRequest:
                     var queueName = await queueService.GetOrCreateQueueAsync(record.GenericType, AsbQueuePurpose.Request, cancellationToken);
 
-                    processor = connection.CreateProcessor(queueName, CreateProcessorOptions());
-                    break;
+                    return new AsbProcessorRegistration(
+                        connection.CreateProcessor(queueName, CreateProcessorOptions()),
+                        queueName,
+                        queueName,
+                        null);
                 case AsbReciverPurpose.QueueForResponse:
                     var responseQueueName = await queueService.GetOrCreateQueueAsync(record.GenericType, AsbQueuePurpose.Response, cancellationToken);
 
-                    processor = connection.CreateProcessor(responseQueueName, CreateProcessorOptions());
-                    break;
+                    return new AsbProcessorRegistration(
+                        connection.CreateProcessor(responseQueueName, CreateProcessorOptions()),
+                        responseQueueName,
+                        responseQueueName,
+                        null);
                 case AsbReciverPurpose.TopicSubscription:
 
                     var topicName = await topicService.GetOrCreateTopicAsync(record.GenericType, cancellationToken);
                     var subscriptionName = await topicSubscriptionService.GetOrCreateSubscriptionAsync(record, cancellationToken);
 
-                    processor = connection.CreateProcessor(topicName, subscriptionName, CreateProcessorOptions());
-
-                    break;
+                    return new AsbProcessorRegistration(
+                        connection.CreateProcessor(topicName, subscriptionName, CreateProcessorOptions()),
+                        subscriptionName,
+                        topicName,
+                        subscriptionName);
                 default:
                     throw new NotSupportedException("No Azure Service Bus receiver found for the specified handler.");
-                    break;
             }
-
-            return processor;
         }
 
         private static ServiceBusProcessorOptions CreateProcessorOptions()

@@ -6,8 +6,9 @@ namespace QsMessaging.RabbitMq.Services.Interfaces
     internal interface IRqConsumerService
     {
         Task<string> GetOrCreateConsumerAsync(
-            IChannel channel, 
+            IChannel channel,
             string queueName,
+            string exchangeName,
             HandlersStoreRecord record,
             CancellationToken cancellationToken = default);
 

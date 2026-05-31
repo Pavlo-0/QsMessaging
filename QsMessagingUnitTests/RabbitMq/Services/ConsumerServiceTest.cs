@@ -66,7 +66,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 typeof(TestModel),
                 typeof(TestModel));
 
-            var result = await _consumerService.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, record);
+            var result = await _consumerService.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, "test-exchange", record);
 
             Assert.AreEqual(expectedTag, result);
             _mockChannel.Verify(c => c.BasicConsumeAsync(
@@ -96,7 +96,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 typeof(TestModel),
                 typeof(TestModel));
 
-            var result = await _consumerService.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, record);
+            var result = await _consumerService.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, "test-exchange", record);
 
             Assert.AreEqual(existingTag, result);
             _mockChannel.Verify(c => c.BasicConsumeAsync(
@@ -115,6 +115,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         {
             const string consumerTag = "test-consumer-tag";
             const string queueName = "test-queue";
+            const string exchangeName = "test-exchange";
             const string correlationId = "corr-1";
             const string replyTo = "reply-queue";
             var expectedPayload = JsonSerializer.Serialize(new TestModel());
@@ -145,9 +146,12 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(s => s.UniversalConsumer(
                     It.IsAny<byte[]>(),
                     record,
-                    correlationId,
-                    replyTo,
-                    queueName,
+                    It.Is<ConsumerMessageContext>(context =>
+                        context.TransportName == "RabbitMQ"
+                        && context.OriginalQueueName == queueName
+                        && context.OriginalDestinationName == exchangeName
+                        && context.CorrelationId == correlationId
+                        && context.ReplyTo == replyTo),
                     It.IsAny<CancellationToken>()))
                 .Returns(async () =>
                 {
@@ -158,7 +162,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(c => c.BasicAckAsync(1UL, false, It.IsAny<CancellationToken>()))
                 .Returns(ValueTask.CompletedTask);
 
-            await _consumerService.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, record);
+            await _consumerService.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, exchangeName, record);
 
             Assert.IsNotNull(registeredConsumer);
 
@@ -179,9 +183,12 @@ namespace QsMessagingUnitTests.RabbitMq.Services
             _mockInnerConsumerService.Verify(s => s.UniversalConsumer(
                 It.Is<byte[]>(bytes => Encoding.UTF8.GetString(bytes) == expectedPayload),
                 record,
-                correlationId,
-                replyTo,
-                queueName,
+                It.Is<ConsumerMessageContext>(context =>
+                    context.TransportName == "RabbitMQ"
+                    && context.OriginalQueueName == queueName
+                    && context.OriginalDestinationName == exchangeName
+                    && context.CorrelationId == correlationId
+                    && context.ReplyTo == replyTo),
                 It.Is<CancellationToken>(token => token.CanBeCanceled)), Times.Once);
             _mockChannel.Verify(c => c.BasicAckAsync(1UL, false, It.IsAny<CancellationToken>()), Times.Once);
             _mockChannel.Verify(c => c.BasicNackAsync(It.IsAny<ulong>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -192,6 +199,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         {
             const string consumerTag = "test-consumer-tag";
             const string queueName = "test-queue";
+            const string exchangeName = "test-exchange";
             IAsyncBasicConsumer? registeredConsumer = null;
 
             _mockChannel
@@ -217,16 +225,14 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(s => s.UniversalConsumer(
                     It.IsAny<byte[]>(),
                     record,
-                    It.IsAny<string?>(),
-                    It.IsAny<string>(),
-                    queueName,
+                    It.Is<ConsumerMessageContext>(context => context.OriginalQueueName == queueName),
                     It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new InvalidOperationException("boom"));
             _mockChannel
                 .Setup(c => c.BasicAckAsync(1UL, false, It.IsAny<CancellationToken>()))
                 .Returns(ValueTask.CompletedTask);
 
-            await _consumerService.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, record);
+            await _consumerService.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, exchangeName, record);
 
             Assert.IsNotNull(registeredConsumer);
 
@@ -243,6 +249,7 @@ namespace QsMessagingUnitTests.RabbitMq.Services
         {
             const string consumerTag = "test-consumer-tag";
             const string queueName = "test-queue";
+            const string exchangeName = "test-exchange";
             IAsyncBasicConsumer? registeredConsumer = null;
             var processingStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var allowProcessingToFinish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -277,18 +284,16 @@ namespace QsMessagingUnitTests.RabbitMq.Services
                 .Setup(s => s.UniversalConsumer(
                     It.IsAny<byte[]>(),
                     record,
-                    It.IsAny<string?>(),
-                    It.IsAny<string>(),
-                    queueName,
+                    It.Is<ConsumerMessageContext>(context => context.OriginalQueueName == queueName),
                     It.IsAny<CancellationToken>()))
-                .Callback<byte[], HandlersStoreRecord, string?, string, string, CancellationToken>((_, _, _, _, _, token) =>
+                .Callback<byte[], HandlersStoreRecord, ConsumerMessageContext, CancellationToken>((_, _, _, token) =>
                 {
                     receivedCancellationToken = token;
                     processingStarted.TrySetResult();
                 })
                 .Returns(async () => await allowProcessingToFinish.Task);
 
-            await _consumerService.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, record);
+            await _consumerService.GetOrCreateConsumerAsync(_mockChannel.Object, queueName, exchangeName, record);
 
             Assert.IsNotNull(registeredConsumer);
 

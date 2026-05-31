@@ -15,6 +15,7 @@ namespace AssertInstance01.MessageAssert
 
             if (contractModel.MyEventCount == 10)
             {
+                await CollectionTestResults.WaitForEvent50PausedTurnAsync();
                 await connectionManager.Close();
                 await Task.Delay(1000);
                 await connectionManager.Open();

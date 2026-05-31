@@ -11,6 +11,8 @@ namespace ArrangeInstance01
             var builder = Host.CreateApplicationBuilder(args);
             builder.Services.AddHostedService<Worker>();
 
+
+
             builder.Services.AddConfiguredQsMessaging(builder.Configuration);
 
             // Register all classes that implement IRunScenario
@@ -24,6 +26,7 @@ namespace ArrangeInstance01
             }
 
             var host = builder.Build();
+            //await host.FullCleanUpTransportation(); TODO: Move for separate app for clean up
 
             await host.UseQsMessaging();
 
