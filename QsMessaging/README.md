@@ -110,8 +110,24 @@ When a user handler throws, QsMessaging retries that handler before calling `IQs
 | `BackoffType`      | `Constant` | Polly backoff type: `Constant`, `Linear`, or `Exponential`.                  |
 | `UseJitter`        | `false`    | Adds jitter to retry delays when enabled.                                    |
 
-If a retry succeeds, error handlers are not called. If all attempts fail, QsMessaging calls each registered `IQsMessagingConsumerErrorHandler` once with `ErrorConsumerType.InHandlerProblem`.
+If a retry succeeds, error handlers are not called. If all attempts fail, QsMessaging creates a `FailedMessageWrapper` and routes it to the configured failed-message sinks.
 Receive, deserialization, and dispatch failures are reported as `ErrorConsumerType.ReceivingProblem`; the misspelled `RecevingProblem` member remains as a compatibility alias.
+
+## Failed Message Handling
+
+Existing behavior is preserved by default: registered `IQsMessagingConsumerErrorHandler` implementations are called and no error queue message is written. Configure each sink independently:
+
+```csharp
+builder.Services.AddQsMessaging(options =>
+{
+    options.FailedMessageHandling.CallErrorHandlers = true;  // default
+    options.FailedMessageHandling.SendToErrorQueue = true;   // default false
+});
+```
+
+When `SendToErrorQueue` is enabled, QsMessaging serializes the same `FailedMessageWrapper` exposed on `ErrorConsumerDetail.FailedMessage`. RabbitMQ sends it to `<originalQueueName>:Error`; Azure Service Bus sends it to `<originalQueueName>-Error`. Names are normalized or hashed when required by the transport, with the transport suffix kept at the end.
+
+The wrapper includes transport name, source queue/entity, error queue, exchange/topic when available, routing key/subject/reply-to/correlation/message metadata, original contract and handler types, original body and headers/application properties, handler attempt count, configured retry count, captured exceptions, and UTC creation/send timestamps. If both sinks are enabled, QsMessaging attempts both and logs sink failures independently.
 
 ## Cleanup Helpers
 

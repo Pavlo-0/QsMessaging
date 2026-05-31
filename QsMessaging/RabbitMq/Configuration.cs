@@ -36,6 +36,11 @@ namespace QsMessaging.RabbitMq
         public QsRabbitMQConfiguration RabbitMQ { get; set; } = new QsRabbitMQConfiguration();
 
         /// <summary>
+        /// Controls how failed consumer messages are routed after handler retries are exhausted.
+        /// </summary>
+        public QsFailedMessageHandlingConfiguration FailedMessageHandling { get; set; } = new();
+
+        /// <summary>
         /// Retry settings for user message handlers before QsMessaging calls consumer error handlers.
         /// </summary>
         public QsMessageHandlerRetryConfiguration HandlerResilience { get; set; } = new();

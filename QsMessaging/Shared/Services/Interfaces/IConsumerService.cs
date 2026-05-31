@@ -4,6 +4,6 @@ namespace QsMessaging.Shared.Services.Interfaces
 {
     internal interface IConsumerService
     {
-        Task UniversalConsumer(byte[] data, HandlersStoreRecord record, string? correlationId, string replyTo, string name, CancellationToken cancellationToken);
+        Task UniversalConsumer(byte[] data, HandlersStoreRecord record, ConsumerMessageContext context, CancellationToken cancellationToken);
     }
 }

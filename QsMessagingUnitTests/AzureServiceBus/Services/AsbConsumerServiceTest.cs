@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using QsMessaging.AzureServiceBus;
 using QsMessaging.AzureServiceBus.Services;
+using QsMessaging.Public;
 using QsMessaging.Public.Handler;
-using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.Shared.Models;
 using QsMessaging.Shared.Services.Interfaces;
 using System.Text;
@@ -24,7 +24,8 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
         [TestMethod]
         public async Task HandleMessageAsync_DelegatesToUniversalConsumerForSharedHandlerRetry()
         {
-            const string entityName = "topic/subscription";
+            const string entityName = "subscription";
+            const string topicName = "topic";
             const string correlationId = "corr-1";
             const string replyTo = "reply-queue";
             var payload = JsonSerializer.Serialize(new TestMessage { Name = "from-asb" });
@@ -47,17 +48,24 @@ namespace QsMessagingUnitTests.AzureServiceBus.Services
                 Mock.Of<ILogger<AsbSubscriber>>(),
                 serviceProvider.GetRequiredService<IServiceScopeFactory>(),
                 consumerService.Object,
-                Mock.Of<ISender>());
+                Mock.Of<IQsMessagingConfiguration>());
 
-            await asbConsumerService.HandleMessageAsync(args, record, entityName, CancellationToken.None);
+            await asbConsumerService.HandleMessageAsync(
+                args,
+                record,
+                new AsbProcessorRegistration(Mock.Of<ServiceBusProcessor>(), entityName, topicName, entityName),
+                CancellationToken.None);
 
             consumerService.Verify(
                 x => x.UniversalConsumer(
                     It.Is<byte[]>(bytes => Encoding.UTF8.GetString(bytes) == payload),
                     record,
-                    correlationId,
-                    replyTo,
-                    entityName,
+                    It.Is<ConsumerMessageContext>(context =>
+                        context.TransportName == "AzureServiceBus"
+                        && context.OriginalQueueName == entityName
+                        && context.OriginalDestinationName == topicName
+                        && context.CorrelationId == correlationId
+                        && context.ReplyTo == replyTo),
                     It.Is<CancellationToken>(token => token.CanBeCanceled)),
                 Times.Once);
         }

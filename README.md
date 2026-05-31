@@ -153,8 +153,24 @@ builder.Services.AddQsMessaging(options =>
 | `BackoffType`      | `Constant` | Polly backoff type: `Constant`, `Linear`, or `Exponential`.                  |
 | `UseJitter`        | `false`    | Adds jitter to retry delays when enabled.                                    |
 
-If a retry succeeds, QsMessaging does not call consumer error handlers. If all attempts fail, QsMessaging calls each registered `IQsMessagingConsumerErrorHandler` once with `ErrorConsumerType.InHandlerProblem`.
+If a retry succeeds, QsMessaging does not call consumer error handlers. If all attempts fail, QsMessaging creates a `FailedMessageWrapper` and routes it to the configured failed-message sinks.
 Receive, deserialization, and dispatch failures are reported as `ErrorConsumerType.ReceivingProblem`; the misspelled `RecevingProblem` member remains as a compatibility alias.
+
+### Failed Message Handling
+
+By default QsMessaging preserves the existing behavior: registered `IQsMessagingConsumerErrorHandler` implementations are called and no error queue message is written. You can independently enable or disable each sink:
+
+```csharp
+builder.Services.AddQsMessaging(options =>
+{
+    options.FailedMessageHandling.CallErrorHandlers = true;  // default
+    options.FailedMessageHandling.SendToErrorQueue = true;   // default false
+});
+```
+
+When `SendToErrorQueue` is enabled, QsMessaging sends the same `FailedMessageWrapper` passed through `ErrorConsumerDetail.FailedMessage` to a queue named from the consumed queue/entity. RabbitMQ uses `<originalQueueName>:Error`; Azure Service Bus uses `<originalQueueName>-Error`. Long or invalid transport names are normalized or hashed with the transport suffix kept at the end.
+
+The wrapper includes the transport, original queue/entity, error queue, original exchange/topic when available, routing key/subject/reply-to/correlation/message metadata, original contract and handler types, original body and headers/application properties, handler attempt count, configured retry count, all captured handler exceptions, and UTC creation/send timestamps. If both sinks are enabled, QsMessaging attempts both; a failure in one sink is logged and does not stop the other sink.
 
 ### Transport Cleanup Helpers
 
@@ -304,23 +320,24 @@ If your handler throws an exception, QsMessaging catches it, retries the handler
 - The exception does **not** crash the consumer loop.
 - The handler is retried according to `options.HandlerResilience`.
 - If a retry succeeds, consumer error handlers are not called.
-- If all handler attempts fail, the exception is forwarded to your custom error handler(s) together with message metadata.
+- If all handler attempts fail, QsMessaging creates a `FailedMessageWrapper`.
+- The wrapper is forwarded to your custom error handler(s), an error queue, or both depending on `options.FailedMessageHandling`.
 
 Current behavior by transport:
 
 - **RabbitMQ**: consumers use automatic acknowledge mode, so the message is treated as acknowledged even if the handler fails.
 - **Azure Service Bus**: after the handler pipeline finishes, QsMessaging completes the message, so it is not re-delivered automatically.
 
-If you need dead-letter, alerting, or custom logging after handler retries are exhausted, implement `IQsMessagingConsumerErrorHandler` and handle the exception there.
+If you need alerting or custom logging after handler retries are exhausted, implement `IQsMessagingConsumerErrorHandler`. If you need a durable copy of the failed message, enable `options.FailedMessageHandling.SendToErrorQueue`.
 
 #### Short Operational Notes
 
 - **Queue/exchange naming**: RabbitMQ uses names like `Qs:{FullTypeName}:ex` for exchanges and `Qs:{FullTypeName}:permanent` for durable queues. Azure Service Bus uses `Qs-Queue-{FullTypeName}` and `Qs-Topic-{FullTypeName}`. Long names are hashed.
 - **Send retry**: ordinary message sends retry only after the transport reports a missing/unroutable receiver. There is no per-message pre-check of queue or subscription existence.
-- **Handler retry / dead-letter**: handlers are retried with `HandlerResilience` before error handlers run. There is currently no built-in dead-letter flow for failed message handlers.
+- **Handler retry / failed messages**: handlers are retried with `HandlerResilience`; after attempts are exhausted, `FailedMessageHandling` can call error handlers, send a wrapper to the transport error queue (`:Error` for RabbitMQ, `-Error` for Azure Service Bus), or both.
 - **Azure Service Bus TTL**: normal `SendMessageAsync` messages use a 14 day TTL. Events use a 60 second TTL.
 - **Multiple instances of one consumer**: for `IQsMessageHandler<T>`, instances compete on one shared queue, so one message is processed by one instance. For `IQsEventHandler<T>`, each instance gets its own temporary queue/subscription, so every instance receives the event.
-- **Unhappy path**: if a handler still throws after configured retries, the exception is sent to `IQsMessagingConsumerErrorHandler`.
+- **Unhappy path**: if a handler still throws after configured retries, the failed-message wrapper is routed according to `FailedMessageHandling`.
 - **Request/response**: default timeout is `50000` ms. If no response arrives in time, the request fails with `TimeoutException`. Correlation ID is generated automatically per request as a new `Guid` string and copied to the response. Cancellation token is passed into transport operations, but timeout is the main response wait guard. Duplicate responses are not specially deduplicated by the library; late responses are ignored after the request is removed from the local store.
 
 #### Example: Custom Error Handler

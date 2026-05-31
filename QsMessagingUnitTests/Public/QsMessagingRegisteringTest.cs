@@ -11,6 +11,7 @@ using QsMessaging.RabbitMq.Interfaces;
 using QsMessaging.RabbitMq.Models;
 using QsMessaging.Shared.Models;
 using QsMessaging.Shared.Services;
+using QsMessaging.Shared.Services.Interfaces;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -65,6 +66,9 @@ namespace QsMessagingUnitTests.Public
             Assert.IsTrue(services.Any(s => s.ServiceType == typeof(AzureConnectionService)));
             Assert.IsTrue(services.Any(s => s.ServiceType == typeof(IAsbTopicService)));
             Assert.IsTrue(services.Any(s =>
+                s.ServiceType == typeof(IFailedMessageQueuePublisher) &&
+                s.ImplementationType == typeof(AsbFailedMessageQueuePublisher)));
+            Assert.IsTrue(services.Any(s =>
                 s.ServiceType == typeof(IQsMessagingConnectionManager) &&
                 s.ImplementationType == typeof(AsbConnectionManager)));
             Assert.IsTrue(services.Any(s =>
@@ -89,6 +93,9 @@ namespace QsMessagingUnitTests.Public
             Assert.IsTrue(services.Any(s =>
                 s.ServiceType == typeof(RabbitConnectionService) &&
                 s.ImplementationType == typeof(QsMessaging.RabbitMq.Services.RbConnectionService)));
+            Assert.IsTrue(services.Any(s =>
+                s.ServiceType == typeof(IFailedMessageQueuePublisher) &&
+                s.ImplementationType == typeof(QsMessaging.RabbitMq.Services.RqFailedMessageQueuePublisher)));
             Assert.IsTrue(services.Any(s =>
                 s.ServiceType == typeof(IQsMessagingConnectionManager) &&
                 s.ImplementationType == typeof(RqConnectionManager)));

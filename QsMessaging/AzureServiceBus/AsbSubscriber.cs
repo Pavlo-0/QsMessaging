@@ -29,12 +29,13 @@ namespace QsMessaging.AzureServiceBus
         {
             logger.LogInformation("Subscribing handler to the {Type}", record.GenericType.FullName);
 
-            var processor = await serviceBusProcessorService.GetOrCreate(record, cancellationToken);
+            var processorRegistration = await serviceBusProcessorService.GetOrCreate(record, cancellationToken);
+            var processor = processorRegistration.Processor;
             var processorCancellation = new CancellationTokenSource();
 
 
-            processor.ProcessMessageAsync += args => handlersService.HandleMessageAsync(args, record, processor.Identifier, processorCancellation.Token);
-            processor.ProcessErrorAsync += args => handlersService.HandleProcessingErrorAsync(args, processor.Identifier);
+            processor.ProcessMessageAsync += args => handlersService.HandleMessageAsync(args, record, processorRegistration, processorCancellation.Token);
+            processor.ProcessErrorAsync += args => handlersService.HandleProcessingErrorAsync(args, processorRegistration.EntityName);
 
             try
             {

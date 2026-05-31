@@ -25,6 +25,7 @@ namespace QsMessaging.RabbitMq.Services
         public async Task<string> GetOrCreateConsumerAsync(
             IChannel channel,
             string queueName,
+            string exchangeName,
             HandlersStoreRecord record,
             CancellationToken cancellationToken = default)
         {
@@ -60,9 +61,7 @@ namespace QsMessaging.RabbitMq.Services
                     await consumerService.UniversalConsumer(
                         data: ea.Body.ToArray(),
                         record: record,
-                        correlationId: ea.BasicProperties.CorrelationId,
-                        replyTo: ea.BasicProperties.ReplyTo ?? string.Empty,
-                        name: queueName,
+                        context: CreateMessageContext(ea, queueName, exchangeName),
                         cancellationToken: consumerCancellation.Token);
                 }
                 catch (Exception ex)
@@ -163,6 +162,73 @@ namespace QsMessaging.RabbitMq.Services
             catch (ObjectDisposedException)
             {
             }
+        }
+
+        private static ConsumerMessageContext CreateMessageContext(
+            BasicDeliverEventArgs args,
+            string queueName,
+            string exchangeName)
+        {
+            var properties = args.BasicProperties;
+            var headers = ConvertHeaders(properties.Headers);
+            var metadata = new Dictionary<string, string?>
+            {
+                ["ConsumerTag"] = args.ConsumerTag,
+                ["DeliveryTag"] = args.DeliveryTag.ToString(),
+                ["Redelivered"] = args.Redelivered.ToString()
+            };
+
+            return new ConsumerMessageContext
+            {
+                TransportName = "RabbitMQ",
+                OriginalQueueName = queueName,
+                OriginalHashedQueueName = queueName,
+                OriginalDestinationName = string.IsNullOrWhiteSpace(args.Exchange) ? exchangeName : args.Exchange,
+                OriginalHashedDestinationName = exchangeName,
+                RoutingKey = args.RoutingKey,
+                ReplyTo = properties.ReplyTo,
+                CorrelationId = properties.CorrelationId,
+                MessageId = properties.MessageId,
+                ContentType = properties.ContentType,
+                ContentEncoding = properties.ContentEncoding,
+                OriginalContractType = FirstNotEmpty(
+                    properties.Type,
+                    TryGetHeader(headers, SerializationMetadata.ContractTypeHeader)),
+                Headers = headers,
+                Metadata = metadata
+            };
+        }
+
+        private static IReadOnlyDictionary<string, string?> ConvertHeaders(IEnumerable<KeyValuePair<string, object?>>? headers)
+        {
+            if (headers is null)
+            {
+                return new Dictionary<string, string?>();
+            }
+
+            return headers.ToDictionary(pair => pair.Key, pair => ConvertHeaderValue(pair.Value));
+        }
+
+        private static string? ConvertHeaderValue(object? value)
+        {
+            return value switch
+            {
+                null => null,
+                byte[] bytes => Encoding.UTF8.GetString(bytes),
+                ReadOnlyMemory<byte> memory => Encoding.UTF8.GetString(memory.Span),
+                ReadOnlyMemory<char> memory => new string(memory.Span),
+                _ => value.ToString()
+            };
+        }
+
+        private static string? TryGetHeader(IReadOnlyDictionary<string, string?> headers, string name)
+        {
+            return headers.TryGetValue(name, out var value) ? value : null;
+        }
+
+        private static string? FirstNotEmpty(params string?[] values)
+        {
+            return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
         }
 
         private async Task TryNegativeAckAsync(IChannel channel, ulong deliveryTag)

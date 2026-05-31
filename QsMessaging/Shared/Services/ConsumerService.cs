@@ -20,18 +20,25 @@ namespace QsMessaging.Shared.Services
         ILogger<ConsumerService> logger,
         IServiceScopeFactory scopeFactory,
         IQsMessagingConfiguration configuration,
+        IFailedMessageQueuePublisher failedMessageQueuePublisher,
         ISender responseSender) : IConsumerService
     {
-        public async Task UniversalConsumer(byte[] data, HandlersStoreRecord record, string? correlationId, string replyTo, string name, CancellationToken cancellationToken)
+        public async Task UniversalConsumer(
+            byte[] data,
+            HandlersStoreRecord record,
+            ConsumerMessageContext context,
+            CancellationToken cancellationToken)
         {
             byte[]? bodyBytes = null;
             object? modelInstance = null;
+            var handlerErrors = new List<FailedMessageError>();
 
             try
             {
                 await using var _ = MessageHandlerExecutionContext.Enter();
 
-                correlationId = correlationId ?? string.Empty;
+                var correlationId = context.CorrelationId ?? string.Empty;
+                var replyTo = context.ReplyTo ?? string.Empty;
 
                 bodyBytes = data;
                 var message = Encoding.UTF8.GetString(bodyBytes);
@@ -59,6 +66,7 @@ namespace QsMessaging.Shared.Services
                         modelInstance,
                         correlationId,
                         record,
+                        handlerErrors,
                         cancellationToken);
                 }
                 catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
@@ -74,12 +82,21 @@ namespace QsMessaging.Shared.Services
                         new ErrorConsumerDetail(
                             modelInstance,
                             bodyBytes,
-                            name,
-                            record?.supportedInterfacesType?.FullName,
-                            record?.ConcreteHandlerInterfaceType?.FullName,
-                            record?.HandlerType?.FullName,
-                            record?.GenericType?.FullName,
-                            ErrorConsumerType.InHandlerProblem));
+                            context.OriginalQueueName,
+                            record.supportedInterfacesType.FullName,
+                            record.ConcreteHandlerInterfaceType.FullName,
+                            record.HandlerType.FullName,
+                            record.GenericType.FullName,
+                            ErrorConsumerType.InHandlerProblem),
+                        BuildFailedMessageWrapper(
+                            ex,
+                            modelInstance,
+                            bodyBytes,
+                            record,
+                            context,
+                            ErrorConsumerType.InHandlerProblem,
+                            handlerErrors),
+                        cancellationToken);
 
                     return;
                 }
@@ -105,12 +122,22 @@ namespace QsMessaging.Shared.Services
                     new ErrorConsumerDetail(
                         modelInstance,
                         bodyBytes,
-                        name,
-                        record?.supportedInterfacesType?.FullName,
-                        record?.ConcreteHandlerInterfaceType?.FullName,
-                        record?.HandlerType?.FullName,
-                        record?.GenericType?.FullName,
-                        ErrorConsumerType.ReceivingProblem));
+                        context.OriginalQueueName,
+                        record.supportedInterfacesType.FullName,
+                        record.ConcreteHandlerInterfaceType.FullName,
+                        record.HandlerType.FullName,
+                        record.GenericType.FullName,
+                        ErrorConsumerType.ReceivingProblem),
+                    BuildFailedMessageWrapper(
+                        e,
+                        modelInstance,
+                        bodyBytes,
+                        record,
+                        context,
+                        ErrorConsumerType.ReceivingProblem,
+                        handlerErrors,
+                        handlerAttempts: 0),
+                    cancellationToken);
             }
         }
 
@@ -121,6 +148,7 @@ namespace QsMessaging.Shared.Services
             object? modelInstance,
             string correlationId,
             HandlersStoreRecord record,
+            List<FailedMessageError> handlerErrors,
             CancellationToken cancellationToken)
         {
             var resilience = configuration.HandlerResilience;
@@ -141,6 +169,11 @@ namespace QsMessaging.Shared.Services
                         && !IsExpectedCancellation(args.Outcome.Exception, cancellationToken)),
                     OnRetry = args =>
                     {
+                        if (args.Outcome.Exception is not null)
+                        {
+                            handlerErrors.Add(CreateFailedMessageError(args.Outcome.Exception));
+                        }
+
                         logger.LogWarning(
                             args.Outcome.Exception,
                             "Message handler {HandlerType} failed. Retrying attempt {RetryAttempt}/{MaxRetryAttempts} after {RetryDelay}.",
@@ -278,20 +311,133 @@ namespace QsMessaging.Shared.Services
             }
         }
 
-        private async Task ErrorAsync(Exception ex, ErrorConsumerDetail model)
+        private async Task ErrorAsync(
+            Exception ex,
+            ErrorConsumerDetail model,
+            FailedMessageWrapper failedMessage,
+            CancellationToken cancellationToken)
         {
-            try
+            var failedMessageHandling = configuration.FailedMessageHandling ?? new QsFailedMessageHandlingConfiguration();
+            var routedToAnySink = false;
+
+            if (failedMessageHandling.SendToErrorQueue)
             {
-                await using var scope = scopeFactory.CreateAsyncScope();
-                foreach (var errorHandler in scope.ServiceProvider.GetServices<IQsMessagingConsumerErrorHandler>())
+                routedToAnySink = true;
+                try
+                {
+                    await failedMessageQueuePublisher.SendAsync(failedMessage, cancellationToken);
+                }
+                catch (Exception queueException)
+                {
+                    logger.LogError(
+                        queueException,
+                        "Failed to publish failed message {FailedEnvelopeId} to error queue {ErrorQueueName}.",
+                        failedMessage.FailedEnvelopeId,
+                        failedMessage.ErrorQueueName);
+                }
+            }
+
+            if (failedMessageHandling.CallErrorHandlers)
+            {
+                routedToAnySink = true;
+                await CallErrorHandlersAsync(ex, model with { FailedMessage = failedMessage });
+            }
+
+            if (!routedToAnySink)
+            {
+                logger.LogWarning(
+                    "Failed message {FailedEnvelopeId} from {QueueName} was not routed because both failed-message sinks are disabled.",
+                    failedMessage.FailedEnvelopeId,
+                    model.QueueName);
+            }
+        }
+
+        private async Task CallErrorHandlersAsync(Exception ex, ErrorConsumerDetail model)
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            foreach (var errorHandler in scope.ServiceProvider.GetServices<IQsMessagingConsumerErrorHandler>())
+            {
+                try
                 {
                     await errorHandler.HandleErrorAsync(ex, model);
                 }
+                catch (Exception handlerException)
+                {
+                    logger.LogCritical(handlerException, "An exception occurred while handling Error. Check your error handlers.");
+                }
             }
-            catch (Exception handlerException)
+        }
+
+        private FailedMessageWrapper BuildFailedMessageWrapper(
+            Exception exception,
+            object? modelInstance,
+            byte[]? bodyBytes,
+            HandlersStoreRecord record,
+            ConsumerMessageContext context,
+            ErrorConsumerType errorConsumerType,
+            List<FailedMessageError> handlerErrors,
+            int? handlerAttempts = null)
+        {
+            var errors = new List<FailedMessageError>(handlerErrors)
             {
-                logger.LogCritical(handlerException, "An exception occurred while handling Error. Check your error handlers.");
-            }
+                CreateFailedMessageError(exception)
+            };
+
+            var errorQueueName = failedMessageQueuePublisher.GetErrorQueueName(context);
+
+            return new FailedMessageWrapper
+            {
+                TransportName = context.TransportName,
+                OriginalQueueName = context.OriginalQueueName,
+                OriginalHashedQueueName = context.OriginalHashedQueueName ?? context.OriginalQueueName,
+                ErrorQueueName = errorQueueName,
+                OriginalDestinationName = context.OriginalDestinationName,
+                OriginalHashedDestinationName = context.OriginalHashedDestinationName ?? context.OriginalDestinationName,
+                RoutingKey = context.RoutingKey,
+                Subject = context.Subject,
+                ReplyTo = context.ReplyTo,
+                CorrelationId = context.CorrelationId,
+                MessageId = context.MessageId,
+                ContentType = context.ContentType,
+                ContentEncoding = context.ContentEncoding,
+                OriginalContractType = FirstNotEmpty(context.OriginalContractType, record.GenericType.FullName),
+                HandlerType = record.HandlerType.FullName,
+                ErrorConsumerType = errorConsumerType.ToString(),
+                ErrorReason = exception.Message,
+                OriginalMessagePayload = modelInstance,
+                OriginalMessageBody = bodyBytes,
+                OriginalMessageBodyText = GetBodyText(bodyBytes),
+                OriginalMessageHeaders = context.Headers,
+                HandlerAttempts = handlerAttempts ?? errors.Count,
+                ConfiguredMaxRetryAttempts = configuration.HandlerResilience?.MaxRetryAttempts ?? 0,
+                Errors = errors,
+                CreatedUtc = DateTimeOffset.UtcNow,
+                Metadata = context.Metadata
+            };
+        }
+
+        private static FailedMessageError CreateFailedMessageError(Exception exception)
+        {
+            return new FailedMessageError
+            {
+                OccurredUtc = DateTimeOffset.UtcNow,
+                ExceptionType = exception.GetType().FullName ?? exception.GetType().Name,
+                Message = exception.Message,
+                StackTrace = exception.StackTrace,
+                InnerException = exception.InnerException is null
+                    ? null
+                    : CreateFailedMessageError(exception.InnerException)
+            };
+        }
+
+        private static string? GetBodyText(byte[]? bodyBytes)
+        {
+            return bodyBytes is null ? null : Encoding.UTF8.GetString(bodyBytes);
+        }
+
+        private static string? FirstNotEmpty(params string?[] values)
+        {
+            return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
         }
     }
 }
